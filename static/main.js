@@ -307,10 +307,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isSystemMessage) {
       div.innerHTML = `<span class="system-text">${text}</span>`;
     } else {
+      // Check if message is a file URL
+      let messageContent = text;
+      if (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg'))) {
+        messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
+      } else {
+        // Convert URLs to clickable links
+        messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+      }
+      
       div.innerHTML = `
         <div class="message-content">
           <span class="message-author">${nick}</span>
-          <span class="message-text">${text}</span>
+          <span class="message-text">${messageContent}</span>
         </div>
       `;
       
@@ -395,17 +404,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // For mobile devices, always position on the left side
     if (window.innerWidth <= 768) {
-      left = 10;
-      // Ensure menu doesn't go below screen
-      if (top + menuHeight > windowHeight) {
-        top = Math.max(10, windowHeight - menuHeight - 10);
+      left = 20;
+      // Ensure menu doesn't go below screen and fits properly
+      if (top + menuHeight > windowHeight - 20) {
+        top = Math.max(20, windowHeight - menuHeight - 20);
+      }
+      // Ensure menu doesn't go above screen
+      if (top < 20) {
+        top = 20;
       }
     } else {
       // Desktop positioning
-      if (left + menuWidth > windowWidth) {
+      if (left + menuWidth > windowWidth - 10) {
         left = Math.max(10, windowWidth - menuWidth - 10);
       }
-      if (top + menuHeight > windowHeight) {
+      if (top + menuHeight > windowHeight - 10) {
         top = Math.max(10, windowHeight - menuHeight - 10);
       }
     }
@@ -581,20 +594,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Socket event handlers
-  socket.on('message', (msg) => {
+  socket.on('message', (data) => {
+    // Only show message if it's for the current room
+    if (data.room && data.room !== currentRoom) {
+      return;
+    }
+    
+    let msg = data.message || data;
+    if (typeof msg !== 'string') {
+      return;
+    }
+    
     // Parse message
     const colonIndex = msg.indexOf(':');
     if (colonIndex > 0) {
       const nick = msg.substring(0, colonIndex);
       const text = msg.substring(colonIndex + 1).trim();
 
-      // Add message for everyone (including own messages for real-time display)
-      addMessage(nick, text, nick === nickname);
+      // Only add if not already added (avoid duplicates)
+      const lastMessages = messageHistory[currentRoom] || [];
+      const lastMsg = lastMessages[lastMessages.length - 1];
+      if (!lastMsg || lastMsg.nick !== nick || lastMsg.text !== text || (Date.now() / 1000 - lastMsg.timestamp) > 2) {
+        addMessage(nick, text, nick === nickname);
 
-      // Update cache
-      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-      messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
-      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+        // Update cache
+        if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+        messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
+        localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+      }
       
       // Show notification and sound only for others' messages
       if (nick !== nickname) {
@@ -942,6 +969,144 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Settings panel
+  function showSettings() {
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    modal.innerHTML = `
+      <div class="admin-content">
+        <h2>⚙️ Settings</h2>
+        
+        <div class="settings-section">
+          <h3>🎨 Theme</h3>
+          <div class="theme-selector">
+            <button class="theme-btn ${document.body.getAttribute('data-theme') === 'light' ? 'active' : ''}" onclick="switchTheme('light')">☀️ Light</button>
+            <button class="theme-btn ${document.body.getAttribute('data-theme') === 'dark' ? 'active' : ''}" onclick="switchTheme('dark')">🌙 Dark</button>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h3>👤 Profile</h3>
+          <div class="profile-section">
+            <p><strong>Current nickname:</strong> ${nickname}</p>
+            <input type="text" id="new-nickname" placeholder="New nickname" maxlength="20">
+            <button class="admin-btn" onclick="changeNickname()">Change Nickname</button>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h3>📁 File Sharing</h3>
+          <div class="file-section">
+            <input type="file" id="file-input" accept="image/*,.gif" style="display: none;">
+            <button class="admin-btn" onclick="document.getElementById('file-input').click()">📷 Upload Image/GIF</button>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
+              Supported: JPG, PNG, GIF (max 5MB)
+            </p>
+          </div>
+        </div>
+        
+        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // File upload handler
+    const fileInput = document.getElementById('file-input');
+    fileInput.onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadFile(file);
+      }
+    };
+  }
+  
+  // Switch theme
+  window.switchTheme = function(theme) {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    updateThemeIcon();
+    
+    // Update theme buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+  };
+  
+  // Change nickname
+  window.changeNickname = function() {
+    const newNick = document.getElementById('new-nickname').value.trim();
+    
+    if (!newNick) {
+      showNotification('❌ Please enter a new nickname', 'error');
+      return;
+    }
+    
+    if (newNick === nickname) {
+      showNotification('❌ This is already your nickname', 'error');
+      return;
+    }
+    
+    if (newNick.length < 2 || newNick.length > 20) {
+      showNotification('❌ Nickname must be 2-20 characters', 'error');
+      return;
+    }
+    
+    fetch('/change_nickname', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({new_nickname: newNick})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Nickname changed! Please refresh to apply changes.', 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to change nickname'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Failed to change nickname:', err);
+      showNotification('❌ Error changing nickname', 'error');
+    });
+  };
+  
+  // Upload file
+  function uploadFile(file) {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      showNotification('❌ File too large (max 5MB)', 'error');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('room', currentRoom);
+    
+    showNotification('📤 Uploading...', 'info');
+    
+    fetch('/upload_file', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ File uploaded successfully', 'success');
+        // File URL will be sent as message automatically
+      } else {
+        showNotification('❌ ' + (data.error || 'Upload failed'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Upload failed:', err);
+      showNotification('❌ Upload error', 'error');
+    });
+  }
+
   // Update user status for private chats
   function updateUserStatus(username) {
     fetch(`/user_status/${username}`)
@@ -1011,10 +1176,17 @@ document.addEventListener('DOMContentLoaded', () => {
   loadRooms();
   setTimeout(() => joinRoom('general'), 100);
   
-  // Add admin button to header if admin
-  if (nickname === 'Wixxy') {
-    const headerButtons = document.querySelector('.header-buttons');
-    if (headerButtons) {
+  // Add settings button to header
+  const headerButtons = document.querySelector('.header-buttons');
+  if (headerButtons) {
+    const settingsBtn = document.createElement('button');
+    settingsBtn.innerHTML = '⚙️';
+    settingsBtn.title = 'Settings';
+    settingsBtn.onclick = showSettings;
+    headerButtons.appendChild(settingsBtn);
+    
+    // Add admin button if admin
+    if (nickname === 'Wixxy') {
       const adminBtn = document.createElement('button');
       adminBtn.innerHTML = '🔧';
       adminBtn.title = 'Admin Panel';

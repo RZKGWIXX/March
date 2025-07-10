@@ -528,9 +528,9 @@ def get_room_stats(room):
     current_time = int(time.time())
     
     if room == 'general':
-        # For general chat, count all online users
-        online_count = sum(1 for data in online_users.values() 
-                          if current_time - data['last_seen'] < 300)
+        # For general chat, count only users currently in general
+        online_count = sum(1 for nickname, data in online_users.items() 
+                          if current_time - data['last_seen'] < 300 and data.get('room') == 'general')
         total_count = len(get_user_list())
     else:
         # For private/group chats
@@ -539,12 +539,144 @@ def get_room_stats(room):
         total_count = len(members)
         online_count = sum(1 for member in members 
                           if member in online_users and 
-                          current_time - online_users[member]['last_seen'] < 300)
+                          current_time - online_users[member]['last_seen'] < 300 and
+                          online_users[member].get('room') == room)
     
     return jsonify({
         'online_count': online_count,
         'total_count': total_count
     })
+
+@app.route('/change_nickname', methods=['POST'])
+@login_required
+def change_nickname():
+    new_nickname = request.json.get('new_nickname', '').strip()
+    
+    if not new_nickname or len(new_nickname) < 2 or len(new_nickname) > 20:
+        return jsonify(success=False, error='Nickname must be 2-20 characters')
+    
+    if new_nickname == session['nickname']:
+        return jsonify(success=False, error='This is already your nickname')
+    
+    # Check if nickname is already taken
+    existing_users = get_user_list()
+    if new_nickname in existing_users:
+        return jsonify(success=False, error='Nickname already taken')
+    
+    old_nickname = session['nickname']
+    
+    # Update users file
+    import time
+    timestamp = int(time.time())
+    date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+    ip = request.remote_addr
+    
+    # Read existing users and update the one with old nickname
+    users_data = []
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split(',')
+                if len(parts) >= 3:
+                    if parts[1] == old_nickname:
+                        # Update this user's nickname
+                        users_data.append(f"{ip},{new_nickname},{parts[2]},{timestamp},{date_str}")
+                    else:
+                        users_data.append(line.strip())
+    
+    # Write back to file
+    with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        f.write("# IP,Username,Password,Timestamp,Date\n")
+        for user_data in users_data:
+            f.write(user_data + "\n")
+    
+    # Update session
+    session['nickname'] = new_nickname
+    
+    # Update online users tracking
+    if old_nickname in online_users:
+        online_users[new_nickname] = online_users.pop(old_nickname)
+    
+    # Update room memberships
+    rooms_data = load_json(ROOMS_FILE)
+    for room_name, room_info in rooms_data.items():
+        if old_nickname in room_info.get('members', []):
+            room_info['members'] = [new_nickname if m == old_nickname else m for m in room_info['members']]
+        if old_nickname in room_info.get('admins', []):
+            room_info['admins'] = [new_nickname if a == old_nickname else a for a in room_info['admins']]
+    save_json(ROOMS_FILE, rooms_data)
+    
+    return jsonify(success=True)
+
+@app.route('/upload_file', methods=['POST'])
+@login_required
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify(success=False, error='No file selected')
+    
+    file = request.files['file']
+    room = request.form.get('room', 'general')
+    
+    if file.filename == '':
+        return jsonify(success=False, error='No file selected')
+    
+    # Check file size (5MB limit)
+    if len(file.read()) > 5 * 1024 * 1024:
+        return jsonify(success=False, error='File too large (max 5MB)')
+    
+    file.seek(0)  # Reset file pointer
+    
+    # Check file type
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    
+    if file_ext not in allowed_extensions:
+        return jsonify(success=False, error='Invalid file type')
+    
+    # Create uploads directory
+    uploads_dir = os.path.join('static', 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    # Generate unique filename
+    import uuid
+    filename = f"{uuid.uuid4().hex}{file_ext}"
+    filepath = os.path.join(uploads_dir, filename)
+    
+    try:
+        file.save(filepath)
+        
+        # Create file URL
+        file_url = f"/static/uploads/{filename}"
+        
+        # Send file as message
+        nickname = session['nickname']
+        message_text = f"📎 Shared file: {file_url}"
+        
+        # Save message
+        messages_data = load_json(MESSAGES_FILE)
+        if room not in messages_data:
+            messages_data[room] = []
+        
+        messages_data[room].append({
+            'nick': nickname,
+            'text': file_url,  # Just the URL for proper rendering
+            'timestamp': int(time.time())
+        })
+        
+        save_json(MESSAGES_FILE, messages_data)
+        
+        # Send via socket
+        socketio.emit('message', {
+            'room': room,
+            'message': f"{nickname}: {file_url}"
+        }, room=room)
+        
+        return jsonify(success=True, url=file_url)
+        
+    except Exception as e:
+        return jsonify(success=False, error=f'Upload failed: {str(e)}')
 
 @socketio.on('join')
 def on_join(data):
@@ -646,7 +778,10 @@ def on_message(data):
     save_json(MESSAGES_FILE, messages_data)
     
     # Send message to room (exclude sender to avoid duplicates)
-    emit('message', f"{nickname}: {message}", room=room, include_self=False)
+    emit('message', {
+        'room': room,
+        'message': f"{nickname}: {message}"
+    }, room=room, include_self=False)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

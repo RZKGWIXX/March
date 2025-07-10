@@ -883,6 +883,8 @@ body[data-theme="dark"] .message-form input {
 
   .app { 
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
   } 
 
   .mobile-only {
@@ -904,21 +906,34 @@ body[data-theme="dark"] .message-form input {
     position: sticky;
     top: 0;
     z-index: 100;
+    flex-shrink: 0;
   }
 
   .messages {
+    flex: 1;
     padding: 1rem;
     padding-bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+    min-height: 0;
   }
 
   .message-form {
     position: sticky;
     bottom: 0;
     z-index: 100;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .message-form input {
     font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .chat-window {
+    height: 100vh;
+    overflow: hidden;
   }
 
   .login-container form {
@@ -955,10 +970,12 @@ body[data-theme="dark"] .message-form input {
   }
 
   .context-menu {
-    min-width: 180px;
-    max-width: calc(100vw - 20px);
+    left: 20px !important;
+    right: 20px !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: calc(100vw - 40px) !important;
     font-size: 1rem;
-    width: auto;
     position: fixed !important;
   }
 
@@ -1097,6 +1114,107 @@ body[data-theme="dark"] .message-form input {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Settings Panel */
+.settings-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--accent);
+}
+
+.settings-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.theme-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid transparent;
+  border-radius: var(--border-radius);
+  background: rgba(0,0,0,0.1);
+  color: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+}
+
+.theme-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.theme-btn.active {
+  border-color: var(--accent);
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.profile-section input {
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border: 2px solid rgba(0,0,0,0.1);
+  border-radius: var(--border-radius);
+  background: transparent;
+  color: inherit;
+}
+
+.profile-section input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.file-section {
+  text-align: center;
+}
+
+.shared-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+  margin-top: 0.5rem;
+}
+
+/* Mobile improvements */
+@media (max-width: 768px) {
+  .messages {
+    height: calc(100vh - 160px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: safe-area-inset-bottom;
+  }
+  
+  .message-form {
+    padding-bottom: safe-area-inset-bottom;
+  }
+  
+  .context-menu {
+    left: 20px !important;
+    right: 20px !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: calc(100vw - 40px) !important;
+  }
+  
+  .settings-section {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+  }
+  
+  .theme-selector {
+    flex-direction: column;
   }
 }
 
