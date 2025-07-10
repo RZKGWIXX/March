@@ -1,84 +1,157 @@
+
 document.addEventListener('DOMContentLoaded', () => {
+  if (!nickname) return; // Exit if not logged in
+  
   const socket = io();
-  let currentRoom = 'general';
   const chatList = document.getElementById('chat-list');
-  const messagesEl = document.getElementById('messages');
-  const msgForm = document.getElementById('message-form');
-  const msgInput = document.getElementById('message-input');
-  const roomTitle = document.getElementById('current-room');
-  const deleteBtn = document.getElementById('delete-room-btn');
-  const blockBtn = document.getElementById('block-user-btn');
+  const messagesDiv = document.getElementById('messages');
+  const messageForm = document.getElementById('message-form');
+  const messageInput = document.getElementById('message-input');
+  const currentRoomEl = document.getElementById('current-room');
+  const deleteRoomBtn = document.getElementById('delete-room-btn');
+  const blockUserBtn = document.getElementById('block-user-btn');
+  const userSearch = document.getElementById('user-search');
+  const newChatBtn = document.getElementById('new-chat-btn');
+  const themeToggle = document.getElementById('theme-toggle');
+  
+  let currentRoom = 'general';
+  
   // Theme toggle
-  document.getElementById('theme-toggle').onclick = () => {
-    document.body.dataset.theme = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+  themeToggle.onclick = () => {
+    const body = document.body;
+    const theme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   };
+  
+  // Load saved theme
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.body.setAttribute('data-theme', savedTheme);
+  
   // Load rooms
-  fetch('/rooms').then(r => r.json()).then(rooms => {
-    rooms.forEach(rn => {
-      if (rn !== 'general') {
-        addChatItem(rn);
-      }
-    });
-  });
-  function addChatItem(room) {
-    const li = document.createElement('li');
-    li.className = 'chat-item';
-    li.dataset.room = room;
-    li.textContent = room;
-    chatList.appendChild(li);
+  function loadRooms() {
+    fetch('/rooms')
+      .then(r => r.json())
+      .then(rooms => {
+        chatList.innerHTML = '<li data-room="general" class="chat-item active"># general 🔒</li>';
+        rooms.forEach(room => {
+          if (room !== 'general') {
+            const li = document.createElement('li');
+            li.className = 'chat-item';
+            li.setAttribute('data-room', room);
+            li.textContent = room.startsWith('private_') ? `@ ${room.split('_').pop()}` : `# ${room}`;
+            chatList.appendChild(li);
+          }
+        });
+      });
   }
+  
   // Join room
-  chatList.addEventListener('click', e => {
-    const li = e.target.closest('.chat-item');
-    if (!li) return;
-    chatList.querySelectorAll('.chat-item').forEach(x => x.classList.remove('active'));
-    li.classList.add('active');
-    currentRoom = li.dataset.room || 'general';
-    roomTitle.textContent = `# ${currentRoom}`;
-    deleteBtn.disabled = currentRoom==='general';
-    messagesEl.innerHTML = '';
-    // Load past messages
-    fetch(`/messages/${currentRoom}`).then(r=>r.json()).then(msgs => {
-      msgs.forEach(m=>addMessage(`${m.nick}: ${m.text}`, m.nick===nickname));
-    });
-    socket.emit('join',{room:currentRoom,nickname});
-  });
-  // Send message
-  msgForm.onsubmit = e => {
-    e.preventDefault();
-    const text = msgInput.value.trim();
-    if (!text) return;
-    socket.emit('message',{room:currentRoom,nickname,message:text});
-    addMessage(`${nickname}: ${text}`, true);
-    msgInput.value='';
-  };
-  socket.on('message', msg => {
-    addMessage(msg, msg.startsWith(nickname+':'));
-  });
-  function addMessage(text, own) {
-    const d = document.createElement('div');
-    d.className='message'+(own?' own':'');
-    d.textContent=text;
-    messagesEl.appendChild(d);
-    messagesEl.scrollTop=messagesEl.scrollHeight;
+  function joinRoom(room) {
+    currentRoom = room;
+    currentRoomEl.textContent = room.startsWith('private_') ? `@ ${room.split('_').pop()}` : `# ${room}`;
+    
+    // Update active chat
+    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+    document.querySelector(`[data-room="${room}"]`).classList.add('active');
+    
+    // Enable/disable delete button
+    deleteRoomBtn.disabled = room === 'general';
+    
+    // Load messages
+    fetch(`/messages/${room}`)
+      .then(r => r.json())
+      .then(messages => {
+        messagesDiv.innerHTML = '';
+        messages.forEach(msg => {
+          const div = document.createElement('div');
+          div.className = `message ${msg.nick === nickname ? 'own' : ''}`;
+          div.textContent = `${msg.nick}: ${msg.text}`;
+          messagesDiv.appendChild(div);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+    
+    // Join socket room
+    socket.emit('join', {room, nickname});
   }
-  // Create new private chat
-  document.getElementById('new-chat-btn').onclick = () => {
-    const nick = document.getElementById('user-search').value.trim();
-    if (!nick) return alert('Enter nickname');
-    fetch('/create_private',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nick})})
-      .then(r=>r.json()).then(j=>addChatItem(j.room));
+  
+  // Chat list click handler
+  chatList.onclick = (e) => {
+    const item = e.target.closest('.chat-item');
+    if (item) {
+      joinRoom(item.getAttribute('data-room'));
+    }
   };
-  // Delete room
-  deleteBtn.onclick = () => {
-    fetch('/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:currentRoom})})
-      .then(res=>res.ok && location.reload());
+  
+  // Message form submit
+  messageForm.onsubmit = (e) => {
+    e.preventDefault();
+    const message = messageInput.value.trim();
+    if (message) {
+      socket.emit('message', {room: currentRoom, nickname, message});
+      messageInput.value = '';
+    }
   };
-  // Block user
-  blockBtn.onclick = () => {
-    fetch('/block_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room:currentRoom})})
-      .then(()=>alert('Blocked'));
+  
+  // New chat button
+  newChatBtn.onclick = () => {
+    const user = userSearch.value.trim();
+    if (user) {
+      fetch('/create_private', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nick: user})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          loadRooms();
+          joinRoom(data.room);
+        }
+      });
+      userSearch.value = '';
+    }
   };
-  // Initial join
-  chatList.querySelector('.chat-item').click();
+  
+  // Delete room button
+  deleteRoomBtn.onclick = () => {
+    if (confirm('Delete this room?')) {
+      fetch('/delete_room', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: currentRoom})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          loadRooms();
+          joinRoom('general');
+        }
+      });
+    }
+  };
+  
+  // Block user button
+  blockUserBtn.onclick = () => {
+    fetch('/block_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({room: currentRoom})
+    })
+    .then(() => alert('Blocked'));
+  };
+  
+  // Socket message handler
+  socket.on('message', (msg) => {
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.textContent = msg;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+  
+  // Initial setup
+  loadRooms();
+  joinRoom('general');
 });
