@@ -326,10 +326,11 @@ def on_message(data):
     if room not in messages_data:
         messages_data[room] = []
     
+    import time
     messages_data[room].append({
         'nick': nickname,
         'text': message,
-        'timestamp': int(os.time.time()) if hasattr(os, 'time') else 0
+        'timestamp': int(time.time())
     })
     
     # Keep only last 1000 messages per room

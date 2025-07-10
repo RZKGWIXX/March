@@ -12,54 +12,59 @@
   </script>
   <script defer src="{{ url_for('static', filename='main.js') }}"></script>
 </head>
-<body data-theme="light">
-  {% if title == "Login" %}
+<body>
+  {% if title == 'Login' %}
   <div class="login-container">
-    <h2>🚀 Messenger</h2>
-    <form method="post">
-      <input type="text" name="nickname" placeholder="👤 Enter your nickname" required>
-      <input type="password" name="password" placeholder="🔒 Enter password" required>
-      <button type="submit">🎯 Join Chat</button>
+    <h2>🚀 Modern Messenger</h2>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <input type="text" name="nickname" placeholder="Enter your nickname" required>
+      <input type="password" name="password" placeholder="Enter your password" required>
+      <button type="submit">Login</button>
     </form>
   </div>
   {% else %}
   <div class="app">
-    <aside class="sidebar">
+    <div class="sidebar">
       <header>
         <h1>💬 Messenger</h1>
         <button id="theme-toggle" title="Toggle theme">🌙</button>
       </header>
-      <div class="search">
-        <input type="text" id="user-search" placeholder="🔍 Search users..." autocomplete="off">
-        <button id="new-chat-btn" title="Start new chat">➕</button>
-      </div>
+      
       <div class="user-info">
-        <span>👋 Hello, {{ nickname }}!</span>
+        Logged in as: <strong>{{ nickname }}</strong>
       </div>
-      <ul id="chat-list">
-        <!-- Chats will be loaded here -->
-      </ul>
-    </aside>
-    <section class="chat-window">
-      <header class="chat-header">
+      
+      <div class="search">
+        <input type="text" id="user-search" placeholder="Search users...">
+        <button id="new-chat-btn" title="Start private chat">💬</button>
+      </div>
+      
+      <ul id="chat-list"></ul>
+    </div>
+    
+    <div class="chat-window">
+      <div class="chat-header">
         <div class="chat-title">
           <h2 id="current-room"># general</h2>
           <span id="room-type">Public Chat</span>
         </div>
         <div class="chat-controls">
-          <button id="delete-room-btn" disabled title="Delete Room">🗑️</button>
-          <button id="block-user-btn" title="Block User" style="display: none;">🚫</button>
-          <button id="menu-toggle" class="mobile-only" title="Menu">☰</button>
+          <button id="menu-toggle" class="mobile-only" title="Toggle menu">☰</button>
+          <button id="delete-room-btn" title="Delete room">🗑️</button>
+          <button id="block-user-btn" title="Block user" style="display: none;">🚫</button>
         </div>
-      </header>
-      <div id="messages" class="messages">
-        <!-- Messages will appear here -->
       </div>
+      
+      <div id="messages" class="messages"></div>
+      
       <form id="message-form" class="message-form">
-        <input type="text" id="message-input" placeholder="💭 Type your message..." autocomplete="off" maxlength="500">
-        <button type="submit" title="Send message">🚀</button>
+        <input type="text" id="message-input" placeholder="Type your message..." required>
+        <button type="submit">Send</button>
       </form>
-    </section>
+    </div>
   </div>
   {% endif %}
 </body>
