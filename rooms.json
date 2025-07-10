@@ -1,24 +1,4 @@
 {
-  "private_Test_Wixxy": {
-    "members": [
-      "Test",
-      "Wixxy"
-    ],
-    "admins": [
-      "Test"
-    ],
-    "type": "private"
-  },
-  "private_Wixxy_Щука228": {
-    "members": [
-      "Wixxy",
-      "Testmama"
-    ],
-    "admins": [
-      "Testmama"
-    ],
-    "type": "private"
-  },
   "Jops": {
     "members": [
       "Testmama"
