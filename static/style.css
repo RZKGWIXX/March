@@ -955,12 +955,11 @@ body[data-theme="dark"] .message-form input {
   }
 
   .context-menu {
-    min-width: 200px;
+    min-width: 180px;
     max-width: calc(100vw - 20px);
     font-size: 1rem;
-    left: 10px !important;
-    right: 10px;
     width: auto;
+    position: fixed !important;
   }
 
   .context-item {
@@ -1013,6 +1012,13 @@ body[data-theme="dark"] .message-form input {
   .admin-content {
     margin: 1rem;
     max-width: calc(100% - 2rem);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  
+  .ban-dialog input,
+  .ban-dialog select {
+    font-size: 16px; /* Prevent zoom on iOS */
   }
 
   .notification {

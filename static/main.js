@@ -350,36 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const clickX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
     const clickY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
     
-    // Temporarily position to get dimensions
-    contextMenu.style.position = 'fixed';
-    contextMenu.style.visibility = 'hidden';
-    document.body.appendChild(contextMenu);
-    
-    // Get menu dimensions and window size
-    const menuWidth = contextMenu.offsetWidth || 200; // fallback width
-    const menuHeight = contextMenu.offsetHeight || 100; // fallback height
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    
-    // Calculate optimal position
-    let left = clickX;
-    let top = clickY;
-    
-    // Adjust horizontal position if menu would go off-screen
-    if (left + menuWidth > windowWidth) {
-      left = Math.max(10, windowWidth - menuWidth - 10);
-    }
-    
-    // Adjust vertical position if menu would go off-screen
-    if (top + menuHeight > windowHeight) {
-      top = Math.max(10, windowHeight - menuHeight - 10);
-    }
-    
-    // Apply final position
-    contextMenu.style.left = left + 'px';
-    contextMenu.style.top = top + 'px';
-    contextMenu.style.visibility = 'visible';
-    
     const items = [];
     
     if (isOwnMessage) {
@@ -409,7 +379,40 @@ document.addEventListener('DOMContentLoaded', () => {
       contextMenu.appendChild(div);
     });
     
+    // Position menu after adding all items
     document.body.appendChild(contextMenu);
+    
+    // Get actual menu dimensions
+    const rect = contextMenu.getBoundingClientRect();
+    const menuWidth = rect.width;
+    const menuHeight = rect.height;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Calculate optimal position
+    let left = clickX;
+    let top = clickY;
+    
+    // For mobile devices, always position on the left side
+    if (window.innerWidth <= 768) {
+      left = 10;
+      // Ensure menu doesn't go below screen
+      if (top + menuHeight > windowHeight) {
+        top = Math.max(10, windowHeight - menuHeight - 10);
+      }
+    } else {
+      // Desktop positioning
+      if (left + menuWidth > windowWidth) {
+        left = Math.max(10, windowWidth - menuWidth - 10);
+      }
+      if (top + menuHeight > windowHeight) {
+        top = Math.max(10, windowHeight - menuHeight - 10);
+      }
+    }
+    
+    // Apply final position
+    contextMenu.style.left = left + 'px';
+    contextMenu.style.top = top + 'px';
     
     // Hide on click outside
     setTimeout(() => {
@@ -694,18 +697,39 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="-1">Permanent</option>
         </select>
         <div class="ban-buttons">
-          <button class="cancel-btn" onclick="this.closest('.ban-modal').remove()">Cancel</button>
-          <button class="ban-btn" onclick="banUser('${username}')">Ban User</button>
+          <button class="cancel-btn">Cancel</button>
+          <button class="ban-btn">Ban User</button>
         </div>
       </div>
     `;
+    
+    // Add event listeners after adding to DOM
     document.body.appendChild(modal);
+    
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const banBtn = modal.querySelector('.ban-btn');
+    
+    cancelBtn.onclick = () => {
+      modal.remove();
+    };
+    
+    banBtn.onclick = () => {
+      banUser(username, modal);
+    };
   }
   
   // Ban user
-  window.banUser = function(username) {
-    const reason = document.getElementById('ban-reason').value.trim();
-    const duration = parseInt(document.getElementById('ban-duration').value);
+  function banUser(username, modal) {
+    const reasonInput = modal.querySelector('#ban-reason');
+    const durationSelect = modal.querySelector('#ban-duration');
+    
+    if (!reasonInput || !durationSelect) {
+      showNotification('❌ Dialog elements not found', 'error');
+      return;
+    }
+    
+    const reason = reasonInput.value.trim();
+    const duration = parseInt(durationSelect.value);
     
     if (!reason) {
       showNotification('❌ Please provide a ban reason', 'error');
@@ -721,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.success) {
         showNotification('✅ User banned successfully', 'success');
-        document.querySelector('.ban-modal').remove();
+        modal.remove();
       } else {
         showNotification('❌ ' + (data.error || 'Failed to ban user'), 'error');
       }
@@ -730,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to ban user:', err);
       showNotification('❌ Error banning user', 'error');
     });
-  };
+  }
   
   // Admin panel
   window.toggleAdminPanel = function() {
@@ -826,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${users.map(user => `
               <div class="user-item" data-username="${user.toLowerCase()}">
                 <span>${user}</span>
-                <button class="ban-btn" onclick="showBanDialog('${user}')">Ban</button>
+                <button class="ban-btn" data-username="${user}">Ban</button>
               </div>
             `).join('')}
           </div>
@@ -848,6 +872,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           };
         }
+        
+        // Add click handlers for ban buttons
+        const banButtons = document.querySelectorAll('#ban-user-list .ban-btn');
+        banButtons.forEach(btn => {
+          btn.onclick = () => {
+            const username = btn.getAttribute('data-username');
+            showBanDialog(username);
+          };
+        });
       });
   };
   
