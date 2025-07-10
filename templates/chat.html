@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="chat-container">
+    <h2>Welcome, {{ nickname }}</h2>
+    <div class="room-select">
+      <input type="text" id="room" placeholder="Group name">
+      <button id="join-btn">Join Group</button>
+    </div>
+    <div id="chat-window"></div>
+    <input type="text" id="message" placeholder="Your message">
+    <button id="send-btn">Send</button>
+  </div>
+<script>
+  const socket = io();
+  let currentRoom = 'general';
+  const nickname = "{{ nickname }}";
+  function joinRoom(room) {
+    currentRoom = room;
+    socket.emit('join', {room, nickname});
+    document.getElementById('chat-window').innerHTML = '';
+  }
+  document.getElementById('join-btn').onclick = () => {
+    const room = document.getElementById('room').value.trim();
+    if (room) joinRoom(room);
+  };
+  document.getElementById('send-btn').onclick = () => {
+    const msg = document.getElementById('message').value;
+    if (msg) {
+      socket.emit('message', {room: currentRoom, nickname, message: msg});
+      document.getElementById('message').value = '';
+    }
+  };
+  socket.on('message', msg => {
+    const chatWindow = document.getElementById('chat-window');
+    const p = document.createElement('p');
+    p.textContent = msg;
+    chatWindow.appendChild(p);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  });
+  joinRoom('general');
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title or "Messenger" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const nickname = "{{ nickname or '' }}";
+  </script>
+  <script defer src="{{ url_for('static', filename='main.js') }}"></script>
+</head>
+<body data-theme="light">
+  {% if title == "Login" %}
+  <div class="login-container">
+    <h2>Login</h2>
+    <form method="post">
+      <input type="text" name="nickname" placeholder="Nickname" required><br>
+      <input type="password" name="password" placeholder="Password" required><br>
+      <button type="submit">Enter</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="app">
+    <aside class="sidebar">
+      <header>
+        <h1>Messenger</h1>
+        <button id="theme-toggle">🌓</button>
+      </header>
+      <div class="search">
+        <input type="text" id="user-search" placeholder="🔍 Search user">
+        <button id="new-chat-btn">+ New Chat</button>
+      </div>
+      <ul id="chat-list">
+        <li data-room="general" class="chat-item active"># general 🔒</li>
+      </ul>
+    </aside>
+    <section class="chat-window">
+      <header class="chat-header">
+        <h2 id="current-room"># general</h2>
+        <div class="chat-controls">
+          <button id="delete-room-btn" disabled>🗑 Delete</button>
+          <button id="block-user-btn">🚫 Block</button>
+        </div>
+      </header>
+      <div id="messages" class="messages"></div>
+      <form id="message-form" class="message-form">
+        <input type="text" id="message-input" placeholder="Type a message…" autocomplete="off">
+        <button type="submit">➤</button>
+      </form>
+    </section>
+  </div>
+  {% endif %}
+</body>
+</html>
