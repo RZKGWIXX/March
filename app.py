@@ -89,9 +89,24 @@ def login():
                     error_msg = f"You are banned. Reason: {ban.get('reason', 'No reason')}. Until: {ban.get('until', 'Permanent')}"
                     return render_template('base.html', title='Login', error=error_msg)
         
-        # Save user credentials
-        with open(USERS_FILE, 'a', encoding='utf-8') as fd:
-            fd.write(f"{ip},{nick},{pwd}\n")
+        # Save user credentials with timestamp
+        import time
+        timestamp = int(time.time())
+        date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+        
+        # Check if user already exists, if not add them
+        user_exists = False
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, 'r', encoding='utf-8') as fd:
+                for line in fd:
+                    parts = line.strip().split(',')
+                    if len(parts) >= 2 and parts[1] == nick:
+                        user_exists = True
+                        break
+        
+        if not user_exists:
+            with open(USERS_FILE, 'a', encoding='utf-8') as fd:
+                fd.write(f"{ip},{nick},{pwd},{timestamp},{date_str}\n")
         
         session['nickname'] = nick
         return redirect(url_for('chat'))
@@ -399,6 +414,23 @@ def delete_message():
         
         with open('hidden_messages.json', 'w') as f:
             json.dump(hidden_data, f, indent=2)
+    
+    return jsonify(success=True)
+
+@app.route('/admin/clear_chat', methods=['POST'])
+@login_required
+def admin_clear_chat():
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    room = request.json.get('room', 'general')
+    
+    messages_data = load_json(MESSAGES_FILE)
+    messages_data[room] = []
+    save_json(MESSAGES_FILE, messages_data)
+    
+    # Notify all users in room
+    socketio.emit('chat_cleared', {'room': room}, room=room)
     
     return jsonify(success=True)
 

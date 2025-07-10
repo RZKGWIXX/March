@@ -303,22 +303,90 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="message-author">${nick}</span>
           <span class="message-text">${text}</span>
         </div>
-        ${currentRoom !== 'general' && !isOwnMessage && index >= 0 ? 
-          `<button class="delete-msg-btn" onclick="deleteMessage(${index})" title="Delete message">🗑️</button>` : ''}
       `;
+      
+      // Add context menu for message deletion
+      if (index >= 0) {
+        div.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          showMessageContextMenu(e, index, nick, isOwnMessage);
+        });
+        
+        // Mobile long press
+        let pressTimer;
+        div.addEventListener('touchstart', (e) => {
+          pressTimer = setTimeout(() => {
+            showMessageContextMenu(e.touches[0], index, nick, isOwnMessage);
+          }, 800);
+        });
+        
+        div.addEventListener('touchend', () => {
+          clearTimeout(pressTimer);
+        });
+      }
     }
 
     messagesDiv.appendChild(div);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
+  // Show context menu for messages
+  function showMessageContextMenu(e, index, nick, isOwnMessage) {
+    hideContextMenu();
+    
+    const contextMenu = document.createElement('div');
+    contextMenu.className = 'context-menu';
+    contextMenu.style.left = e.clientX + 'px';
+    contextMenu.style.top = e.clientY + 'px';
+    
+    const items = [];
+    
+    if (isOwnMessage) {
+      items.push({text: '🗑️ Delete for me', action: () => deleteMessage(index, 'me')});
+      if (currentRoom !== 'general' || nickname === 'Wixxy') {
+        items.push({text: '🗑️ Delete for everyone', action: () => deleteMessage(index, 'all')});
+      }
+    } else if (nickname === 'Wixxy') {
+      items.push({text: '🗑️ Delete message', action: () => deleteMessage(index, 'all')});
+      items.push({text: '🚫 Ban user', action: () => showBanDialog(nick)});
+    }
+    
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'context-item';
+      div.textContent = item.text;
+      div.onclick = () => {
+        hideContextMenu();
+        item.action();
+      };
+      contextMenu.appendChild(div);
+    });
+    
+    document.body.appendChild(contextMenu);
+    
+    // Hide on click outside
+    setTimeout(() => {
+      document.addEventListener('click', hideContextMenu);
+    }, 0);
+  }
+  
+  function hideContextMenu() {
+    const existing = document.querySelector('.context-menu');
+    if (existing) {
+      existing.remove();
+      document.removeEventListener('click', hideContextMenu);
+    }
+  }
+  
   // Delete message function (global scope)
-  window.deleteMessage = function(index) {
-    if (confirm('Delete this message?')) {
+  window.deleteMessage = function(index, type = 'all') {
+    const confirmText = type === 'me' ? 'Hide this message for yourself?' : 'Delete this message for everyone?';
+    
+    if (confirm(confirmText)) {
       fetch('/delete_message', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom, index: index})
+        body: JSON.stringify({room: currentRoom, index: index, type: type})
       })
       .then(r => r.json())
       .then(data => {
@@ -450,6 +518,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
         messageHistory[currentRoom].push({nick, text});
         localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+        
+        // Show notification if page is not visible
+        if (document.hidden) {
+          showDesktopNotification(nick, text);
+        }
+        
+        // Play notification sound
+        playNotificationSound();
       }
     }
   });
@@ -457,6 +533,62 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('error', (data) => {
     showNotification('❌ ' + data.message, 'error');
   });
+  
+  socket.on('chat_cleared', (data) => {
+    if (data.room === currentRoom) {
+      messagesDiv.innerHTML = '';
+      showNotification('💬 Chat was cleared by admin', 'info');
+    }
+  });
+  
+  socket.on('user_banned', (data) => {
+    if (data.username === nickname) {
+      showNotification(`🚫 You have been banned: ${data.reason}`, 'error');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
+    }
+  });
+  
+  socket.on('message_deleted', (data) => {
+    if (data.room === currentRoom) {
+      loadMessages(currentRoom);
+    }
+  });
+  
+  // Desktop notifications
+  function showDesktopNotification(nick, text) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`${nick} in ${currentRoom}`, {
+        body: text,
+        icon: '/static/favicon.ico'
+      });
+    }
+  }
+  
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  
+  // Play notification sound
+  function playNotificationSound() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  }
 
   // Handle window resize
   window.addEventListener('resize', () => {
@@ -473,12 +605,152 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Show ban dialog
+  function showBanDialog(username) {
+    const modal = document.createElement('div');
+    modal.className = 'ban-modal';
+    modal.innerHTML = `
+      <div class="ban-dialog">
+        <h3>🚫 Ban User: ${username}</h3>
+        <input type="text" id="ban-reason" placeholder="Ban reason" required>
+        <select id="ban-duration">
+          <option value="1">1 Hour</option>
+          <option value="24">24 Hours</option>
+          <option value="168">1 Week</option>
+          <option value="720">1 Month</option>
+          <option value="-1">Permanent</option>
+        </select>
+        <div class="ban-buttons">
+          <button class="cancel-btn" onclick="this.closest('.ban-modal').remove()">Cancel</button>
+          <button class="ban-btn" onclick="banUser('${username}')">Ban User</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  // Ban user
+  window.banUser = function(username) {
+    const reason = document.getElementById('ban-reason').value.trim();
+    const duration = parseInt(document.getElementById('ban-duration').value);
+    
+    if (!reason) {
+      showNotification('❌ Please provide a ban reason', 'error');
+      return;
+    }
+    
+    fetch('/admin/ban_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, reason, duration})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ User banned successfully', 'success');
+        document.querySelector('.ban-modal').remove();
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to ban user'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Failed to ban user:', err);
+      showNotification('❌ Error banning user', 'error');
+    });
+  };
+  
+  // Admin panel
+  window.toggleAdminPanel = function() {
+    if (nickname !== 'Wixxy') {
+      showNotification('❌ Access denied', 'error');
+      return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    modal.innerHTML = `
+      <div class="admin-content">
+        <h2>🔧 Admin Panel</h2>
+        <button class="admin-btn" onclick="loadBannedUsers()">View Banned Users</button>
+        <button class="admin-btn" onclick="clearChat()">Clear General Chat</button>
+        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+        <div id="banned-users-list"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  };
+  
+  // Load banned users
+  window.loadBannedUsers = function() {
+    fetch('/admin/banned_users')
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('banned-users-list');
+        if (data.banned && data.banned.length > 0) {
+          list.innerHTML = '<h3>Banned Users:</h3>' + 
+            data.banned.map(ban => `
+              <div class="ban-item">
+                <strong>${ban.username}</strong> (${ban.ip})<br>
+                Reason: ${ban.reason}<br>
+                Until: ${ban.until}<br>
+                <button class="unban-btn" onclick="unbanUser('${ban.username}')">Unban</button>
+              </div>
+            `).join('');
+        } else {
+          list.innerHTML = '<p>No banned users</p>';
+        }
+      });
+  };
+  
+  // Unban user
+  window.unbanUser = function(username) {
+    fetch('/admin/unban_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ User unbanned successfully', 'success');
+        loadBannedUsers();
+      } else {
+        showNotification('❌ Failed to unban user', 'error');
+      }
+    });
+  };
+  
+  // Clear chat
+  window.clearChat = function() {
+    if (confirm('Clear all messages in general chat?')) {
+      fetch('/admin/clear_chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: 'general'})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ Chat cleared successfully', 'success');
+          loadMessages('general');
+        }
+      });
+    }
+  };
+
   // Initial setup
   loadRooms();
   setTimeout(() => joinRoom('general'), 100);
-
-  // Admin panel
-  window.toggleAdminPanel = function() {
-    alert('Admin panel is not implemented yet');
-  };
+  
+  // Add admin button to header if admin
+  if (nickname === 'Wixxy') {
+    const headerButtons = document.querySelector('.header-buttons') || document.querySelector('header');
+    if (headerButtons) {
+      const adminBtn = document.createElement('button');
+      adminBtn.innerHTML = '🔧';
+      adminBtn.title = 'Admin Panel';
+      adminBtn.onclick = toggleAdminPanel;
+      headerButtons.appendChild(adminBtn);
+    }
+  }
 });
