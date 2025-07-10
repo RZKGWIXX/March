@@ -1,130 +1,125 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
-from flask_socketio import SocketIO, join_room, leave_room, send
+#!/usr/bin/env python
 import os
 import json
 from functools import wraps
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask_socketio import SocketIO, join_room, send
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret')
 socketio = SocketIO(app)
 
-# Storage files
 USERS_FILE = 'users.txt'
 ROOMS_FILE = 'rooms.json'
 MESSAGES_FILE = 'messages.json'
 BLOCKS_FILE = 'blocks.json'
 
-# Initialize storage
-if not os.path.exists(USERS_FILE):
-    open(USERS_FILE, 'a').close()
-for file in [ROOMS_FILE, MESSAGES_FILE, BLOCKS_FILE]:
-    if not os.path.exists(file):
-        with open(file, 'w') as f:
-            json.dump({}, f)
+# Ініціалізація файлів
+for f in (USERS_FILE,):
+    if not os.path.exists(f):
+        open(f, 'a').close()
+for f in (ROOMS_FILE, MESSAGES_FILE, BLOCKS_FILE):
+    if not os.path.exists(f):
+        with open(f, 'w') as fd:
+            json.dump({}, fd)
 
-def load_json(f): return json.load(open(f))
-def save_json(f, data): json.dump(data, open(f, 'w'), indent=2)
+def load_json(path):
+    with open(path, 'r') as fd:
+        return json.load(fd)
+
+def save_json(path, data):
+    with open(path, 'w') as fd:
+        json.dump(data, fd, indent=2)
 
 def login_required(f):
     @wraps(f)
-    def wrapper(*args, **kwargs):
+    def decorated(*args, **kwargs):
         if 'nickname' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
-    return wrapper
+    return decorated
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        nickname = request.form['nickname']
-        password = request.form['password']
+        nick = request.form['nickname'].strip()
+        pwd = request.form['password']
         ip = request.remote_addr
-        with open(USERS_FILE, 'a') as f:
-            f.write(f"{ip},{nickname},{password}\n")
-        session['nickname'] = nickname
+        with open(USERS_FILE, 'a') as fd:
+            fd.write(f"{ip},{nick},{pwd}\\n")
+        session['nickname'] = nick
         return redirect(url_for('chat'))
-    return render_template('base.html', title="Login")
+    return render_template('base.html', title='Login')
 
 @app.route('/chat')
 @login_required
 def chat():
-    return render_template('base.html', title="Chat", nickname=session['nickname'])
+    return render_template('base.html', title='Chat', nickname=session['nickname'])
 
 @app.route('/rooms')
 @login_required
 def get_rooms():
-    rooms = load_json(ROOMS_FILE)
-    return jsonify(list(rooms.keys()))
+    data = load_json(ROOMS_FILE)
+    return jsonify(list(data.keys()))
 
 @app.route('/messages/<room>')
 @login_required
 def get_messages(room):
-    msgs = load_json(MESSAGES_FILE)
-    return jsonify(msgs.get(room, []))
+    data = load_json(MESSAGES_FILE)
+    return jsonify(data.get(room, []))
 
 @app.route('/create_private', methods=['POST'])
 @login_required
 def create_private():
-    data = load_json(ROOMS_FILE)
     nick = request.json.get('nick')
-    room = f"private_{sorted([session['nickname'], nick])}"
-    if room not in data:
-        # creator is admin
-        data[room] = {
-            "members": [session['nickname'], nick],
-            "admins": [session['nickname']]
-        }
-        save_json(ROOMS_FILE, data)
+    users = sorted([session['nickname'], nick])
+    room = f"private_{users[0]}_{users[1]}"
+    rooms = load_json(ROOMS_FILE)
+    if room not in rooms:
+        rooms[room] = {'members': users, 'admins': [session['nickname']]}
+        save_json(ROOMS_FILE, rooms)
     return jsonify(success=True, room=room)
 
 @app.route('/delete_room', methods=['POST'])
 @login_required
 def delete_room():
     room = request.json.get('room')
+    if room == 'general':
+        return jsonify(success=False, error='Cannot delete general'), 400
     rooms = load_json(ROOMS_FILE)
-    if room != 'general' and session['nickname'] in rooms.get(room, {}).get('admins', []):
+    if session['nickname'] in rooms.get(room, {}).get('admins', []):
         rooms.pop(room, None)
         save_json(ROOMS_FILE, rooms)
         msgs = load_json(MESSAGES_FILE)
         msgs.pop(room, None)
         save_json(MESSAGES_FILE, msgs)
         return jsonify(success=True)
-    return jsonify(success=False), 403
+    return jsonify(success=False, error='Forbidden'), 403
 
 @app.route('/block_user', methods=['POST'])
 @login_required
 def block_user():
-    blocked = load_json(BLOCKS_FILE)
     room = request.json.get('room')
-    # block all members except admin
-    rooms = load_json(ROOMS_FILE)
-    admins = rooms.get(room, {}).get('admins', [])
-    blocked.setdefault(session['nickname'], []).append(room)
-    save_json(BLOCKS_FILE, blocked)
+    blocks = load_json(BLOCKS_FILE)
+    blocks.setdefault(session['nickname'], []).append(room)
+    save_json(BLOCKS_FILE, blocks)
     return jsonify(success=True)
 
-# Real-time events
 @socketio.on('join')
-def handle_join(data):
-    room = data['room']
-    join_room(room)
-    send(jsonify_event(f"{data['nickname']} joined {room}."), room=room)
+def on_join(data):
+    join_room(data['room'])
+    send(f"[SYSTEM] {data['nickname']} joined {data['room']}", room=data['room'])
 
 @socketio.on('message')
-def handle_message(data):
+def on_message(data):
     room = data['room']
-    nickname = data['nickname']
-    text = data['message']
-    # Save message
-    msgs = load_json(MESSAGES_FILE)
-    msgs.setdefault(room, []).append({"nick": nickname, "text": text})
-    save_json(MESSAGES_FILE, msgs)
-    send(jsonify_event(f"{nickname}: {text}"), room=room)
-
-def jsonify_event(msg):
-    # helper to send plain text
-    return msg
+    nick = data['nickname']
+    msg = data['message']
+    all_msgs = load_json(MESSAGES_FILE)
+    all_msgs.setdefault(room, []).append({'nick': nick, 'text': msg})
+    save_json(MESSAGES_FILE, all_msgs)
+    send(f"{nick}: {msg}", room=room)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 6280))
     socketio.run(app, host='0.0.0.0', port=port)

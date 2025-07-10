@@ -1,7 +1,6 @@
 run = "python app.py"
 
 [workflows]
-runButton = "Run Flask App"
 
 [[workflows.workflow]]
 name = "Run Flask App"
@@ -11,3 +10,7 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 app.py"
+
+[[ports]]
+localPort = 6280
+externalPort = 80
