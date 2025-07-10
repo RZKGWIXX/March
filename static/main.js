@@ -611,25 +611,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const nick = msg.substring(0, colonIndex);
       const text = msg.substring(colonIndex + 1).trim();
 
-      // Only add if not already added (avoid duplicates)
-      const lastMessages = messageHistory[currentRoom] || [];
-      const lastMsg = lastMessages[lastMessages.length - 1];
-      if (!lastMsg || lastMsg.nick !== nick || lastMsg.text !== text || (Date.now() / 1000 - lastMsg.timestamp) > 2) {
-        addMessage(nick, text, nick === nickname);
+      // Don't show our own messages again (they're already shown immediately)
+      if (nick === nickname) {
+        return;
+      }
 
-        // Update cache
-        if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-        messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
-        localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-      }
+      addMessage(nick, text, false);
+
+      // Update cache
+      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+      messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
+      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
       
-      // Show notification and sound only for others' messages
-      if (nick !== nickname) {
-        if (document.hidden) {
-          showDesktopNotification(nick, text);
-        }
-        playNotificationSound();
+      // Show notification and sound for others' messages
+      if (document.hidden) {
+        showDesktopNotification(nick, text);
       }
+      playNotificationSound();
     }
   });
 
@@ -994,31 +992,13 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         
-        <div class="settings-section">
-          <h3>📁 File Sharing</h3>
-          <div class="file-section">
-            <input type="file" id="file-input" accept="image/*,.gif" style="display: none;">
-            <button class="admin-btn" onclick="document.getElementById('file-input').click()">📷 Upload Image/GIF</button>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
-              Supported: JPG, PNG, GIF (max 5MB)
-            </p>
-          </div>
-        </div>
+        
         
         <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
       </div>
     `;
     
     document.body.appendChild(modal);
-    
-    // File upload handler
-    const fileInput = document.getElementById('file-input');
-    fileInput.onchange = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        uploadFile(file);
-      }
-    };
   }
   
   // Switch theme
@@ -1171,6 +1151,64 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+  // File upload functionality
+  const fileUploadBtn = document.getElementById('file-upload-btn');
+  const fileInput = document.getElementById('file-input');
+  
+  if (fileUploadBtn && fileInput) {
+    fileUploadBtn.onclick = () => {
+      fileInput.click();
+    };
+    
+    fileInput.onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadFile(file);
+        // Reset file input
+        e.target.value = '';
+      }
+    };
+  }
+  
+  // Upload file function
+  function uploadFile(file) {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      showNotification('❌ File too large (max 5MB)', 'error');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('room', currentRoom);
+    
+    showNotification('📤 Uploading...', 'info');
+    
+    fetch('/upload_file', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ File uploaded successfully', 'success');
+        // File URL will be sent as message automatically
+      } else {
+        showNotification('❌ ' + (data.error || 'Upload failed'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Upload failed:', err);
+      showNotification('❌ Upload error', 'error');
+    });
+  }
+  
+  // Handle nickname changes
+  socket.on('nickname_changed', (data) => {
+    // Reload messages to reflect nickname changes
+    loadMessages(currentRoom);
+    loadRooms();
+  });
 
   // Initial setup
   loadRooms();

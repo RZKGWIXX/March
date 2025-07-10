@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,17 +33,17 @@
           <button id="theme-toggle" title="Toggle theme">🌙</button>
         </div>
       </header>
-      
+
       <div class="user-info">
         Logged in as: <strong>{{ nickname }}</strong>
       </div>
-      
+
       <div class="search">
         <input type="text" id="user-search" placeholder="Search users...">
         <button id="new-chat-btn" title="Start private chat">💬</button>
         <button id="create-group-btn" title="Create group">👥</button>
       </div>
-      
+
       <div id="group-panel" style="display: none; padding: 1rem; background: rgba(102, 126, 234, 0.1); margin: 0 1rem; border-radius: 8px;">
         <h4>Create New Group</h4>
         <input type="text" id="group-name-input" placeholder="Group name..." style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 4px;">
@@ -53,10 +52,10 @@
           <button id="create-group-cancel" style="flex: 1; padding: 0.5rem; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
         </div>
       </div>
-      
+
       <ul id="chat-list"></ul>
     </div>
-    
+
     <div class="chat-window">
       <div class="chat-header">
         <div class="chat-title">
@@ -70,13 +69,15 @@
           <button id="block-user-btn" title="Block user" style="display: none;">🚫</button>
         </div>
       </div>
-      
+
       <div id="messages" class="messages"></div>
-      
+
       <form id="message-form" class="message-form">
-        <input type="text" id="message-input" placeholder="Type your message..." required>
+        <input type="text" id="message-input" placeholder="Type your message..." required autocomplete="off">
+        <button type="button" id="file-upload-btn" title="Upload Image/GIF">📎</button>
         <button type="submit">Send</button>
       </form>
+      <input type="file" id="file-input" accept="image/*,.gif" style="display: none;">
     </div>
   </div>
   {% endif %}
