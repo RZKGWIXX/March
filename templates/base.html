@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,40 +15,50 @@
 <body data-theme="light">
   {% if title == "Login" %}
   <div class="login-container">
-    <h2>Login</h2>
+    <h2>🚀 Messenger Login</h2>
     <form method="post">
-      <input type="text" name="nickname" placeholder="Nickname" required><br>
-      <input type="password" name="password" placeholder="Password" required><br>
-      <button type="submit">Enter</button>
+      <input type="text" name="nickname" placeholder="👤 Nickname" required>
+      <input type="password" name="password" placeholder="🔒 Password" required>
+      <button type="submit">🎯 Enter Chat</button>
     </form>
   </div>
   {% else %}
   <div class="app">
     <aside class="sidebar">
       <header>
-        <h1>Messenger</h1>
+        <h1>💬 Messenger</h1>
         <button id="theme-toggle">🌓</button>
       </header>
       <div class="search">
-        <input type="text" id="user-search" placeholder="🔍 Search user">
-        <button id="new-chat-btn">+ New Chat</button>
+        <input type="text" id="user-search" placeholder="🔍 Search user to chat">
+        <button id="new-chat-btn">➕</button>
+      </div>
+      <div class="user-info">
+        <span>👋 {{ nickname }}</span>
       </div>
       <ul id="chat-list">
-        <li data-room="general" class="chat-item active"># general 🔒</li>
+        <li data-room="general" class="chat-item active">
+          <span class="chat-name"># general</span>
+          <span class="chat-lock">🔒</span>
+        </li>
       </ul>
     </aside>
     <section class="chat-window">
       <header class="chat-header">
-        <h2 id="current-room"># general</h2>
+        <div class="chat-title">
+          <h2 id="current-room"># general</h2>
+          <span id="room-type">Public Group</span>
+        </div>
         <div class="chat-controls">
-          <button id="delete-room-btn" disabled>🗑 Delete</button>
-          <button id="block-user-btn">🚫 Block</button>
+          <button id="delete-room-btn" disabled title="Delete Room">🗑️</button>
+          <button id="block-user-btn" title="Block User">🚫</button>
+          <button id="menu-toggle" class="mobile-only">☰</button>
         </div>
       </header>
       <div id="messages" class="messages"></div>
       <form id="message-form" class="message-form">
-        <input type="text" id="message-input" placeholder="Type a message…" autocomplete="off">
-        <button type="submit">➤</button>
+        <input type="text" id="message-input" placeholder="💭 Type your message..." autocomplete="off">
+        <button type="submit">🚀</button>
       </form>
     </section>
   </div>
