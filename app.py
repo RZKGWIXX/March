@@ -10,6 +10,10 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-development')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# Track online users
+online_users = {}  # {nickname: {'last_seen': timestamp, 'room': current_room}}
+user_sessions = {}  # {session_id: nickname}
+
 USERS_FILE = 'users.txt'
 ROOMS_FILE = 'rooms.json'
 MESSAGES_FILE = 'messages.json'
@@ -461,6 +465,82 @@ def clear_private_history():
     
     return jsonify(success=True)
 
+@app.route('/admin/stats')
+@login_required
+def admin_stats():
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    # Get total users
+    total_users = len(get_user_list())
+    
+    # Get online users (active in last 5 minutes)
+    import time
+    current_time = int(time.time())
+    online_count = 0
+    online_list = []
+    
+    for nickname, data in online_users.items():
+        if current_time - data['last_seen'] < 300:  # 5 minutes
+            online_count += 1
+            online_list.append({
+                'nickname': nickname,
+                'room': data.get('room', 'Unknown'),
+                'last_seen': data['last_seen']
+            })
+    
+    return jsonify({
+        'total_users': total_users,
+        'online_users': online_count,
+        'online_list': online_list
+    })
+
+@app.route('/user_status/<username>')
+@login_required
+def get_user_status(username):
+    import time
+    current_time = int(time.time())
+    
+    if username in online_users:
+        last_seen = online_users[username]['last_seen']
+        if current_time - last_seen < 300:  # 5 minutes
+            return jsonify({'status': 'online', 'last_seen': last_seen})
+        else:
+            return jsonify({'status': 'offline', 'last_seen': last_seen})
+    
+    return jsonify({'status': 'offline', 'last_seen': None})
+
+@app.route('/room_stats/<room>')
+@login_required
+def get_room_stats(room):
+    # Check if user has access to this room
+    if room != 'general':
+        rooms_data = load_json(ROOMS_FILE)
+        if room not in rooms_data or session['nickname'] not in rooms_data[room].get('members', []):
+            return jsonify({'error': 'Access denied'}), 403
+    
+    import time
+    current_time = int(time.time())
+    
+    if room == 'general':
+        # For general chat, count all online users
+        online_count = sum(1 for data in online_users.values() 
+                          if current_time - data['last_seen'] < 300)
+        total_count = len(get_user_list())
+    else:
+        # For private/group chats
+        rooms_data = load_json(ROOMS_FILE)
+        members = rooms_data.get(room, {}).get('members', [])
+        total_count = len(members)
+        online_count = sum(1 for member in members 
+                          if member in online_users and 
+                          current_time - online_users[member]['last_seen'] < 300)
+    
+    return jsonify({
+        'online_count': online_count,
+        'total_count': total_count
+    })
+
 @socketio.on('join')
 def on_join(data):
     room = data['room']
@@ -479,11 +559,31 @@ def on_join(data):
             return
     
     join_room(room)
-    # Don't send join messages to reduce spam
+    
+    # Track user online status
+    import time
+    online_users[nickname] = {
+        'last_seen': int(time.time()),
+        'room': room
+    }
+    user_sessions[request.sid] = nickname
+    
+    # Notify room about user count update
+    socketio.emit('user_count_update', room=room)
 
 @socketio.on('leave')
 def on_leave(data):
     leave_room(data['room'])
+
+@socketio.on('disconnect')
+def on_disconnect():
+    # Update user's last seen when they disconnect
+    if request.sid in user_sessions:
+        nickname = user_sessions[request.sid]
+        if nickname in online_users:
+            import time
+            online_users[nickname]['last_seen'] = int(time.time())
+        del user_sessions[request.sid]
 
 @socketio.on('message')
 def on_message(data):
@@ -494,10 +594,16 @@ def on_message(data):
     if not message:
         return
     
-    # Check if user is banned (enhanced check)
-    banned_data = load_json(BANNED_FILE)
+    # Update user activity
     import time
     current_time = int(time.time())
+    online_users[nickname] = {
+        'last_seen': current_time,
+        'room': room
+    }
+    
+    # Check if user is banned (enhanced check)
+    banned_data = load_json(BANNED_FILE)
     
     for ban in banned_data.get('users', []):
         if ban.get('username') == nickname:

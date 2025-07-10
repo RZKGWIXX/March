@@ -530,6 +530,111 @@ body[data-theme="dark"] .admin-content {
   margin-top: 0.5rem;
 }
 
+/* Statistics Styles */
+.admin-stats {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--accent);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: var(--surface-light);
+  border-radius: var(--border-radius);
+}
+
+body[data-theme="dark"] .stat-item {
+  background: var(--surface-dark);
+}
+
+.stat-item h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.online-users-list {
+  margin-top: 1rem;
+}
+
+.online-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  background: rgba(39, 174, 96, 0.1);
+  border-radius: var(--border-radius);
+}
+
+.user-name {
+  font-weight: 600;
+}
+
+.user-room {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.online-indicator {
+  font-size: 0.8rem;
+}
+
+/* User Status and Room Stats */
+.user-status, .room-stats {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator {
+  font-size: 0.8rem;
+}
+
+.status-indicator.online {
+  color: #27ae60;
+}
+
+.status-indicator.offline {
+  color: #7f8c8d;
+}
+
+.stats-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-status, .room-stats {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
 /* Context Menu Styles */
 .context-menu {
   position: fixed;

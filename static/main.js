@@ -239,12 +239,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const otherUser = users.find(u => u !== nickname) || users[0];
       if (currentRoomEl) currentRoomEl.textContent = `@ ${otherUser}`;
       if (roomTypeEl) roomTypeEl.textContent = 'Private Chat';
+      updateUserStatus(otherUser);
     } else if (room === 'general') {
       if (currentRoomEl) currentRoomEl.textContent = '# general';
       if (roomTypeEl) roomTypeEl.textContent = 'Public Chat';
+      updateRoomStats(room);
     } else {
       if (currentRoomEl) currentRoomEl.textContent = `# ${room}`;
       if (roomTypeEl) roomTypeEl.textContent = 'Group Chat';
+      updateRoomStats(room);
     }
 
     // Update active chat
@@ -695,6 +698,8 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.innerHTML = `
       <div class="admin-content">
         <h2>🔧 Admin Panel</h2>
+        <div id="admin-stats" class="admin-stats"></div>
+        <button class="admin-btn" onclick="loadStats()">📊 View Statistics</button>
         <button class="admin-btn" onclick="createGroupAsAdmin()">Create Group</button>
         <button class="admin-btn" onclick="loadBannedUsers()">View Banned Users</button>
         <button class="admin-btn" onclick="clearChat()">Clear General Chat</button>
@@ -704,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     document.body.appendChild(modal);
+    loadStats(); // Load stats immediately
   };
   
   // Create group as admin
@@ -725,6 +731,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
+  };
+  
+  // Load statistics
+  window.loadStats = function() {
+    fetch('/admin/stats')
+      .then(r => r.json())
+      .then(data => {
+        const statsDiv = document.getElementById('admin-stats');
+        statsDiv.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-item">
+              <h3>👥 Total Users</h3>
+              <div class="stat-number">${data.total_users}</div>
+            </div>
+            <div class="stat-item">
+              <h3>🟢 Online Users</h3>
+              <div class="stat-number">${data.online_users}</div>
+            </div>
+          </div>
+          <div class="online-users-list">
+            <h4>Online Users:</h4>
+            ${data.online_list.map(user => `
+              <div class="online-user">
+                <span class="user-name">${user.nickname}</span>
+                <span class="user-room">in ${user.room}</span>
+                <span class="online-indicator">🟢</span>
+              </div>
+            `).join('') || '<p>No users online</p>'}
+          </div>
+        `;
+      })
+      .catch(err => console.error('Failed to load stats:', err));
   };
   
   // Load all users for banning
@@ -800,6 +838,61 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   };
+
+  // Update user status for private chats
+  function updateUserStatus(username) {
+    fetch(`/user_status/${username}`)
+      .then(r => r.json())
+      .then(data => {
+        const statusEl = document.getElementById('user-status');
+        if (statusEl) statusEl.remove();
+        
+        const chatHeader = document.querySelector('.chat-header');
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'user-status';
+        statusDiv.className = 'user-status';
+        
+        if (data.status === 'online') {
+          statusDiv.innerHTML = '<span class="status-indicator online">🟢</span> Online';
+        } else {
+          const lastSeen = data.last_seen ? new Date(data.last_seen * 1000).toLocaleString() : 'Unknown';
+          statusDiv.innerHTML = `<span class="status-indicator offline">⚪</span> Last seen: ${lastSeen}`;
+        }
+        
+        chatHeader.appendChild(statusDiv);
+      })
+      .catch(err => console.error('Failed to get user status:', err));
+  }
+  
+  // Update room statistics
+  function updateRoomStats(room) {
+    fetch(`/room_stats/${room}`)
+      .then(r => r.json())
+      .then(data => {
+        const statusEl = document.getElementById('room-stats');
+        if (statusEl) statusEl.remove();
+        
+        const chatHeader = document.querySelector('.chat-header');
+        const statsDiv = document.createElement('div');
+        statsDiv.id = 'room-stats';
+        statsDiv.className = 'room-stats';
+        statsDiv.innerHTML = `<span class="stats-text">👥 ${data.online_count}/${data.total_count} online</span>`;
+        
+        chatHeader.appendChild(statsDiv);
+      })
+      .catch(err => console.error('Failed to get room stats:', err));
+  }
+  
+  // Listen for user count updates
+  socket.on('user_count_update', () => {
+    if (currentRoom.startsWith('private_')) {
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      updateUserStatus(otherUser);
+    } else {
+      updateRoomStats(currentRoom);
+    }
+  });
 
   // Initial setup
   loadRooms();
