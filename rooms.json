@@ -18,5 +18,33 @@
       "Testmama"
     ],
     "type": "private"
+  },
+  "Jops": {
+    "members": [
+      "Testmama"
+    ],
+    "admins": [
+      "Testmama"
+    ],
+    "type": "group"
+  },
+  "Group": {
+    "members": [
+      "Wixxy"
+    ],
+    "admins": [
+      "Wixxy"
+    ],
+    "type": "group"
+  },
+  "private_Testmama_Wixxy": {
+    "members": [
+      "Testmama",
+      "Wixxy"
+    ],
+    "admins": [
+      "Testmama"
+    ],
+    "type": "private"
   }
 }
