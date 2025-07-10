@@ -671,11 +671,14 @@ def change_nickname():
             return jsonify(success=False, error=f'You can change nickname once per day. Try again in {hours_remaining} hours.')
 
     # Update users file using users_manager
-    from users_manager import update_user_nickname
+    from users_manager import update_user_nickname, clean_users_file
     success = update_user_nickname(old_nickname, new_nickname)
     
     if not success:
         return jsonify(success=False, error='Failed to update nickname in database')
+    
+    # Clean up the users file to maintain consistency
+    clean_users_file()
 
     # Update cooldown
     cooldown_data[new_nickname] = current_time

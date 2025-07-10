@@ -50,14 +50,20 @@ def update_user_nickname(old_nickname, new_nickname):
     try:
         with open(USERS_FILE, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split(',')
+                line = line.strip()
+                if line.startswith('#') or not line:
+                    # Keep comments and empty lines as is
+                    updated_lines.append(line)
+                    continue
+                    
+                parts = line.split(',')
                 if len(parts) >= 2 and parts[1] == old_nickname:
                     # Update the nickname in this line
                     parts[1] = new_nickname
                     updated_lines.append(','.join(parts))
                     found = True
                 else:
-                    updated_lines.append(line.strip())
+                    updated_lines.append(line)
 
         if found:
             # Write back to file
