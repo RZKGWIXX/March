@@ -59,6 +59,11 @@
       "nick": "Хуй228",
       "text": "Хуй",
       "timestamp": 1752171421
+    },
+    {
+      "nick": "Test",
+      "text": "/static/uploads/a9dd284a080c4911a2d129756dba0951.jpg",
+      "timestamp": 1752172423
     }
   ],
   "private_Test_Wixxy": [
@@ -123,11 +128,6 @@
       "nick": "Хуй228",
       "text": "Хуй",
       "timestamp": 1752171173
-    },
-    {
-      "nick": "Testmama",
-      "text": "Хуй",
-      "timestamp": 1752171670
     },
     {
       "nick": "Testmama",
