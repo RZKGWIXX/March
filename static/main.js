@@ -231,14 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (room.startsWith('private_')) {
       const users = room.replace('private_', '').split('_');
       const otherUser = users.find(u => u !== nickname) || users[0];
-      currentRoomEl.textContent = `@ ${otherUser}`;
-      roomTypeEl.textContent = 'Private Chat';
+      if (currentRoomEl) currentRoomEl.textContent = `@ ${otherUser}`;
+      if (roomTypeEl) roomTypeEl.textContent = 'Private Chat';
     } else if (room === 'general') {
-      currentRoomEl.textContent = '# general';
-      roomTypeEl.textContent = 'Public Chat';
+      if (currentRoomEl) currentRoomEl.textContent = '# general';
+      if (roomTypeEl) roomTypeEl.textContent = 'Public Chat';
     } else {
-      currentRoomEl.textContent = `# ${room}`;
-      roomTypeEl.textContent = 'Group Chat';
+      if (currentRoomEl) currentRoomEl.textContent = `# ${room}`;
+      if (roomTypeEl) roomTypeEl.textContent = 'Group Chat';
     }
     
     // Update active chat
