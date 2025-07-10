@@ -1,1 +1,11 @@
-{}
+{
+  "private_Test_Wixxy": {
+    "members": [
+      "Test",
+      "Wixxy"
+    ],
+    "admins": [
+      "Wixxy"
+    ]
+  }
+}
