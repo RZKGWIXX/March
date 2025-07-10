@@ -1,6 +1,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!nickname) return;
+  // Check if we're on the login page - if so, don't initialize chat functionality
+  if (!nickname || nickname.trim() === '') return;
   
   const socket = io();
   const chatList = document.getElementById('chat-list');
@@ -17,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuToggle = document.getElementById('menu-toggle');
   const sidebar = document.querySelector('.sidebar');
   const createGroupBtn = document.getElementById('create-group-btn');
+  
+  // If essential elements don't exist, we're probably on the wrong page
+  if (!chatList || !messagesDiv) return;
   
   let currentRoom = 'general';
   let messageHistory = JSON.parse(localStorage.getItem('messageHistory') || '{}');
@@ -47,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('theme', theme);
       updateThemeIcon();
     };
+  } else {
+    // If no theme toggle button, still apply saved theme
+    updateThemeIcon();
   }
   
   // Mobile menu toggle

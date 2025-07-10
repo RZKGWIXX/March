@@ -77,6 +77,16 @@ body[data-theme="dark"] {
   background: var(--gradient-primary);
 }
 
+.login-container .error {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
 /* Login Styles */
 .login-container {
   display: flex;
