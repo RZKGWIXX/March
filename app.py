@@ -78,6 +78,17 @@ def login():
         if not nick or not pwd:
             return render_template('base.html', title='Login', error='Please fill all fields')
         
+        # Check if user/IP is banned
+        banned_data = load_json(BANNED_FILE)
+        import time
+        current_time = int(time.time())
+        
+        for ban in banned_data.get('users', []):
+            if (ban.get('username') == nick or ban.get('ip') == ip):
+                if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+                    error_msg = f"You are banned. Reason: {ban.get('reason', 'No reason')}. Until: {ban.get('until', 'Permanent')}"
+                    return render_template('base.html', title='Login', error=error_msg)
+        
         # Save user credentials
         with open(USERS_FILE, 'a', encoding='utf-8') as fd:
             fd.write(f"{ip},{nick},{pwd}\n")
@@ -114,7 +125,21 @@ def get_messages(room):
             return jsonify([])
     
     messages_data = load_json(MESSAGES_FILE)
-    return jsonify(messages_data.get(room, []))
+    messages = messages_data.get(room, [])
+    
+    # Filter out hidden messages for this user
+    try:
+        hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
+        user_hidden = hidden_data.get(session['nickname'], {}).get(room, [])
+        
+        # Remove hidden messages (in reverse order to maintain indices)
+        for index in sorted(user_hidden, reverse=True):
+            if 0 <= index < len(messages):
+                messages.pop(index)
+    except:
+        pass  # Ignore errors with hidden messages
+    
+    return jsonify(messages)
 
 @app.route('/users')
 @login_required
@@ -230,23 +255,101 @@ def block_user():
     
     return jsonify(success=True)
 
-@app.route('/ban_user', methods=['POST'])
+@app.route('/admin/ban_user', methods=['POST'])
 @login_required
-def ban_user():
-    target_user = request.json.get('user')
-    room = request.json.get('room', 'general')
+def admin_ban_user():
+    if session['nickname'] != 'Wixxy':  # Admin check
+        return jsonify(success=False, error='Access denied'), 403
     
-    if room != 'general':
-        return jsonify(success=False, error='Can only ban from general chat')
+    username = request.json.get('username')
+    reason = request.json.get('reason')
+    duration = request.json.get('duration')  # hours, -1 for permanent
     
-    # Only allow banning in general for now (you can add admin system later)
+    if not username or not reason:
+        return jsonify(success=False, error='Username and reason required')
+    
+    # Get user's IP
+    user_ip = None
+    try:
+        with open(USERS_FILE, 'r') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) >= 3 and parts[1] == username:
+                    user_ip = parts[0]
+                    break
+    except:
+        pass
+    
+    if not user_ip:
+        return jsonify(success=False, error='User not found')
+    
+    # Calculate ban end time
+    import time
+    if duration == -1:
+        until = 'Permanent'
+        until_timestamp = -1
+    else:
+        until_timestamp = int(time.time()) + (duration * 3600)
+        until = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(until_timestamp))
+    
+    # Save ban
     banned_data = load_json(BANNED_FILE)
-    if 'general' not in banned_data:
-        banned_data['general'] = []
+    if 'users' not in banned_data:
+        banned_data['users'] = []
     
-    if target_user not in banned_data['general']:
-        banned_data['general'].append(target_user)
-        save_json(BANNED_FILE, banned_data)
+    # Remove existing ban for this user/IP
+    banned_data['users'] = [b for b in banned_data['users'] if b.get('username') != username and b.get('ip') != user_ip]
+    
+    banned_data['users'].append({
+        'username': username,
+        'ip': user_ip,
+        'reason': reason,
+        'until': until,
+        'until_timestamp': until_timestamp,
+        'banned_at': int(time.time()),
+        'banned_by': session['nickname']
+    })
+    
+    save_json(BANNED_FILE, banned_data)
+    
+    # Kick user from all rooms via websocket
+    socketio.emit('user_banned', {
+        'username': username,
+        'reason': reason,
+        'until': until
+    })
+    
+    return jsonify(success=True)
+
+@app.route('/admin/banned_users')
+@login_required  
+def get_banned_users():
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    banned_data = load_json(BANNED_FILE)
+    active_bans = []
+    
+    import time
+    current_time = int(time.time())
+    
+    for ban in banned_data.get('users', []):
+        if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+            active_bans.append(ban)
+    
+    return jsonify(banned=active_bans)
+
+@app.route('/admin/unban_user', methods=['POST'])
+@login_required
+def unban_user():
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    username = request.json.get('username')
+    
+    banned_data = load_json(BANNED_FILE)
+    banned_data['users'] = [b for b in banned_data.get('users', []) if b.get('username') != username]
+    save_json(BANNED_FILE, banned_data)
     
     return jsonify(success=True)
 
@@ -255,21 +358,49 @@ def ban_user():
 def delete_message():
     room = request.json.get('room')
     message_index = request.json.get('index')
-    
-    if room == 'general':
-        return jsonify(success=False, error='Cannot delete messages in general chat')
-    
-    rooms_data = load_json(ROOMS_FILE)
-    if room not in rooms_data or session['nickname'] not in rooms_data[room].get('admins', []):
-        return jsonify(success=False, error='Only admins can delete messages')
+    delete_type = request.json.get('type', 'all')  # 'me' or 'all'
     
     messages_data = load_json(MESSAGES_FILE)
-    if room in messages_data and 0 <= message_index < len(messages_data[room]):
+    
+    if room not in messages_data or message_index < 0 or message_index >= len(messages_data[room]):
+        return jsonify(success=False, error='Message not found')
+    
+    message = messages_data[room][message_index]
+    is_own_message = message['nick'] == session['nickname']
+    is_admin = session['nickname'] == 'Wixxy'
+    
+    # Check permissions
+    if delete_type == 'all':
+        if not (is_admin or (room != 'general' and is_own_message)):
+            return jsonify(success=False, error='Permission denied')
+        
+        # Delete for everyone
         messages_data[room].pop(message_index)
         save_json(MESSAGES_FILE, messages_data)
-        return jsonify(success=True)
+        
+        # Notify room about deletion
+        socketio.emit('message_deleted', {
+            'room': room,
+            'index': message_index,
+            'deleted_by': session['nickname']
+        }, room=room)
+        
+    elif delete_type == 'me':
+        # Delete for self only - add to hidden messages
+        hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
+        user_key = session['nickname']
+        
+        if user_key not in hidden_data:
+            hidden_data[user_key] = {}
+        if room not in hidden_data[user_key]:
+            hidden_data[user_key][room] = []
+        
+        hidden_data[user_key][room].append(message_index)
+        
+        with open('hidden_messages.json', 'w') as f:
+            json.dump(hidden_data, f, indent=2)
     
-    return jsonify(success=False, error='Message not found')
+    return jsonify(success=True)
 
 @socketio.on('join')
 def on_join(data):
@@ -304,10 +435,16 @@ def on_message(data):
     if not message:
         return
     
-    # Check if user is banned
-    if room == 'general' and is_user_banned(nickname):
-        emit('error', {'message': 'You are banned from this chat'})
-        return
+    # Check if user is banned (enhanced check)
+    banned_data = load_json(BANNED_FILE)
+    import time
+    current_time = int(time.time())
+    
+    for ban in banned_data.get('users', []):
+        if ban.get('username') == nickname:
+            if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+                emit('error', {'message': f'You are banned: {ban.get("reason", "No reason")} Until: {ban.get("until", "Permanent")}'})
+                return
     
     # Anti-spam check for general chat
     if room == 'general':
@@ -326,7 +463,6 @@ def on_message(data):
     if room not in messages_data:
         messages_data[room] = []
     
-    import time
     messages_data[room].append({
         'nick': nickname,
         'text': message,
