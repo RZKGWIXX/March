@@ -1,4 +1,5 @@
 run = "python app.py"
+modules = ["python-3.11"]
 
 [workflows]
 runButton = "Run Flask App"
@@ -19,3 +20,7 @@ externalPort = 5000
 [[ports]]
 localPort = 6280
 externalPort = 80
+
+[[ports]]
+localPort = 6570
+externalPort = 3000
