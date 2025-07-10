@@ -208,10 +208,47 @@ def create_private():
     if is_user_blocked(session['nickname'], target_nick):
         return jsonify(success=False, error='You are blocked by this user')
 
-    users = sorted([session['nickname'], target_nick])
+    # Handle nickname mapping for old chats
+    actual_target = target_nick
+    if target_nick == "Щука228":
+        actual_target = "Testmama"
+
+    users = sorted([session['nickname'], actual_target])
     room = f"private_{users[0]}_{users[1]}"
 
     rooms_data = load_json(ROOMS_FILE)
+    
+    # Check for existing rooms with old nickname mapping
+    existing_room = None
+    old_room_patterns = [
+        f"private_{session['nickname']}_Щука228",
+        f"private_Щука228_{session['nickname']}",
+        f"private_{session['nickname']}_Testmama", 
+        f"private_Testmama_{session['nickname']}"
+    ]
+    
+    for pattern in old_room_patterns:
+        if pattern in rooms_data:
+            existing_room = pattern
+            break
+    
+    if existing_room and existing_room != room:
+        # Migrate old room to new room name
+        rooms_data[room] = rooms_data[existing_room]
+        # Update members to use current nickname
+        rooms_data[room]['members'] = [session['nickname'], actual_target]
+        del rooms_data[existing_room]
+        
+        # Migrate messages
+        messages_data = load_json(MESSAGES_FILE)
+        if existing_room in messages_data:
+            messages_data[room] = messages_data[existing_room]
+            del messages_data[existing_room]
+            save_json(MESSAGES_FILE, messages_data)
+        
+        save_json(ROOMS_FILE, rooms_data)
+        return jsonify(success=True, room=room)
+    
     if room not in rooms_data:
         rooms_data[room] = {
             'members': users,
@@ -627,6 +664,199 @@ def change_nickname():
 
     return jsonify(success=True)
 
+@app.route('/leave_group', methods=['POST'])
+@login_required
+def leave_group():
+    room = request.json.get('room')
+    
+    if not room or room == 'general':
+        return jsonify(success=False, error='Cannot leave general chat')
+    
+    rooms_data = load_json(ROOMS_FILE)
+    
+    if room not in rooms_data:
+        return jsonify(success=False, error='Room not found')
+    
+    room_info = rooms_data[room]
+    
+    # Don't allow leaving private chats this way
+    if room_info.get('type') == 'private':
+        return jsonify(success=False, error='Use block function for private chats')
+    
+    # Remove user from members
+    if session['nickname'] in room_info['members']:
+        room_info['members'].remove(session['nickname'])
+    
+    # Remove from admins if they were admin
+    if session['nickname'] in room_info.get('admins', []):
+        room_info['admins'].remove(session['nickname'])
+        
+        # If no admins left, make the first member admin
+        if not room_info['admins'] and room_info['members']:
+            room_info['admins'] = [room_info['members'][0]]
+    
+    # If no members left, delete the room
+    if not room_info['members']:
+        del rooms_data[room]
+        messages_data = load_json(MESSAGES_FILE)
+        messages_data.pop(room, None)
+        save_json(MESSAGES_FILE, messages_data)
+    
+    save_json(ROOMS_FILE, rooms_data)
+    return jsonify(success=True)
+
+@app.route('/add_to_group', methods=['POST'])
+@login_required
+def add_to_group():
+    room = request.json.get('room')
+    username = request.json.get('username')
+    
+    if not room or not username:
+        return jsonify(success=False, error='Room and username required')
+    
+    rooms_data = load_json(ROOMS_FILE)
+    
+    if room not in rooms_data:
+        return jsonify(success=False, error='Room not found')
+    
+    room_info = rooms_data[room]
+    
+    # Check if user is admin
+    if session['nickname'] not in room_info.get('admins', []):
+        return jsonify(success=False, error='Only admins can add members')
+    
+    # Check if target user exists
+    if username not in get_user_list():
+        return jsonify(success=False, error='User not found')
+    
+    # Add user to members if not already there
+    if username not in room_info['members']:
+        room_info['members'].append(username)
+        save_json(ROOMS_FILE, rooms_data)
+        
+        # Notify via socket
+        socketio.emit('room_update', {
+            'action': 'added_to_group',
+            'room': room,
+            'username': username,
+            'by': session['nickname']
+        })
+    
+    return jsonify(success=True)
+
+@app.route('/kick_from_group', methods=['POST'])
+@login_required
+def kick_from_group():
+    room = request.json.get('room')
+    username = request.json.get('username')
+    
+    if not room or not username:
+        return jsonify(success=False, error='Room and username required')
+    
+    rooms_data = load_json(ROOMS_FILE)
+    
+    if room not in rooms_data:
+        return jsonify(success=False, error='Room not found')
+    
+    room_info = rooms_data[room]
+    
+    # Check if user is admin
+    if session['nickname'] not in room_info.get('admins', []):
+        return jsonify(success=False, error='Only admins can kick members')
+    
+    # Cannot kick yourself
+    if username == session['nickname']:
+        return jsonify(success=False, error='Cannot kick yourself')
+    
+    # Remove user from members
+    if username in room_info['members']:
+        room_info['members'].remove(username)
+    
+    # Remove from admins if they were admin
+    if username in room_info.get('admins', []):
+        room_info['admins'].remove(username)
+    
+    save_json(ROOMS_FILE, rooms_data)
+    
+    # Notify via socket
+    socketio.emit('room_update', {
+        'action': 'kicked_from_group',
+        'room': room,
+        'username': username,
+        'by': session['nickname']
+    })
+    
+    return jsonify(success=True)
+
+@app.route('/mute_user', methods=['POST'])
+@login_required
+def mute_user():
+    room = request.json.get('room')
+    username = request.json.get('username')
+    duration = request.json.get('duration', 60)  # minutes
+    
+    if not room or not username:
+        return jsonify(success=False, error='Room and username required')
+    
+    rooms_data = load_json(ROOMS_FILE)
+    
+    if room not in rooms_data:
+        return jsonify(success=False, error='Room not found')
+    
+    room_info = rooms_data[room]
+    
+    # Check if user is admin or global admin
+    if session['nickname'] not in room_info.get('admins', []) and session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Only admins can mute users')
+    
+    # Load muted users data
+    muted_data = load_json('muted.json') if os.path.exists('muted.json') else {}
+    
+    if room not in muted_data:
+        muted_data[room] = {}
+    
+    import time
+    muted_data[room][username] = {
+        'until': int(time.time()) + (duration * 60),
+        'by': session['nickname'],
+        'duration': duration
+    }
+    
+    with open('muted.json', 'w') as f:
+        json.dump(muted_data, f, indent=2)
+    
+    # Notify via socket
+    socketio.emit('user_muted', {
+        'room': room,
+        'username': username,
+        'duration': duration,
+        'by': session['nickname']
+    })
+    
+    return jsonify(success=True)
+
+@app.route('/get_room_info/<room>')
+@login_required
+def get_room_info(room):
+    rooms_data = load_json(ROOMS_FILE)
+    
+    if room not in rooms_data:
+        return jsonify(success=False, error='Room not found')
+    
+    room_info = rooms_data[room]
+    
+    # Check if user has access
+    if session['nickname'] not in room_info.get('members', []):
+        return jsonify(success=False, error='Access denied')
+    
+    return jsonify({
+        'success': True,
+        'members': room_info.get('members', []),
+        'admins': room_info.get('admins', []),
+        'type': room_info.get('type', 'group'),
+        'is_admin': session['nickname'] in room_info.get('admins', [])
+    })
+
 @app.route('/upload_file', methods=['POST'])
 @login_required
 def upload_file():
@@ -778,6 +1008,22 @@ def on_message(data):
                 
                 emit('error', {'message': f'You are banned {duration_text}. Reason: {ban.get("reason", "No reason")}'})
                 return
+
+    # Check if user is muted in this room
+    muted_data = load_json('muted.json') if os.path.exists('muted.json') else {}
+    if room in muted_data and nickname in muted_data[room]:
+        mute_info = muted_data[room][nickname]
+        if mute_info['until'] > current_time:
+            remaining_minutes = int((mute_info['until'] - current_time) / 60)
+            emit('error', {'message': f'You are muted for {remaining_minutes} more minutes'})
+            return
+        else:
+            # Remove expired mute
+            del muted_data[room][nickname]
+            if not muted_data[room]:
+                del muted_data[room]
+            with open('muted.json', 'w') as f:
+                json.dump(muted_data, f, indent=2)
 
     # Anti-spam check for general chat
     if room == 'general':
