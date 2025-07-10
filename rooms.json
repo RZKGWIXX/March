@@ -8,14 +8,14 @@
     ],
     "type": "group"
   },
-  "private_Testmama_Wixxy": {
+  "Vanilla": {
     "members": [
-      "Testmama",
-      "Wixxy"
+      "Wixxy",
+      "Orest"
     ],
     "admins": [
-      "Testmama"
+      "Wixxy"
     ],
-    "type": "private"
+    "type": "group"
   }
 }
