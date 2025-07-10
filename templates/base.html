@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{{ title or "Messenger" }}</title>
+  <title>{{ title or "OrbitMess" }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
@@ -15,7 +15,7 @@
 <body>
   {% if title == 'Login' %}
   <div class="login-container">
-    <h2>🚀 Modern Messenger</h2>
+    <h2>🚀 OrbitMess</h2>
     {% if error %}
     <div class="notification error show">{{ error }}</div>
     {% endif %}
@@ -29,7 +29,7 @@
   <div class="app">
     <div class="sidebar">
       <header>
-        <h1>💬 Messenger</h1>
+        <h1>💬 OrbitMess</h1>
         <div class="header-buttons">
           <button id="theme-toggle" title="Toggle theme">🌙</button>
         </div>

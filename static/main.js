@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function joinRoom(room) {
     currentRoom = room;
 
-    // Update room display
+    // Update room display with null checks
     if (room.startsWith('private_')) {
       const users = room.replace('private_', '').split('_');
       const otherUser = users.find(u => u !== nickname) || users[0];
@@ -773,19 +773,43 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => console.error('Failed to load stats:', err));
   };
   
-  // Load all users for banning
+  // Load all users for banning with search
   window.loadAllUsers = function() {
     fetch('/users')
       .then(r => r.json())
       .then(users => {
         const area = document.getElementById('admin-content-area');
-        area.innerHTML = '<h3>Select User to Ban:</h3>' + 
-          users.map(user => `
-            <div class="user-item">
-              <span>${user}</span>
-              <button class="ban-btn" onclick="showBanDialog('${user}')">Ban</button>
-            </div>
-          `).join('');
+        area.innerHTML = `
+          <h3>Select User to Ban:</h3>
+          <div style="margin-bottom: 1rem;">
+            <input type="text" id="ban-user-search" placeholder="Search users..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div id="ban-user-list">
+            ${users.map(user => `
+              <div class="user-item" data-username="${user.toLowerCase()}">
+                <span>${user}</span>
+                <button class="ban-btn" onclick="showBanDialog('${user}')">Ban</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
+        // Add search functionality
+        const searchInput = document.getElementById('ban-user-search');
+        if (searchInput) {
+          searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const userItems = document.querySelectorAll('#ban-user-list .user-item');
+            userItems.forEach(item => {
+              const username = item.dataset.username;
+              if (username.includes(query)) {
+                item.style.display = '';
+              } else {
+                item.style.display = 'none';
+              }
+            });
+          };
+        }
       });
   };
   
@@ -933,13 +957,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Group creation panel handlers
+  // Group creation panel handlers with null checks
   const createGroupConfirm = document.getElementById('create-group-confirm');
   const createGroupCancel = document.getElementById('create-group-cancel');
   const groupNameInput = document.getElementById('group-name-input');
   const groupPanel = document.getElementById('group-panel');
 
-  if (createGroupConfirm) {
+  if (createGroupConfirm && groupNameInput && groupPanel) {
     createGroupConfirm.onclick = () => {
       const groupName = groupNameInput.value.trim();
       if (groupName) {
@@ -968,14 +992,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  if (createGroupCancel) {
+  if (createGroupCancel && groupNameInput && groupPanel) {
     createGroupCancel.onclick = () => {
       groupNameInput.value = '';
       groupPanel.style.display = 'none';
     };
   }
 
-  if (groupNameInput) {
+  if (groupNameInput && createGroupConfirm) {
     groupNameInput.onkeypress = (e) => {
       if (e.key === 'Enter') {
         createGroupConfirm.click();

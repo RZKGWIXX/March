@@ -72,6 +72,11 @@ def is_user_blocked(from_user, to_user):
     blocks = load_json(BLOCKS_FILE)
     return from_user in blocks.get(to_user, [])
 
+@app.route('/orb')
+def short_link():
+    """Short link redirect to main page"""
+    return redirect(url_for('login'))
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
