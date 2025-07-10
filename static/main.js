@@ -258,6 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update controls
     if (deleteRoomBtn) {
       deleteRoomBtn.disabled = room === 'general';
+      // On mobile, show delete button for all non-general rooms
+      if (window.innerWidth <= 768) {
+        deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
+        deleteRoomBtn.onclick = showRoomContextMenu;
+      }
     }
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
@@ -267,6 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     if (clearHistoryBtn) {
       clearHistoryBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
+    }
+
+    // Show mobile chat options for all non-general rooms
+    const mobileChatOptions = document.getElementById('mobile-chat-options');
+    if (mobileChatOptions) {
+      mobileChatOptions.style.display = (room !== 'general' && window.innerWidth <= 768) ? 'block' : 'none';
+      mobileChatOptions.onclick = showRoomContextMenu;
     }
 
     // Close mobile menu
@@ -307,9 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isSystemMessage) {
       div.innerHTML = `<span class="system-text">${text}</span>`;
     } else {
-      // Check if message is a file URL
+      // Check if message is a file URL (including relative paths)
       let messageContent = text;
-      if (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg'))) {
+      if (text.startsWith('/static/uploads/') || (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg')))) {
         messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
       } else {
         // Convert URLs to clickable links
@@ -562,11 +574,17 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.className = 'admin-panel';
     
     if (currentRoom.startsWith('private_')) {
+      // Check if user is blocked to show unblock option
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      
       modal.innerHTML = `
         <div class="admin-content">
           <h2>💬 Private Chat Options</h2>
           <button class="admin-btn" onclick="deleteCurrentRoom()">🗑️ Delete Chat</button>
           <button class="admin-btn" onclick="blockCurrentUser()">🚫 Block User</button>
+          <button class="admin-btn" onclick="unblockCurrentUser()">✅ Unblock User</button>
+          <button class="admin-btn" onclick="clearPrivateHistory()">🧹 Clear History</button>
           <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
         </div>
       `;
@@ -617,6 +635,44 @@ document.addEventListener('DOMContentLoaded', () => {
           document.querySelector('.admin-panel').remove();
         } else {
           showNotification('❌ ' + (data.error || 'Failed to delete room'), 'error');
+        }
+      });
+    }
+  };
+
+  window.blockCurrentUser = function() {
+    if (confirm('🚫 Block this user? They will be blocked from messaging you.')) {
+      fetch('/block_user', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: currentRoom})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ User blocked successfully', 'success');
+          document.querySelector('.admin-panel').remove();
+        } else {
+          showNotification('❌ Failed to block user', 'error');
+        }
+      });
+    }
+  };
+
+  window.unblockCurrentUser = function() {
+    if (confirm('✅ Unblock this user? They will be able to message you again.')) {
+      fetch('/unblock_user', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: currentRoom})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ User unblocked successfully', 'success');
+          document.querySelector('.admin-panel').remove();
+        } else {
+          showNotification('❌ Failed to unblock user', 'error');
         }
       });
     }

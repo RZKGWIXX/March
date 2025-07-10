@@ -329,6 +329,25 @@ def block_user():
 
     return jsonify(success=True)
 
+@app.route('/unblock_user', methods=['POST'])
+@login_required
+def unblock_user():
+    room = request.json.get('room')
+
+    if not room or not room.startswith('private_'):
+        return jsonify(success=False, error='Can only unblock users in private chats')
+
+    # Extract the other user from room name
+    users = room.replace('private_', '').split('_')
+    other_user = users[0] if users[1] == session['nickname'] else users[1]
+
+    blocks_data = load_json(BLOCKS_FILE)
+    if session['nickname'] in blocks_data and other_user in blocks_data[session['nickname']]:
+        blocks_data[session['nickname']].remove(other_user)
+        save_json(BLOCKS_FILE, blocks_data)
+
+    return jsonify(success=True)
+
 @app.route('/admin/ban_user', methods=['POST'])
 @login_required
 def admin_ban_user():

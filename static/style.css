@@ -954,6 +954,10 @@ body[data-theme="dark"] .message-form input {
     padding: 0.75rem;
   }
 
+  #mobile-chat-options {
+    display: none;
+  }
+
   .chat-window {
     height: 100vh;
     overflow: hidden;
