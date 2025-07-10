@@ -8,5 +8,15 @@
       "Test"
     ],
     "type": "private"
+  },
+  "private_Wixxy_Щука228": {
+    "members": [
+      "Wixxy",
+      "Щука228"
+    ],
+    "admins": [
+      "Щука228"
+    ],
+    "type": "private"
   }
 }
