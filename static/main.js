@@ -456,6 +456,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Show message immediately for better UX
+      addMessage(nickname, message, true);
+      
+      // Update local cache
+      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+      messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
+      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+
       socket.emit('message', {room: currentRoom, nickname, message});
       messageInput.value = '';
       lastMessageTime = now;
@@ -544,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update cache
       if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-      messageHistory[currentRoom].push({nick, text});
+      messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
       
       // Show notification and sound only for others' messages
@@ -786,9 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('/admin/banned_users')
       .then(r => r.json())
       .then(data => {
-        const list = document.getElementById('banned-users-list');
+        const area = document.getElementById('admin-content-area');
         if (data.banned && data.banned.length > 0) {
-          list.innerHTML = '<h3>Banned Users:</h3>' + 
+          area.innerHTML = '<h3>Banned Users:</h3>' + 
             data.banned.map(ban => `
               <div class="ban-item">
                 <strong>${ban.username}</strong> (${ban.ip})<br>
@@ -798,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             `).join('');
         } else {
-          list.innerHTML = '<p>No banned users</p>';
+          area.innerHTML = '<p>No banned users</p>';
         }
       });
   };
@@ -913,12 +921,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add create group button
   if (createGroupBtn) {
     createGroupBtn.onclick = () => {
-      const groupName = prompt('Enter group name:');
-      if (groupName && groupName.trim()) {
+      const groupPanel = document.getElementById('group-panel');
+      const groupNameInput = document.getElementById('group-name-input');
+      
+      if (groupPanel) {
+        groupPanel.style.display = groupPanel.style.display === 'none' ? 'block' : 'none';
+        if (groupPanel.style.display === 'block') {
+          groupNameInput.focus();
+        }
+      }
+    };
+  }
+
+  // Group creation panel handlers
+  const createGroupConfirm = document.getElementById('create-group-confirm');
+  const createGroupCancel = document.getElementById('create-group-cancel');
+  const groupNameInput = document.getElementById('group-name-input');
+  const groupPanel = document.getElementById('group-panel');
+
+  if (createGroupConfirm) {
+    createGroupConfirm.onclick = () => {
+      const groupName = groupNameInput.value.trim();
+      if (groupName) {
         fetch('/create_group', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({name: groupName.trim()})
+          body: JSON.stringify({name: groupName})
         })
         .then(r => r.json())
         .then(data => {
@@ -926,6 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadRooms();
             setTimeout(() => joinRoom(data.room), 100);
             showNotification('✅ Group created successfully', 'success');
+            groupNameInput.value = '';
+            groupPanel.style.display = 'none';
           } else {
             showNotification('❌ ' + (data.error || 'Failed to create group'), 'error');
           }
@@ -934,6 +964,21 @@ document.addEventListener('DOMContentLoaded', () => {
           console.error('Failed to create group:', err);
           showNotification('❌ Error creating group', 'error');
         });
+      }
+    };
+  }
+
+  if (createGroupCancel) {
+    createGroupCancel.onclick = () => {
+      groupNameInput.value = '';
+      groupPanel.style.display = 'none';
+    };
+  }
+
+  if (groupNameInput) {
+    groupNameInput.onkeypress = (e) => {
+      if (e.key === 'Enter') {
+        createGroupConfirm.click();
       }
     };
   }

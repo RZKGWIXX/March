@@ -640,8 +640,8 @@ def on_message(data):
     
     save_json(MESSAGES_FILE, messages_data)
     
-    # Send message to room
-    send(f"{nickname}: {message}", room=room)
+    # Send message to room (exclude sender to avoid duplicates)
+    emit('message', f"{nickname}: {message}", room=room, include_self=False)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
