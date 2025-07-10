@@ -1205,9 +1205,44 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Handle nickname changes
   socket.on('nickname_changed', (data) => {
-    // Reload messages to reflect nickname changes
-    loadMessages(currentRoom);
+    // Update chat display names in real-time
+    const oldNick = data.old_nickname;
+    const newNick = data.new_nickname;
+    
+    // Update room list display names
+    document.querySelectorAll('.chat-item').forEach(item => {
+      const room = item.getAttribute('data-room');
+      if (room && room.startsWith('private_')) {
+        const users = room.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        if (otherUser === oldNick) {
+          const chatName = item.querySelector('.chat-name');
+          if (chatName) {
+            chatName.textContent = `@ ${newNick}`;
+          }
+        }
+      }
+    });
+    
+    // Update current room header if needed
+    if (currentRoom.startsWith('private_')) {
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      if (otherUser === oldNick && currentRoomEl) {
+        currentRoomEl.textContent = `@ ${newNick}`;
+      }
+    }
+    
+    // Update message display names
+    document.querySelectorAll('.message-author').forEach(author => {
+      if (author.textContent === oldNick) {
+        author.textContent = newNick;
+      }
+    });
+    
+    // Reload rooms and messages to ensure consistency
     loadRooms();
+    loadMessages(currentRoom);
   });
 
   // Initial setup

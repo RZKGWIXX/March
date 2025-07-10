@@ -95,7 +95,20 @@ def login():
         for ban in banned_data.get('users', []):
             if (ban.get('username') == nick or ban.get('ip') == ip):
                 if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
-                    error_msg = f"You are banned. Reason: {ban.get('reason', 'No reason')}. Until: {ban.get('until', 'Permanent')}"
+                    if ban.get('until_timestamp', 0) == -1:
+                        duration_text = "permanently"
+                    else:
+                        remaining_hours = int((ban.get('until_timestamp', 0) - current_time) / 3600)
+                        if remaining_hours < 1:
+                            remaining_minutes = int((ban.get('until_timestamp', 0) - current_time) / 60)
+                            duration_text = f"for {remaining_minutes} more minutes"
+                        elif remaining_hours < 24:
+                            duration_text = f"for {remaining_hours} more hours"
+                        else:
+                            remaining_days = int(remaining_hours / 24)
+                            duration_text = f"for {remaining_days} more days"
+                    
+                    error_msg = f"You are banned {duration_text}. Reason: {ban.get('reason', 'No reason')}"
                     return render_template('base.html', title='Login', error=error_msg)
 
         # Save user credentials with timestamp
@@ -537,10 +550,10 @@ def get_room_stats(room):
         rooms_data = load_json(ROOMS_FILE)
         members = rooms_data.get(room, {}).get('members', [])
         total_count = len(members)
+        # For private chats, only count users who are online anywhere (not necessarily in this room)
         online_count = sum(1 for member in members 
                           if member in online_users and 
-                          current_time - online_users[member]['last_seen'] < 300 and
-                          online_users[member].get('room') == room)
+                          current_time - online_users[member]['last_seen'] < 300)
 
     return jsonify({
         'online_count': online_count,
@@ -586,26 +599,9 @@ def change_nickname():
     date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
     ip = request.remote_addr
 
-    # Read existing users and update the one with old nickname
-    users_data = []
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.startswith('#'):
-                    continue
-                parts = line.strip().split(',')
-                if len(parts) >= 3:
-                    if parts[1] == old_nickname:
-                        # Update this user's nickname
-                        users_data.append(f"{ip},{new_nickname},{parts[2]},{timestamp},{date_str}")
-                    else:
-                        users_data.append(line.strip())
-
-    # Write back to file
-    with open(USERS_FILE, 'w', encoding='utf-8') as f:
-        f.write("# IP,Username,Password,Timestamp,Date\n")
-        for user_data in users_data:
-            f.write(user_data + "\n")
+    # Update users file using users_manager
+    from users_manager import update_user_nickname
+    update_user_nickname(old_nickname, new_nickname)
 
     # Update session
     session['nickname'] = new_nickname
@@ -622,6 +618,12 @@ def change_nickname():
         if old_nickname in room_info.get('admins', []):
             room_info['admins'] = [new_nickname if a == old_nickname else a for a in room_info['admins']]
     save_json(ROOMS_FILE, rooms_data)
+
+    # Notify all users about nickname change
+    socketio.emit('nickname_changed', {
+        'old_nickname': old_nickname,
+        'new_nickname': new_nickname
+    })
 
     return jsonify(success=True)
 
@@ -670,6 +672,7 @@ def upload_file():
         message_text = f"📎 Shared file: {file_url}"
 
         # Save message
+        import time
         messages_data = load_json(MESSAGES_FILE)
         if room not in messages_data:
             messages_data[room] = []
@@ -760,7 +763,20 @@ def on_message(data):
     for ban in banned_data.get('users', []):
         if ban.get('username') == nickname:
             if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
-                emit('error', {'message': f'You are banned: {ban.get("reason", "No reason")} Until: {ban.get("until", "Permanent")}'})
+                if ban.get('until_timestamp', 0) == -1:
+                    duration_text = "permanently"
+                else:
+                    remaining_hours = int((ban.get('until_timestamp', 0) - current_time) / 3600)
+                    if remaining_hours < 1:
+                        remaining_minutes = int((ban.get('until_timestamp', 0) - current_time) / 60)
+                        duration_text = f"for {remaining_minutes} more minutes"
+                    elif remaining_hours < 24:
+                        duration_text = f"for {remaining_hours} more hours"
+                    else:
+                        remaining_days = int(remaining_hours / 24)
+                        duration_text = f"for {remaining_days} more days"
+                
+                emit('error', {'message': f'You are banned {duration_text}. Reason: {ban.get("reason", "No reason")}'})
                 return
 
     # Anti-spam check for general chat
