@@ -631,12 +631,14 @@ body[data-theme="dark"] .stat-item {
   .user-status, .room-stats {
     font-size: 0.8rem;
     padding: 0.25rem 0.5rem;
-    order: 2;
+    order: 3;
     margin-top: 0.5rem;
+    width: 100%;
   }
   
   .chat-controls {
-    order: 1;
+    order: 2;
+    margin-top: 0.5rem;
   }
   
   .chat-header {
@@ -647,6 +649,7 @@ body[data-theme="dark"] .stat-item {
   
   .chat-title {
     width: 100%;
+    order: 1;
   }
 }
 

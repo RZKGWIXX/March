@@ -293,9 +293,16 @@ def delete_room():
     if room not in rooms_data:
         return jsonify(success=False, error='Room not found'), 404
 
-    # Check if user is admin
-    if session['nickname'] not in rooms_data[room].get('admins', []):
-        return jsonify(success=False, error='Only admins can delete rooms'), 403
+    room_info = rooms_data[room]
+    
+    # For private chats, allow any member to delete
+    if room.startswith('private_'):
+        if session['nickname'] not in room_info.get('members', []):
+            return jsonify(success=False, error='Access denied'), 403
+    else:
+        # For groups, only admins can delete
+        if session['nickname'] not in room_info.get('admins', []):
+            return jsonify(success=False, error='Only admins can delete rooms'), 403
 
     # Delete room and its messages
     rooms_data.pop(room, None)
