@@ -914,10 +914,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       addMessage(nick, text, false);
 
-      // Update cache
+      // Update cache immediately
       if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
       messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+      
+      // Update user activity status in real-time
+      updateRoomStats(currentRoom);
       
       // Show notification and sound for others' messages
       if (document.hidden) {
@@ -969,6 +972,19 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('user_muted', (data) => {
     if (data.username === nickname && data.room === currentRoom) {
       showNotification(`🔇 You were muted for ${data.duration} minutes by ${data.by}`, 'warning');
+    }
+  });
+
+  socket.on('user_activity_update', (data) => {
+    // Update user status in real-time when users join/leave
+    if (currentRoom.startsWith('private_')) {
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      if (data.user === otherUser) {
+        updateUserStatus(otherUser);
+      }
+    } else if (data.room === currentRoom || currentRoom === 'general') {
+      updateRoomStats(currentRoom);
     }
   });
   
@@ -1457,6 +1473,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Real-time updates every 30 seconds
+  setInterval(() => {
+    if (currentRoom.startsWith('private_')) {
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      updateUserStatus(otherUser);
+    } else {
+      updateRoomStats(currentRoom);
+    }
+  }, 30000);
+
+  // Real-time admin stats updates
+  if (nickname === 'Wixxy') {
+    setInterval(() => {
+      const statsDiv = document.getElementById('admin-stats');
+      if (statsDiv && statsDiv.style.display !== 'none') {
+        loadStats();
+      }
+    }, 10000); // Update every 10 seconds for admin
+  }
+
   // Clear history button for mobile
   const clearHistoryBtn = document.getElementById('clear-history-btn');
   if (clearHistoryBtn) {
@@ -1563,6 +1600,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial setup
   loadRooms();
   setTimeout(() => joinRoom('general'), 100);
+
+  // Auto-refresh room list every 2 minutes
+  setInterval(() => {
+    loadRooms();
+  }, 120000);
   
   // Add settings button to header
   const headerButtons = document.querySelector('.header-buttons');

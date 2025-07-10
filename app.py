@@ -625,12 +625,11 @@ def get_room_stats(room):
 
 def is_valid_nickname(nickname):
     """
-    Validates the nickname to allow only English/Ukrainian letters.
-    No Russian or other Slavic characters.
+    Validates the nickname to allow only English letters and digits.
     """
-    pattern = r'^[a-zA-Z\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF]+$'
+    pattern = r'^[a-zA-Z0-9]+$'
     if not re.match(pattern, nickname):
-        return False, "Nickname can only contain English, Ukrainian, Hebrew, and Arabic characters."
+        return False, "Nickname can only contain English letters and digits."
     return True, None
 
 @app.route('/change_nickname', methods=['POST'])
@@ -1022,6 +1021,13 @@ def on_join(data):
     }
     user_sessions[request.sid] = nickname
 
+    # Notify all rooms about user activity
+    socketio.emit('user_activity_update', {
+        'user': nickname,
+        'room': room,
+        'action': 'joined'
+    })
+    
     # Notify room about user count update
     socketio.emit('user_count_update', room=room)
 
