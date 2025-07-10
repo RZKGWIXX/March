@@ -20,6 +20,16 @@
       "nick": "Test",
       "text": "Gg",
       "timestamp": 1752168458
+    },
+    {
+      "nick": "Test",
+      "text": "Привіт",
+      "timestamp": 1752169558
+    },
+    {
+      "nick": "Wixxy",
+      "text": "Привіт!",
+      "timestamp": 1752169573
     }
   ]
 }
