@@ -262,6 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
+    
+    // Show clear history button for private chats on mobile
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) {
+      clearHistoryBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
+    }
 
     // Close mobile menu
     if (window.innerWidth <= 768) {
@@ -339,8 +345,40 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
-    contextMenu.style.left = e.clientX + 'px';
-    contextMenu.style.top = e.clientY + 'px';
+    
+    // Get click coordinates
+    const clickX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clickY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    
+    // Temporarily position to get dimensions
+    contextMenu.style.position = 'fixed';
+    contextMenu.style.visibility = 'hidden';
+    document.body.appendChild(contextMenu);
+    
+    // Get menu dimensions and window size
+    const menuWidth = contextMenu.offsetWidth || 200; // fallback width
+    const menuHeight = contextMenu.offsetHeight || 100; // fallback height
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Calculate optimal position
+    let left = clickX;
+    let top = clickY;
+    
+    // Adjust horizontal position if menu would go off-screen
+    if (left + menuWidth > windowWidth) {
+      left = Math.max(10, windowWidth - menuWidth - 10);
+    }
+    
+    // Adjust vertical position if menu would go off-screen
+    if (top + menuHeight > windowHeight) {
+      top = Math.max(10, windowHeight - menuHeight - 10);
+    }
+    
+    // Apply final position
+    contextMenu.style.left = left + 'px';
+    contextMenu.style.top = top + 'px';
+    contextMenu.style.visibility = 'visible';
     
     const items = [];
     
@@ -925,6 +963,16 @@ document.addEventListener('DOMContentLoaded', () => {
       updateRoomStats(currentRoom);
     }
   });
+
+  // Clear history button for mobile
+  const clearHistoryBtn = document.getElementById('clear-history-btn');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.onclick = () => {
+      if (currentRoom.startsWith('private_')) {
+        clearPrivateHistory();
+      }
+    };
+  }
 
   // Initial setup
   loadRooms();
