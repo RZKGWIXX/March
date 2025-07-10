@@ -434,6 +434,33 @@ def admin_clear_chat():
     
     return jsonify(success=True)
 
+@app.route('/clear_private_history', methods=['POST'])
+@login_required
+def clear_private_history():
+    room = request.json.get('room')
+    
+    if not room or not room.startswith('private_'):
+        return jsonify(success=False, error='Only private chats can be cleared this way')
+    
+    # Hide all messages for this user in this room
+    messages_data = load_json(MESSAGES_FILE)
+    if room in messages_data:
+        hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
+        user_key = session['nickname']
+        
+        if user_key not in hidden_data:
+            hidden_data[user_key] = {}
+        if room not in hidden_data[user_key]:
+            hidden_data[user_key][room] = []
+        
+        # Hide all messages in this room for this user
+        hidden_data[user_key][room] = list(range(len(messages_data[room])))
+        
+        with open('hidden_messages.json', 'w') as f:
+            json.dump(hidden_data, f, indent=2)
+    
+    return jsonify(success=True)
+
 @socketio.on('join')
 def on_join(data):
     room = data['room']
@@ -511,5 +538,5 @@ def on_message(data):
     send(f"{nickname}: {message}", room=room)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 6570))
+    port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=True)

@@ -343,12 +343,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (isOwnMessage) {
       items.push({text: '🗑️ Delete for me', action: () => deleteMessage(index, 'me')});
+      // Allow deletion for everyone in private chats and groups (not just general)
       if (currentRoom !== 'general' || nickname === 'Wixxy') {
         items.push({text: '🗑️ Delete for everyone', action: () => deleteMessage(index, 'all')});
       }
     } else if (nickname === 'Wixxy') {
       items.push({text: '🗑️ Delete message', action: () => deleteMessage(index, 'all')});
       items.push({text: '🚫 Ban user', action: () => showBanDialog(nick)});
+    }
+    
+    // Add clear history option for private chats
+    if (currentRoom.startsWith('private_')) {
+      items.push({text: '🧹 Clear history for me', action: () => clearPrivateHistory()});
     }
     
     items.forEach(item => {
@@ -368,6 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       document.addEventListener('click', hideContextMenu);
     }, 0);
+  }
+  
+  // Clear private chat history for current user
+  function clearPrivateHistory() {
+    if (confirm('Clear chat history for yourself? This cannot be undone.')) {
+      fetch('/clear_private_history', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: currentRoom})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          loadMessages(currentRoom);
+          showNotification('✅ History cleared for you', 'success');
+        } else {
+          showNotification('❌ Failed to clear history', 'error');
+        }
+      });
+    }
   }
   
   function hideContextMenu() {
@@ -510,21 +536,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const nick = msg.substring(0, colonIndex);
       const text = msg.substring(colonIndex + 1).trim();
 
-      // Don't add if it's our own message (avoid duplicates)
-      if (nick !== nickname) {
-        addMessage(nick, text, false);
+      // Add message for everyone (including own messages for real-time display)
+      addMessage(nick, text, nick === nickname);
 
-        // Update cache
-        if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-        messageHistory[currentRoom].push({nick, text});
-        localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-        
-        // Show notification if page is not visible
+      // Update cache
+      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+      messageHistory[currentRoom].push({nick, text});
+      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+      
+      // Show notification and sound only for others' messages
+      if (nick !== nickname) {
         if (document.hidden) {
           showDesktopNotification(nick, text);
         }
-        
-        // Play notification sound
         playNotificationSound();
       }
     }
@@ -671,13 +695,52 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.innerHTML = `
       <div class="admin-content">
         <h2>🔧 Admin Panel</h2>
+        <button class="admin-btn" onclick="createGroupAsAdmin()">Create Group</button>
         <button class="admin-btn" onclick="loadBannedUsers()">View Banned Users</button>
         <button class="admin-btn" onclick="clearChat()">Clear General Chat</button>
+        <button class="admin-btn" onclick="loadAllUsers()">Ban User</button>
         <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
-        <div id="banned-users-list"></div>
+        <div id="admin-content-area"></div>
       </div>
     `;
     document.body.appendChild(modal);
+  };
+  
+  // Create group as admin
+  window.createGroupAsAdmin = function() {
+    const groupName = prompt('Enter group name:');
+    if (groupName && groupName.trim()) {
+      fetch('/create_group', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: groupName.trim()})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          loadRooms();
+          showNotification('✅ Group created successfully', 'success');
+        } else {
+          showNotification('❌ ' + (data.error || 'Failed to create group'), 'error');
+        }
+      });
+    }
+  };
+  
+  // Load all users for banning
+  window.loadAllUsers = function() {
+    fetch('/users')
+      .then(r => r.json())
+      .then(users => {
+        const area = document.getElementById('admin-content-area');
+        area.innerHTML = '<h3>Select User to Ban:</h3>' + 
+          users.map(user => `
+            <div class="user-item">
+              <span>${user}</span>
+              <button class="ban-btn" onclick="showBanDialog('${user}')">Ban</button>
+            </div>
+          `).join('');
+      });
   };
   
   // Load banned users
@@ -744,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Add admin button to header if admin
   if (nickname === 'Wixxy') {
-    const headerButtons = document.querySelector('.header-buttons') || document.querySelector('header');
+    const headerButtons = document.querySelector('.header-buttons');
     if (headerButtons) {
       const adminBtn = document.createElement('button');
       adminBtn.innerHTML = '🔧';
@@ -752,5 +815,33 @@ document.addEventListener('DOMContentLoaded', () => {
       adminBtn.onclick = toggleAdminPanel;
       headerButtons.appendChild(adminBtn);
     }
+  }
+  
+  // Add create group button
+  if (createGroupBtn) {
+    createGroupBtn.onclick = () => {
+      const groupName = prompt('Enter group name:');
+      if (groupName && groupName.trim()) {
+        fetch('/create_group', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: groupName.trim()})
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            loadRooms();
+            setTimeout(() => joinRoom(data.room), 100);
+            showNotification('✅ Group created successfully', 'success');
+          } else {
+            showNotification('❌ ' + (data.error || 'Failed to create group'), 'error');
+          }
+        })
+        .catch(err => {
+          console.error('Failed to create group:', err);
+          showNotification('❌ Error creating group', 'error');
+        });
+      }
+    };
   }
 });

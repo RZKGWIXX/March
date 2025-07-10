@@ -453,6 +453,175 @@ body[data-theme="dark"] .chat-controls button {
   display: none;
 }
 
+/* Admin Panel Styles */
+.admin-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.admin-content {
+  background: var(--surface-light);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+body[data-theme="dark"] .admin-content {
+  background: var(--surface-dark);
+}
+
+.admin-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--gradient-primary);
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.admin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.admin-btn.close-btn {
+  background: #e74c3c;
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.ban-item {
+  background: rgba(231, 76, 60, 0.1);
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border-radius: var(--border-radius);
+  border-left: 4px solid #e74c3c;
+}
+
+.unban-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+/* Context Menu Styles */
+.context-menu {
+  position: fixed;
+  background: var(--surface-light);
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  z-index: 10000;
+  min-width: 150px;
+}
+
+body[data-theme="dark"] .context-menu {
+  background: var(--surface-dark);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.context-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  transition: var(--transition);
+}
+
+.context-item:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.context-item:last-child {
+  border-bottom: none;
+}
+
+/* Ban Modal Styles */
+.ban-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.ban-dialog {
+  background: var(--surface-light);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  max-width: 400px;
+  width: 90%;
+}
+
+body[data-theme="dark"] .ban-dialog {
+  background: var(--surface-dark);
+}
+
+.ban-dialog input, .ban-dialog select {
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: var(--border-radius);
+  background: var(--surface-light);
+  color: var(--text-primary);
+}
+
+.ban-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ban-buttons button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.cancel-btn {
+  background: #95a5a6;
+  color: white;
+}
+
+.ban-btn {
+  background: #e74c3c;
+  color: white;
+}
+
 .messages { 
   flex: 1; 
   padding: 1.5rem; 
