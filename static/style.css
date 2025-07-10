@@ -897,6 +897,10 @@ body[data-theme="dark"] .message-form input {
 
 /* Responsive Design */
 @media (max-width: 768px) { 
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
   .sidebar { 
     position: fixed;
     left: -100%;
@@ -912,7 +916,7 @@ body[data-theme="dark"] .message-form input {
 
   .app { 
     flex-direction: column;
-    height: 100vh;
+    height: calc(100vh - env(safe-area-inset-bottom, 20px));
     overflow: hidden;
   } 
 
@@ -955,7 +959,7 @@ body[data-theme="dark"] .message-form input {
     flex-shrink: 0;
     padding: 0.75rem;
     gap: 0.5rem;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 20px));
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -965,12 +969,15 @@ body[data-theme="dark"] .message-form input {
     font-size: 16px; /* Prevent zoom on iOS */
     flex: 1;
     min-width: 0;
+    padding: 1rem 1.5rem;
+    border-radius: 25px;
   }
 
   .message-form button {
     flex-shrink: 0;
     min-width: 50px;
-    padding: 0.75rem;
+    padding: 1rem;
+    border-radius: 25px;
   }
 
   #mobile-chat-options {
@@ -978,8 +985,9 @@ body[data-theme="dark"] .message-form input {
   }
 
   .chat-window {
-    height: 100vh;
+    height: calc(100vh - env(safe-area-inset-bottom, 20px));
     overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .login-container form {
