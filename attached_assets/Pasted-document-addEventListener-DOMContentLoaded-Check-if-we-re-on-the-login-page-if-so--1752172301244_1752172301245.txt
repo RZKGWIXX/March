@@ -258,8 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update controls
     if (deleteRoomBtn) {
       deleteRoomBtn.disabled = room === 'general';
-      deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
-      deleteRoomBtn.onclick = showRoomContextMenu;
     }
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
@@ -269,13 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     if (clearHistoryBtn) {
       clearHistoryBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
-    }
-
-    // Show mobile chat options for all non-general rooms
-    const mobileChatOptions = document.getElementById('mobile-chat-options');
-    if (mobileChatOptions) {
-      mobileChatOptions.style.display = (room !== 'general' && window.innerWidth <= 768) ? 'block' : 'none';
-      mobileChatOptions.onclick = showRoomContextMenu;
     }
 
     // Close mobile menu
@@ -316,9 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isSystemMessage) {
       div.innerHTML = `<span class="system-text">${text}</span>`;
     } else {
-      // Check if message is a file URL (including relative paths)
+      // Check if message is a file URL
       let messageContent = text;
-      if (text.startsWith('/static/uploads/') || (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg')))) {
+      if (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg'))) {
         messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
       } else {
         // Convert URLs to clickable links
@@ -379,15 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (nickname === 'Wixxy') {
       items.push({text: '🗑️ Delete message', action: () => deleteMessage(index, 'all')});
       items.push({text: '🚫 Ban user', action: () => showBanDialog(nick)});
-    }
-    
-    // Add mute option for group admins
-    if (currentRoom !== 'general' && !currentRoom.startsWith('private_') && !isOwnMessage) {
-      checkIfAdmin(currentRoom).then(isAdmin => {
-        if (isAdmin || nickname === 'Wixxy') {
-          items.push({text: '🔇 Mute user (1h)', action: () => muteUser(nick, 60)});
-        }
-      });
     }
     
     // Add clear history option for private chats
@@ -560,309 +542,31 @@ document.addEventListener('DOMContentLoaded', () => {
     deleteRoomBtn.onclick = () => {
       if (currentRoom === 'general') return;
 
-      // Show room context menu instead of immediate delete
-      showRoomContextMenu();
-    };
-  }
-
-  // Show room context menu
-  function showRoomContextMenu() {
-    const modal = document.createElement('div');
-    modal.className = 'admin-panel';
-    
-    if (currentRoom.startsWith('private_')) {
-      // Check if user is blocked to show unblock option
-      const users = currentRoom.replace('private_', '').split('_');
-      const otherUser = users.find(u => u !== nickname) || users[0];
-      
-      modal.innerHTML = `
-        <div class="admin-content">
-          <h2>💬 Private Chat Options</h2>
-          <button class="admin-btn" onclick="deleteCurrentRoom()">🗑️ Delete Chat</button>
-          <button class="admin-btn" onclick="blockCurrentUser()">🚫 Block User</button>
-          <button class="admin-btn" onclick="unblockCurrentUser()">✅ Unblock User</button>
-          <button class="admin-btn" onclick="clearPrivateHistory()">🧹 Clear History</button>
-          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
-        </div>
-      `;
-    } else {
-      // Group chat
-      checkIfAdmin(currentRoom).then(isAdmin => {
-        let adminOptions = '';
-        if (isAdmin || nickname === 'Wixxy') {
-          adminOptions = `
-            <button class="admin-btn" onclick="showAddUserDialog()">➕ Add User</button>
-            <button class="admin-btn" onclick="showKickUserDialog()">👢 Kick User</button>
-            <button class="admin-btn" onclick="deleteCurrentRoom()">🗑️ Delete Group</button>
-          `;
-        }
-        
-        modal.innerHTML = `
-          <div class="admin-content">
-            <h2>👥 Group Options</h2>
-            <button class="admin-btn" onclick="showGroupMembers()">👥 View Members</button>
-            <button class="admin-btn" onclick="leaveCurrentGroup()">🚪 Leave Group</button>
-            ${adminOptions}
-            <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
-          </div>
-        `;
-      });
-    }
-    
-    document.body.appendChild(modal);
-  }
-
-  // Group management functions
-  window.deleteCurrentRoom = function() {
-    const roomName = currentRoom.startsWith('private_') ? 'private chat' : 'group';
-    if (confirm(`🗑️ Delete this ${roomName}? This action cannot be undone.`)) {
-      fetch('/delete_room', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          delete messageHistory[currentRoom];
-          localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-          loadRooms();
-          setTimeout(() => joinRoom('general'), 100);
-          showNotification('✅ Room deleted successfully', 'success');
-          document.querySelector('.admin-panel').remove();
-        } else {
-          showNotification('❌ ' + (data.error || 'Failed to delete room'), 'error');
-        }
-      });
-    }
-  };
-
-  window.blockCurrentUser = function() {
-    if (confirm('🚫 Block this user? They will be blocked from messaging you.')) {
-      fetch('/block_user', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          showNotification('✅ User blocked successfully', 'success');
-          document.querySelector('.admin-panel').remove();
-        } else {
-          showNotification('❌ Failed to block user', 'error');
-        }
-      });
-    }
-  };
-
-  window.unblockCurrentUser = function() {
-    if (confirm('✅ Unblock this user? They will be able to message you again.')) {
-      fetch('/unblock_user', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          showNotification('✅ User unblocked successfully', 'success');
-          document.querySelector('.admin-panel').remove();
-        } else {
-          showNotification('❌ Failed to unblock user', 'error');
-        }
-      });
-    }
-  };
-
-  window.leaveCurrentGroup = function() {
-    if (confirm('🚪 Leave this group? You will no longer receive messages.')) {
-      fetch('/leave_group', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          loadRooms();
-          setTimeout(() => joinRoom('general'), 100);
-          showNotification('✅ Left group successfully', 'success');
-          document.querySelector('.admin-panel').remove();
-        } else {
-          showNotification('❌ ' + (data.error || 'Failed to leave group'), 'error');
-        }
-      });
-    }
-  };
-
-  window.showAddUserDialog = function() {
-    // Close existing admin panel
-    const existingPanel = document.querySelector('.admin-panel');
-    if (existingPanel) existingPanel.remove();
-    
-    const modal = document.createElement('div');
-    modal.className = 'admin-panel';
-    modal.innerHTML = `
-      <div class="admin-content">
-        <h2>➕ Add User to Group</h2>
-        <div style="margin-bottom: 1rem;">
-          <input type="text" id="add-user-search" placeholder="Search users..." style="width: 100%; padding: 0.75rem; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 1rem;">
-        </div>
-        <div id="add-user-list" style="max-height: 300px; overflow-y: auto;"></div>
-        <div style="margin-top: 1rem;">
-          <button class="admin-btn" onclick="addUserByName()">Add by Username</button>
-          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Load users and setup search
-    fetch('/users')
-      .then(r => r.json())
-      .then(users => {
-        const addUserList = document.getElementById('add-user-list');
-        const searchInput = document.getElementById('add-user-search');
-        
-        function displayUsers(userList) {
-          addUserList.innerHTML = userList.map(user => `
-            <div class="user-item" style="padding: 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer;" onclick="addUserToGroup('${user}')">
-              <span>👤 ${user}</span>
-              <button class="admin-btn" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="event.stopPropagation(); addUserToGroup('${user}')">Add</button>
-            </div>
-          `).join('') || '<p style="padding: 1rem; text-align: center; color: #666;">No users found</p>';
-        }
-        
-        displayUsers(users);
-        
-        // Search functionality
-        if (searchInput) {
-          searchInput.oninput = function() {
-            const query = this.value.toLowerCase();
-            const filteredUsers = users.filter(user => user.toLowerCase().includes(query));
-            displayUsers(filteredUsers);
-          };
-          searchInput.focus();
-        }
-      });
-  };
-  
-  window.addUserByName = function() {
-    const searchInput = document.getElementById('add-user-search');
-    const username = searchInput ? searchInput.value.trim() : '';
-    if (username) {
-      addUserToGroup(username);
-    }
-  };
-  
-  window.addUserToGroup = function(username) {
-    fetch('/add_to_group', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({room: currentRoom, username: username})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        showNotification('✅ User added successfully', 'success');
-        document.querySelector('.admin-panel').remove();
-      } else {
-        showNotification('❌ ' + (data.error || 'Failed to add user'), 'error');
-      }
-    });
-  };
-
-  window.showKickUserDialog = function() {
-    fetch(`/get_room_info/${currentRoom}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          const members = data.members.filter(m => m !== nickname);
-          if (members.length === 0) {
-            showNotification('❌ No other members to kick', 'error');
-            return;
+      const roomName = currentRoom.startsWith('private_') ? 'private chat' : 'group';
+      if (confirm(`🗑️ Delete this ${roomName}? This action cannot be undone.`)) {
+        fetch('/delete_room', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({room: currentRoom})
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            delete messageHistory[currentRoom];
+            localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+            loadRooms();
+            setTimeout(() => joinRoom('general'), 100);
+            showNotification('✅ Room deleted successfully', 'success');
+          } else {
+            showNotification('❌ ' + (data.error || 'Failed to delete room'), 'error');
           }
-          
-          const modal = document.createElement('div');
-          modal.className = 'admin-panel';
-          modal.innerHTML = `
-            <div class="admin-content">
-              <h2>👢 Kick User</h2>
-              ${members.map(member => `
-                <button class="admin-btn" onclick="kickUser('${member}')">${member}</button>
-              `).join('')}
-              <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
-            </div>
-          `;
-          document.body.appendChild(modal);
-        }
-      });
-  };
-
-  window.kickUser = function(username) {
-    if (confirm(`👢 Kick ${username} from the group?`)) {
-      fetch('/kick_from_group', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({room: currentRoom, username: username})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          showNotification('✅ User kicked successfully', 'success');
-          document.querySelector('.admin-panel').remove();
-        } else {
-          showNotification('❌ ' + (data.error || 'Failed to kick user'), 'error');
-        }
-      });
-    }
-  };
-
-  window.showGroupMembers = function() {
-    fetch(`/get_room_info/${currentRoom}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          const modal = document.createElement('div');
-          modal.className = 'admin-panel';
-          modal.innerHTML = `
-            <div class="admin-content">
-              <h2>👥 Group Members</h2>
-              ${data.members.map(member => `
-                <div class="user-item">
-                  <span>${member} ${data.admins.includes(member) ? '👑' : ''}</span>
-                </div>
-              `).join('')}
-              <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
-            </div>
-          `;
-          document.body.appendChild(modal);
-        }
-      });
-  };
-
-  window.muteUser = function(username, minutes) {
-    fetch('/mute_user', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({room: currentRoom, username: username, duration: minutes})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        showNotification(`✅ ${username} muted for ${minutes} minutes`, 'success');
-      } else {
-        showNotification('❌ ' + (data.error || 'Failed to mute user'), 'error');
+        })
+        .catch(err => {
+          console.error('Failed to delete room:', err);
+          showNotification('❌ Error deleting room', 'error');
+        });
       }
-    });
-  };
-
-  function checkIfAdmin(room) {
-    return fetch(`/get_room_info/${room}`)
-      .then(r => r.json())
-      .then(data => data.success && data.is_admin);
+    };
   }
 
   if (blockUserBtn) {
@@ -950,25 +654,6 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('message_deleted', (data) => {
     if (data.room === currentRoom) {
       loadMessages(currentRoom);
-    }
-  });
-  
-  socket.on('room_update', (data) => {
-    if (data.action === 'kicked_from_group' && data.username === nickname) {
-      showNotification(`❌ You were kicked from ${data.room} by ${data.by}`, 'error');
-      loadRooms();
-      if (currentRoom === data.room) {
-        setTimeout(() => joinRoom('general'), 100);
-      }
-    } else if (data.action === 'added_to_group' && data.username === nickname) {
-      showNotification(`✅ You were added to ${data.room} by ${data.by}`, 'success');
-      loadRooms();
-    }
-  });
-  
-  socket.on('user_muted', (data) => {
-    if (data.username === nickname && data.room === currentRoom) {
-      showNotification(`🔇 You were muted for ${data.duration} minutes by ${data.by}`, 'warning');
     }
   });
   

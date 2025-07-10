@@ -631,22 +631,6 @@ body[data-theme="dark"] .stat-item {
   .user-status, .room-stats {
     font-size: 0.8rem;
     padding: 0.25rem 0.5rem;
-    order: 2;
-    margin-top: 0.5rem;
-  }
-  
-  .chat-controls {
-    order: 1;
-  }
-  
-  .chat-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .chat-title {
-    width: 100%;
   }
 }
 

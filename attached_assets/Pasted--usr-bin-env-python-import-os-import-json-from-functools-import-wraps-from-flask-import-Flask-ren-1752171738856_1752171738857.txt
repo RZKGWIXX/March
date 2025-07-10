@@ -95,20 +95,7 @@ def login():
         for ban in banned_data.get('users', []):
             if (ban.get('username') == nick or ban.get('ip') == ip):
                 if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
-                    if ban.get('until_timestamp', 0) == -1:
-                        duration_text = "permanently"
-                    else:
-                        remaining_hours = int((ban.get('until_timestamp', 0) - current_time) / 3600)
-                        if remaining_hours < 1:
-                            remaining_minutes = int((ban.get('until_timestamp', 0) - current_time) / 60)
-                            duration_text = f"for {remaining_minutes} more minutes"
-                        elif remaining_hours < 24:
-                            duration_text = f"for {remaining_hours} more hours"
-                        else:
-                            remaining_days = int(remaining_hours / 24)
-                            duration_text = f"for {remaining_days} more days"
-                    
-                    error_msg = f"You are banned {duration_text}. Reason: {ban.get('reason', 'No reason')}"
+                    error_msg = f"You are banned. Reason: {ban.get('reason', 'No reason')}. Until: {ban.get('until', 'Permanent')}"
                     return render_template('base.html', title='Login', error=error_msg)
 
         # Save user credentials with timestamp
@@ -208,47 +195,10 @@ def create_private():
     if is_user_blocked(session['nickname'], target_nick):
         return jsonify(success=False, error='You are blocked by this user')
 
-    # Handle nickname mapping for old chats
-    actual_target = target_nick
-    if target_nick == "Щука228":
-        actual_target = "Testmama"
-
-    users = sorted([session['nickname'], actual_target])
+    users = sorted([session['nickname'], target_nick])
     room = f"private_{users[0]}_{users[1]}"
 
     rooms_data = load_json(ROOMS_FILE)
-    
-    # Check for existing rooms with old nickname mapping
-    existing_room = None
-    old_room_patterns = [
-        f"private_{session['nickname']}_Щука228",
-        f"private_Щука228_{session['nickname']}",
-        f"private_{session['nickname']}_Testmama", 
-        f"private_Testmama_{session['nickname']}"
-    ]
-    
-    for pattern in old_room_patterns:
-        if pattern in rooms_data:
-            existing_room = pattern
-            break
-    
-    if existing_room and existing_room != room:
-        # Migrate old room to new room name
-        rooms_data[room] = rooms_data[existing_room]
-        # Update members to use current nickname
-        rooms_data[room]['members'] = [session['nickname'], actual_target]
-        del rooms_data[existing_room]
-        
-        # Migrate messages
-        messages_data = load_json(MESSAGES_FILE)
-        if existing_room in messages_data:
-            messages_data[room] = messages_data[existing_room]
-            del messages_data[existing_room]
-            save_json(MESSAGES_FILE, messages_data)
-        
-        save_json(ROOMS_FILE, rooms_data)
-        return jsonify(success=True, room=room)
-    
     if room not in rooms_data:
         rooms_data[room] = {
             'members': users,
@@ -325,25 +275,6 @@ def block_user():
 
     if other_user not in blocks_data[session['nickname']]:
         blocks_data[session['nickname']].append(other_user)
-        save_json(BLOCKS_FILE, blocks_data)
-
-    return jsonify(success=True)
-
-@app.route('/unblock_user', methods=['POST'])
-@login_required
-def unblock_user():
-    room = request.json.get('room')
-
-    if not room or not room.startswith('private_'):
-        return jsonify(success=False, error='Can only unblock users in private chats')
-
-    # Extract the other user from room name
-    users = room.replace('private_', '').split('_')
-    other_user = users[0] if users[1] == session['nickname'] else users[1]
-
-    blocks_data = load_json(BLOCKS_FILE)
-    if session['nickname'] in blocks_data and other_user in blocks_data[session['nickname']]:
-        blocks_data[session['nickname']].remove(other_user)
         save_json(BLOCKS_FILE, blocks_data)
 
     return jsonify(success=True)
@@ -606,10 +537,10 @@ def get_room_stats(room):
         rooms_data = load_json(ROOMS_FILE)
         members = rooms_data.get(room, {}).get('members', [])
         total_count = len(members)
-        # For private chats, only count users who are online anywhere (not necessarily in this room)
         online_count = sum(1 for member in members 
                           if member in online_users and 
-                          current_time - online_users[member]['last_seen'] < 300)
+                          current_time - online_users[member]['last_seen'] < 300 and
+                          online_users[member].get('room') == room)
 
     return jsonify({
         'online_count': online_count,
@@ -649,35 +580,32 @@ def change_nickname():
 
     old_nickname = session['nickname']
 
-    # Check cooldown - load last change time
-    cooldown_data = load_json('nickname_cooldowns.json') if os.path.exists('nickname_cooldowns.json') else {}
+    # Update users file
     import time
-    current_time = int(time.time())
-    
-    # Check if user has changed nickname in the last 24 hours
-    if old_nickname in cooldown_data:
-        last_change = cooldown_data[old_nickname]
-        time_since_change = current_time - last_change
-        hours_remaining = 24 - (time_since_change // 3600)
-        
-        if time_since_change < 86400:  # 24 hours in seconds
-            return jsonify(success=False, error=f'You can change nickname once per day. Try again in {hours_remaining} hours.')
+    timestamp = int(time.time())
+    date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+    ip = request.remote_addr
 
-    # Update users file using users_manager
-    from users_manager import update_user_nickname
-    success = update_user_nickname(old_nickname, new_nickname)
-    
-    if not success:
-        return jsonify(success=False, error='Failed to update nickname in database')
+    # Read existing users and update the one with old nickname
+    users_data = []
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split(',')
+                if len(parts) >= 3:
+                    if parts[1] == old_nickname:
+                        # Update this user's nickname
+                        users_data.append(f"{ip},{new_nickname},{parts[2]},{timestamp},{date_str}")
+                    else:
+                        users_data.append(line.strip())
 
-    # Update cooldown
-    cooldown_data[new_nickname] = current_time
-    # Remove old nickname from cooldown data
-    if old_nickname in cooldown_data:
-        del cooldown_data[old_nickname]
-    
-    with open('nickname_cooldowns.json', 'w') as f:
-        json.dump(cooldown_data, f, indent=2)
+    # Write back to file
+    with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        f.write("# IP,Username,Password,Timestamp,Date\n")
+        for user_data in users_data:
+            f.write(user_data + "\n")
 
     # Update session
     session['nickname'] = new_nickname
@@ -695,226 +623,7 @@ def change_nickname():
             room_info['admins'] = [new_nickname if a == old_nickname else a for a in room_info['admins']]
     save_json(ROOMS_FILE, rooms_data)
 
-    # Update blocks data
-    blocks_data = load_json(BLOCKS_FILE)
-    if old_nickname in blocks_data:
-        blocks_data[new_nickname] = blocks_data.pop(old_nickname)
-    # Update references to old nickname in other users' block lists
-    for user, blocked_list in blocks_data.items():
-        if old_nickname in blocked_list:
-            blocked_list[blocked_list.index(old_nickname)] = new_nickname
-    save_json(BLOCKS_FILE, blocks_data)
-
-    # Update hidden messages
-    try:
-        hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
-        if old_nickname in hidden_data:
-            hidden_data[new_nickname] = hidden_data.pop(old_nickname)
-        with open('hidden_messages.json', 'w') as f:
-            json.dump(hidden_data, f, indent=2)
-    except:
-        pass
-
-    # Notify all users about nickname change
-    socketio.emit('nickname_changed', {
-        'old_nickname': old_nickname,
-        'new_nickname': new_nickname
-    })
-
     return jsonify(success=True)
-
-@app.route('/leave_group', methods=['POST'])
-@login_required
-def leave_group():
-    room = request.json.get('room')
-    
-    if not room or room == 'general':
-        return jsonify(success=False, error='Cannot leave general chat')
-    
-    rooms_data = load_json(ROOMS_FILE)
-    
-    if room not in rooms_data:
-        return jsonify(success=False, error='Room not found')
-    
-    room_info = rooms_data[room]
-    
-    # Don't allow leaving private chats this way
-    if room_info.get('type') == 'private':
-        return jsonify(success=False, error='Use block function for private chats')
-    
-    # Remove user from members
-    if session['nickname'] in room_info['members']:
-        room_info['members'].remove(session['nickname'])
-    
-    # Remove from admins if they were admin
-    if session['nickname'] in room_info.get('admins', []):
-        room_info['admins'].remove(session['nickname'])
-        
-        # If no admins left, make the first member admin
-        if not room_info['admins'] and room_info['members']:
-            room_info['admins'] = [room_info['members'][0]]
-    
-    # If no members left, delete the room
-    if not room_info['members']:
-        del rooms_data[room]
-        messages_data = load_json(MESSAGES_FILE)
-        messages_data.pop(room, None)
-        save_json(MESSAGES_FILE, messages_data)
-    
-    save_json(ROOMS_FILE, rooms_data)
-    return jsonify(success=True)
-
-@app.route('/add_to_group', methods=['POST'])
-@login_required
-def add_to_group():
-    room = request.json.get('room')
-    username = request.json.get('username')
-    
-    if not room or not username:
-        return jsonify(success=False, error='Room and username required')
-    
-    rooms_data = load_json(ROOMS_FILE)
-    
-    if room not in rooms_data:
-        return jsonify(success=False, error='Room not found')
-    
-    room_info = rooms_data[room]
-    
-    # Check if user is admin
-    if session['nickname'] not in room_info.get('admins', []):
-        return jsonify(success=False, error='Only admins can add members')
-    
-    # Check if target user exists
-    if username not in get_user_list():
-        return jsonify(success=False, error='User not found')
-    
-    # Add user to members if not already there
-    if username not in room_info['members']:
-        room_info['members'].append(username)
-        save_json(ROOMS_FILE, rooms_data)
-        
-        # Notify via socket
-        socketio.emit('room_update', {
-            'action': 'added_to_group',
-            'room': room,
-            'username': username,
-            'by': session['nickname']
-        })
-    
-    return jsonify(success=True)
-
-@app.route('/kick_from_group', methods=['POST'])
-@login_required
-def kick_from_group():
-    room = request.json.get('room')
-    username = request.json.get('username')
-    
-    if not room or not username:
-        return jsonify(success=False, error='Room and username required')
-    
-    rooms_data = load_json(ROOMS_FILE)
-    
-    if room not in rooms_data:
-        return jsonify(success=False, error='Room not found')
-    
-    room_info = rooms_data[room]
-    
-    # Check if user is admin
-    if session['nickname'] not in room_info.get('admins', []):
-        return jsonify(success=False, error='Only admins can kick members')
-    
-    # Cannot kick yourself
-    if username == session['nickname']:
-        return jsonify(success=False, error='Cannot kick yourself')
-    
-    # Remove user from members
-    if username in room_info['members']:
-        room_info['members'].remove(username)
-    
-    # Remove from admins if they were admin
-    if username in room_info.get('admins', []):
-        room_info['admins'].remove(username)
-    
-    save_json(ROOMS_FILE, rooms_data)
-    
-    # Notify via socket
-    socketio.emit('room_update', {
-        'action': 'kicked_from_group',
-        'room': room,
-        'username': username,
-        'by': session['nickname']
-    })
-    
-    return jsonify(success=True)
-
-@app.route('/mute_user', methods=['POST'])
-@login_required
-def mute_user():
-    room = request.json.get('room')
-    username = request.json.get('username')
-    duration = request.json.get('duration', 60)  # minutes
-    
-    if not room or not username:
-        return jsonify(success=False, error='Room and username required')
-    
-    rooms_data = load_json(ROOMS_FILE)
-    
-    if room not in rooms_data:
-        return jsonify(success=False, error='Room not found')
-    
-    room_info = rooms_data[room]
-    
-    # Check if user is admin or global admin
-    if session['nickname'] not in room_info.get('admins', []) and session['nickname'] != 'Wixxy':
-        return jsonify(success=False, error='Only admins can mute users')
-    
-    # Load muted users data
-    muted_data = load_json('muted.json') if os.path.exists('muted.json') else {}
-    
-    if room not in muted_data:
-        muted_data[room] = {}
-    
-    import time
-    muted_data[room][username] = {
-        'until': int(time.time()) + (duration * 60),
-        'by': session['nickname'],
-        'duration': duration
-    }
-    
-    with open('muted.json', 'w') as f:
-        json.dump(muted_data, f, indent=2)
-    
-    # Notify via socket
-    socketio.emit('user_muted', {
-        'room': room,
-        'username': username,
-        'duration': duration,
-        'by': session['nickname']
-    })
-    
-    return jsonify(success=True)
-
-@app.route('/get_room_info/<room>')
-@login_required
-def get_room_info(room):
-    rooms_data = load_json(ROOMS_FILE)
-    
-    if room not in rooms_data:
-        return jsonify(success=False, error='Room not found')
-    
-    room_info = rooms_data[room]
-    
-    # Check if user has access
-    if session['nickname'] not in room_info.get('members', []):
-        return jsonify(success=False, error='Access denied')
-    
-    return jsonify({
-        'success': True,
-        'members': room_info.get('members', []),
-        'admins': room_info.get('admins', []),
-        'type': room_info.get('type', 'group'),
-        'is_admin': session['nickname'] in room_info.get('admins', [])
-    })
 
 @app.route('/upload_file', methods=['POST'])
 @login_required
@@ -961,7 +670,6 @@ def upload_file():
         message_text = f"📎 Shared file: {file_url}"
 
         # Save message
-        import time
         messages_data = load_json(MESSAGES_FILE)
         if room not in messages_data:
             messages_data[room] = []
@@ -1052,37 +760,8 @@ def on_message(data):
     for ban in banned_data.get('users', []):
         if ban.get('username') == nickname:
             if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
-                if ban.get('until_timestamp', 0) == -1:
-                    duration_text = "permanently"
-                else:
-                    remaining_hours = int((ban.get('until_timestamp', 0) - current_time) / 3600)
-                    if remaining_hours < 1:
-                        remaining_minutes = int((ban.get('until_timestamp', 0) - current_time) / 60)
-                        duration_text = f"for {remaining_minutes} more minutes"
-                    elif remaining_hours < 24:
-                        duration_text = f"for {remaining_hours} more hours"
-                    else:
-                        remaining_days = int(remaining_hours / 24)
-                        duration_text = f"for {remaining_days} more days"
-                
-                emit('error', {'message': f'You are banned {duration_text}. Reason: {ban.get("reason", "No reason")}'})
+                emit('error', {'message': f'You are banned: {ban.get("reason", "No reason")} Until: {ban.get("until", "Permanent")}'})
                 return
-
-    # Check if user is muted in this room
-    muted_data = load_json('muted.json') if os.path.exists('muted.json') else {}
-    if room in muted_data and nickname in muted_data[room]:
-        mute_info = muted_data[room][nickname]
-        if mute_info['until'] > current_time:
-            remaining_minutes = int((mute_info['until'] - current_time) / 60)
-            emit('error', {'message': f'You are muted for {remaining_minutes} more minutes'})
-            return
-        else:
-            # Remove expired mute
-            del muted_data[room][nickname]
-            if not muted_data[room]:
-                del muted_data[room]
-            with open('muted.json', 'w') as f:
-                json.dump(muted_data, f, indent=2)
 
     # Anti-spam check for general chat
     if room == 'general':

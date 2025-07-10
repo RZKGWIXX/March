@@ -258,8 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update controls
     if (deleteRoomBtn) {
       deleteRoomBtn.disabled = room === 'general';
-      deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
-      deleteRoomBtn.onclick = showRoomContextMenu;
+      // On mobile, show delete button for all non-general rooms
+      if (window.innerWidth <= 768) {
+        deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
+        deleteRoomBtn.onclick = showRoomContextMenu;
+      }
     }
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
@@ -697,81 +700,22 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.showAddUserDialog = function() {
-    // Close existing admin panel
-    const existingPanel = document.querySelector('.admin-panel');
-    if (existingPanel) existingPanel.remove();
-    
-    const modal = document.createElement('div');
-    modal.className = 'admin-panel';
-    modal.innerHTML = `
-      <div class="admin-content">
-        <h2>➕ Add User to Group</h2>
-        <div style="margin-bottom: 1rem;">
-          <input type="text" id="add-user-search" placeholder="Search users..." style="width: 100%; padding: 0.75rem; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 1rem;">
-        </div>
-        <div id="add-user-list" style="max-height: 300px; overflow-y: auto;"></div>
-        <div style="margin-top: 1rem;">
-          <button class="admin-btn" onclick="addUserByName()">Add by Username</button>
-          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Load users and setup search
-    fetch('/users')
+    const username = prompt('Enter username to add:');
+    if (username && username.trim()) {
+      fetch('/add_to_group', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({room: currentRoom, username: username.trim()})
+      })
       .then(r => r.json())
-      .then(users => {
-        const addUserList = document.getElementById('add-user-list');
-        const searchInput = document.getElementById('add-user-search');
-        
-        function displayUsers(userList) {
-          addUserList.innerHTML = userList.map(user => `
-            <div class="user-item" style="padding: 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer;" onclick="addUserToGroup('${user}')">
-              <span>👤 ${user}</span>
-              <button class="admin-btn" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="event.stopPropagation(); addUserToGroup('${user}')">Add</button>
-            </div>
-          `).join('') || '<p style="padding: 1rem; text-align: center; color: #666;">No users found</p>';
-        }
-        
-        displayUsers(users);
-        
-        // Search functionality
-        if (searchInput) {
-          searchInput.oninput = function() {
-            const query = this.value.toLowerCase();
-            const filteredUsers = users.filter(user => user.toLowerCase().includes(query));
-            displayUsers(filteredUsers);
-          };
-          searchInput.focus();
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ User added successfully', 'success');
+        } else {
+          showNotification('❌ ' + (data.error || 'Failed to add user'), 'error');
         }
       });
-  };
-  
-  window.addUserByName = function() {
-    const searchInput = document.getElementById('add-user-search');
-    const username = searchInput ? searchInput.value.trim() : '';
-    if (username) {
-      addUserToGroup(username);
     }
-  };
-  
-  window.addUserToGroup = function(username) {
-    fetch('/add_to_group', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({room: currentRoom, username: username})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        showNotification('✅ User added successfully', 'success');
-        document.querySelector('.admin-panel').remove();
-      } else {
-        showNotification('❌ ' + (data.error || 'Failed to add user'), 'error');
-      }
-    });
   };
 
   window.showKickUserDialog = function() {

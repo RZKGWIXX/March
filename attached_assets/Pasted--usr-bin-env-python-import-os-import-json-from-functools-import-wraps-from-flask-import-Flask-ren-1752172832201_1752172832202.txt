@@ -329,25 +329,6 @@ def block_user():
 
     return jsonify(success=True)
 
-@app.route('/unblock_user', methods=['POST'])
-@login_required
-def unblock_user():
-    room = request.json.get('room')
-
-    if not room or not room.startswith('private_'):
-        return jsonify(success=False, error='Can only unblock users in private chats')
-
-    # Extract the other user from room name
-    users = room.replace('private_', '').split('_')
-    other_user = users[0] if users[1] == session['nickname'] else users[1]
-
-    blocks_data = load_json(BLOCKS_FILE)
-    if session['nickname'] in blocks_data and other_user in blocks_data[session['nickname']]:
-        blocks_data[session['nickname']].remove(other_user)
-        save_json(BLOCKS_FILE, blocks_data)
-
-    return jsonify(success=True)
-
 @app.route('/admin/ban_user', methods=['POST'])
 @login_required
 def admin_ban_user():
@@ -649,35 +630,15 @@ def change_nickname():
 
     old_nickname = session['nickname']
 
-    # Check cooldown - load last change time
-    cooldown_data = load_json('nickname_cooldowns.json') if os.path.exists('nickname_cooldowns.json') else {}
+    # Update users file
     import time
-    current_time = int(time.time())
-    
-    # Check if user has changed nickname in the last 24 hours
-    if old_nickname in cooldown_data:
-        last_change = cooldown_data[old_nickname]
-        time_since_change = current_time - last_change
-        hours_remaining = 24 - (time_since_change // 3600)
-        
-        if time_since_change < 86400:  # 24 hours in seconds
-            return jsonify(success=False, error=f'You can change nickname once per day. Try again in {hours_remaining} hours.')
+    timestamp = int(time.time())
+    date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+    ip = request.remote_addr
 
     # Update users file using users_manager
     from users_manager import update_user_nickname
-    success = update_user_nickname(old_nickname, new_nickname)
-    
-    if not success:
-        return jsonify(success=False, error='Failed to update nickname in database')
-
-    # Update cooldown
-    cooldown_data[new_nickname] = current_time
-    # Remove old nickname from cooldown data
-    if old_nickname in cooldown_data:
-        del cooldown_data[old_nickname]
-    
-    with open('nickname_cooldowns.json', 'w') as f:
-        json.dump(cooldown_data, f, indent=2)
+    update_user_nickname(old_nickname, new_nickname)
 
     # Update session
     session['nickname'] = new_nickname
@@ -694,26 +655,6 @@ def change_nickname():
         if old_nickname in room_info.get('admins', []):
             room_info['admins'] = [new_nickname if a == old_nickname else a for a in room_info['admins']]
     save_json(ROOMS_FILE, rooms_data)
-
-    # Update blocks data
-    blocks_data = load_json(BLOCKS_FILE)
-    if old_nickname in blocks_data:
-        blocks_data[new_nickname] = blocks_data.pop(old_nickname)
-    # Update references to old nickname in other users' block lists
-    for user, blocked_list in blocks_data.items():
-        if old_nickname in blocked_list:
-            blocked_list[blocked_list.index(old_nickname)] = new_nickname
-    save_json(BLOCKS_FILE, blocks_data)
-
-    # Update hidden messages
-    try:
-        hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
-        if old_nickname in hidden_data:
-            hidden_data[new_nickname] = hidden_data.pop(old_nickname)
-        with open('hidden_messages.json', 'w') as f:
-            json.dump(hidden_data, f, indent=2)
-    except:
-        pass
 
     # Notify all users about nickname change
     socketio.emit('nickname_changed', {
