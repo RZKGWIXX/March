@@ -898,8 +898,7 @@ def clear_private_history():
         hidden_data = load_json('hidden_messages')
         user_key = session['nickname']
 
-        if user_key not in```python
- hidden_data:
+        if user_key not in hidden_data:
             hidden_data[user_key] = {}
         if room not in hidden_data[user_key]:
             hidden_data[user_key][room] = []
