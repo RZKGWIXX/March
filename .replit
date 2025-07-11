@@ -9,7 +9,7 @@ externalPort = 80
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Run"
+runButton = "Simple Run"
 
 [[workflows.workflow]]
 name = "Run"
@@ -40,6 +40,15 @@ args = "python app.py"
 
 [[workflows.workflow]]
 name = "Development Server"
+author = 44886293
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
+
+[[workflows.workflow]]
+name = "Simple Run"
 author = 44886293
 mode = "sequential"
 
