@@ -4,3 +4,4 @@ flask-socketio==6.4.0
 python-socketio==5.9.1
 gunicorn==21.2.0
 eventlet==0.33.3
+eventlet
