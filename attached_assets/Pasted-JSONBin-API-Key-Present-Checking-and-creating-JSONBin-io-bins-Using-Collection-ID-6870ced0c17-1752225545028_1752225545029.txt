@@ -1,0 +1,59 @@
+JSONBin API Key: Present
+Checking and creating JSONBin.io bins...
+Using Collection ID: 6870ced0c17214220fc74e76
+Creating bin for users...
+Making request to create bin: users
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'users', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin users: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create users bin
+Creating bin for rooms...
+Making request to create bin: rooms
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'rooms', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin rooms: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create rooms bin
+Creating bin for messages...
+Making request to create bin: messages
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'messages', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 401
+Response text: {"message":"Invalid X-Master-Key provided"}...
+Failed to create bin messages: 401 - {"message":"Invalid X-Master-Key provided"}
+✗ Failed to create messages bin
+Creating bin for blocks...
+Making request to create bin: blocks
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'blocks', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin blocks: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create blocks bin
+Creating bin for banned...
+Making request to create bin: banned
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'banned', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 401
+Response text: {"message":"Invalid X-Master-Key provided"}...
+Failed to create bin banned: 401 - {"message":"Invalid X-Master-Key provided"}
+✗ Failed to create banned bin
+Creating bin for muted...
+Making request to create bin: muted
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'muted', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin muted: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create muted bin
+Creating bin for hidden_messages...
+Making request to create bin: hidden_messages
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'hidden_messages', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin hidden_messages: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create hidden_messages bin
+Creating bin for nickname_cooldowns...
+Making request to create bin: nickname_cooldowns
+Headers: {'X-Master-Key': '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK', 'X-Access-Key': '6870d1a46063391d31ab5ece', 'Content-Type': 'application/json', 'X-Bin-Name': 'nickname_cooldowns', 'X-Collection-Id': '6870ced0c17214220fc74e76'}
+Response status: 400
+Response text: {"message":"Bin cannot be blank"}...
+Failed to create bin nickname_cooldowns: 400 - {"message":"Bin cannot be blank"}
+✗ Failed to create nickname_cooldowns bin
