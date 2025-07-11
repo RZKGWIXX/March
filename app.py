@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 import os
 import json
@@ -13,12 +12,16 @@ from flask import Flask, render_template, request, redirect, session, url_for, j
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-development')
+app.secret_key = os.environ.get('SECRET_KEY',
+                                'fallback-secret-key-for-development')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # JSONBin.io configuration
-JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')  # Set this in your environment
-JSONBIN_ACCESS_KEY_ID = os.environ.get('JSONBIN_ACCESS_KEY_ID')  # Access Key ID
+JSONBIN_API_KEY = os.environ.get(
+    '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK'
+)  # Set this in your environment
+JSONBIN_ACCESS_KEY_ID = os.environ.get(
+    '6870d1a46063391d31ab5ece')  # Access Key ID
 JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
@@ -43,68 +46,80 @@ failed_login_attempts = defaultdict(list)
 rate_limits = defaultdict(list)
 spam_violations = defaultdict(int)
 
+
 def create_jsonbin_bin(bin_name, data, collection_id=None):
     """Create a new bin on JSONBin.io"""
     if not JSONBIN_API_KEY:
         print(f"No API key provided for creating {bin_name} bin")
         return None
-    
+
     headers = {
         'X-Master-Key': JSONBIN_API_KEY,
         'X-Access-Key': JSONBIN_ACCESS_KEY_ID,
         'Content-Type': 'application/json',
         'X-Bin-Name': bin_name
     }
-    
+
     # Add collection ID if provided
     if collection_id:
         headers['X-Collection-Id'] = collection_id
-    
+
     try:
         print(f"Making request to create bin: {bin_name}")
         print(f"Headers: {headers}")
-        response = requests.post(JSONBIN_BASE_URL, json=data, headers=headers, timeout=10)
+        response = requests.post(JSONBIN_BASE_URL,
+                                 json=data,
+                                 headers=headers,
+                                 timeout=10)
         print(f"Response status: {response.status_code}")
         print(f"Response text: {response.text[:200]}...")
-        
+
         if response.status_code == 200:
             bin_data = response.json()
             bin_id = bin_data.get('metadata', {}).get('id')
             print(f"Created JSONBin for {bin_name}: {bin_id}")
             return bin_id
         else:
-            print(f"Failed to create bin {bin_name}: {response.status_code} - {response.text}")
+            print(
+                f"Failed to create bin {bin_name}: {response.status_code} - {response.text}"
+            )
             return None
     except requests.RequestException as e:
         print(f"Error creating bin {bin_name}: {e}")
         return None
 
+
 def auto_create_bins():
     """Automatically create all required bins if they don't exist"""
     print(f"JSONBin API Key: {'Present' if JSONBIN_API_KEY else 'Missing'}")
-    
+
     if not JSONBIN_API_KEY:
         print("JSONBin API key not provided - skipping bin creation")
         print("Please set JSONBIN_API_KEY environment variable")
         return
-    
+
     # Check if we have the Collection ID in environment
-    collection_id = os.environ.get('JSONBIN_COLLECTION_ID', '6870ced0c17214220fc74e76')
-    
+    collection_id = os.environ.get('JSONBIN_COLLECTION_ID',
+                                   '6870ced0c17214220fc74e76')
+
     default_data = {
         'users': {},
         'rooms': {},
-        'messages': {'general': []},
+        'messages': {
+            'general': []
+        },
         'blocks': {},
-        'banned': {'users': []},
+        'banned': {
+            'users': []
+        },
         'muted': {},
         'hidden_messages': {},
         'nickname_cooldowns': {}
     }
-    
+
     print("Checking and creating JSONBin.io bins...")
     print(f"Using Collection ID: {collection_id}")
-    
+
     for bin_name, data in default_data.items():
         if not BINS.get(bin_name):
             print(f"Creating bin for {bin_name}...")
@@ -113,25 +128,32 @@ def auto_create_bins():
                 # Update the BINS dictionary
                 BINS[bin_name] = bin_id
                 print(f"✓ Created {bin_name} bin: {bin_id}")
-                print(f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}")
+                print(
+                    f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}"
+                )
             else:
                 print(f"✗ Failed to create {bin_name} bin")
         else:
             print(f"✓ {bin_name} bin already configured: {BINS[bin_name]}")
+
 
 def create_default_json_files():
     """Create default JSON files locally if they don't exist"""
     default_data = {
         'users': {},
         'rooms': {},
-        'messages': {'general': []},
+        'messages': {
+            'general': []
+        },
         'blocks': {},
-        'banned': {'users': []},
+        'banned': {
+            'users': []
+        },
         'muted': {},
         'hidden_messages': {},
         'nickname_cooldowns': {}
     }
-    
+
     for filename, data in default_data.items():
         filepath = f"{filename}.json"
         if not os.path.exists(filepath):
@@ -142,21 +164,22 @@ def create_default_json_files():
             except Exception as e:
                 print(f"Error creating {filepath}: {e}")
 
+
 def jsonbin_request(method, bin_name, data=None):
     """Make request to JSONBin.io API"""
     if not JSONBIN_API_KEY or not BINS.get(bin_name):
         print(f"Missing API key or bin ID for {bin_name}")
         return {} if method == 'GET' else False
-    
+
     headers = {
         'X-Master-Key': JSONBIN_API_KEY,
         'X-Access-Key': JSONBIN_ACCESS_KEY_ID,
         'Content-Type': 'application/json'
     }
-    
+
     bin_id = BINS[bin_name]
     url = f"{JSONBIN_BASE_URL}/{bin_id}"
-    
+
     try:
         if method == 'GET':
             response = requests.get(url, headers=headers, timeout=10)
@@ -165,15 +188,19 @@ def jsonbin_request(method, bin_name, data=None):
             else:
                 print(f"Failed to get {bin_name}: {response.status_code}")
                 return {}
-        
+
         elif method == 'PUT':
             headers['X-Bin-Versioning'] = 'false'  # Don't create new versions
-            response = requests.put(url, json=data, headers=headers, timeout=10)
+            response = requests.put(url,
+                                    json=data,
+                                    headers=headers,
+                                    timeout=10)
             return response.status_code == 200
-            
+
     except requests.RequestException as e:
         print(f"JSONBin API error for {bin_name}: {e}")
         return {} if method == 'GET' else False
+
 
 def load_json(bin_name):
     """Load data from JSONBin.io or local file as fallback"""
@@ -182,7 +209,7 @@ def load_json(bin_name):
         data = jsonbin_request('GET', bin_name)
         if data:
             return data
-    
+
     # Fallback to local file
     filepath = f"{bin_name}.json"
     try:
@@ -191,19 +218,24 @@ def load_json(bin_name):
                 return json.load(f)
     except Exception as e:
         print(f"Error loading {filepath}: {e}")
-    
+
     # Return default data if file doesn't exist
     default_data = {
         'users': {},
         'rooms': {},
-        'messages': {'general': []},
+        'messages': {
+            'general': []
+        },
         'blocks': {},
-        'banned': {'users': []},
+        'banned': {
+            'users': []
+        },
         'muted': {},
         'hidden_messages': {},
         'nickname_cooldowns': {}
     }
     return default_data.get(bin_name, {})
+
 
 def save_json(bin_name, data):
     """Save data to JSONBin.io and local file as backup"""
@@ -214,38 +246,43 @@ def save_json(bin_name, data):
             json.dump(data, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving to {filepath}: {e}")
-    
+
     # Try to save to JSONBin.io
     if JSONBIN_API_KEY and BINS.get(bin_name):
         return jsonbin_request('PUT', bin_name, data)
-    
+
     return True  # Return True if local save succeeded
 
+
 def login_required(f):
+
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'nickname' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated
+
 
 def get_user_list():
     """Get list of all registered users"""
     users_data = load_json('users')
     users = set()
-    
+
     for user_id, user_info in users_data.items():
         if isinstance(user_info, dict) and 'nickname' in user_info:
             users.add(user_info['nickname'])
-    
+
     return list(users)
+
 
 def save_user(ip, nickname, password):
     """Save user to JSONBin users storage"""
     users_data = load_json('users')
-    
+
     user_id = hashlib.md5(f"{ip}_{nickname}".encode()).hexdigest()
-    
+
     users_data[user_id] = {
         'ip': ip,
         'nickname': nickname,
@@ -253,41 +290,47 @@ def save_user(ip, nickname, password):
         'timestamp': int(time.time()),
         'date': time.strftime('%Y-%m-%d %H:%M:%S')
     }
-    
+
     return save_json('users', users_data)
+
 
 def verify_user(nickname, password):
     """Verify user credentials"""
     users_data = load_json('users')
-    
+
     for user_info in users_data.values():
-        if (isinstance(user_info, dict) and 
-            user_info.get('nickname') == nickname and 
-            user_info.get('password') == password):
+        if (isinstance(user_info, dict)
+                and user_info.get('nickname') == nickname
+                and user_info.get('password') == password):
             return True
-    
+
     return False
+
 
 def check_account_exists(nickname):
     """Check if account exists"""
     return nickname in get_user_list()
 
+
 def is_user_banned(nickname, ip=None):
     """Check if user is banned"""
     banned_data = load_json('banned')
     current_time = int(time.time())
-    
+
     for ban in banned_data.get('users', []):
         if (ban.get('username') == nickname or (ip and ban.get('ip') == ip)):
-            if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+            if ban.get('until_timestamp', 0) == -1 or ban.get(
+                    'until_timestamp', 0) > current_time:
                 return True, ban
-    
+
     return False, None
+
 
 def is_user_blocked(from_user, to_user):
     """Check if from_user is blocked by to_user"""
     blocks = load_json('blocks')
     return from_user in blocks.get(to_user, [])
+
 
 def check_rate_limit(ip, limit=30, window=60):
     """Check if IP exceeds rate limit"""
@@ -298,11 +341,13 @@ def check_rate_limit(ip, limit=30, window=60):
     rate_limits[ip].append(current_time)
     return True
 
+
 def check_spam_protection(nickname, message):
     """Advanced spam detection"""
     current_time = time.time()
 
-    message_timestamps[nickname] = deque([t for t in message_timestamps[nickname] if current_time - t < 60])
+    message_timestamps[nickname] = deque(
+        [t for t in message_timestamps[nickname] if current_time - t < 60])
 
     if len(message_timestamps[nickname]) >= 10:
         spam_violations[nickname] += 1
@@ -312,11 +357,15 @@ def check_spam_protection(nickname, message):
         spam_violations[nickname] += 1
         return False, "Spam detected: repeated characters"
 
-    if len(message) > 20 and sum(c.isupper() for c in message) / len(message) > 0.7:
+    if len(message) > 20 and sum(c.isupper()
+                                 for c in message) / len(message) > 0.7:
         spam_violations[nickname] += 1
         return False, "Spam detected: excessive caps"
 
-    url_count = len(re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message))
+    url_count = len(
+        re.findall(
+            r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+            message))
     if url_count > 2:
         spam_violations[nickname] += 1
         return False, "Spam detected: too many URLs"
@@ -338,6 +387,7 @@ def check_spam_protection(nickname, message):
     message_timestamps[nickname].append(current_time)
     return True, None
 
+
 def sanitize_input(text):
     """Sanitize user input to prevent XSS"""
     if not text:
@@ -347,21 +397,26 @@ def sanitize_input(text):
     text = re.sub(r'on\w+\s*=', '', text, flags=re.IGNORECASE)
     return text.strip()
 
+
 @app.route('/orb')
 def short_link():
     return redirect(url_for('login'))
+
 
 @app.route('/mess')
 def mess_link():
     return redirect(url_for('login'))
 
-@app.route('/chat-orb')  
+
+@app.route('/chat-orb')
 def chat_orb_link():
     return redirect(url_for('login'))
+
 
 @app.route('/om')
 def om_link():
     return redirect(url_for('login'))
+
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -372,24 +427,37 @@ def login():
         ip = request.remote_addr
 
         if not check_rate_limit(ip, limit=10, window=300):
-            return render_template('base.html', title='Login', error='Too many attempts. Try again later.')
+            return render_template('base.html',
+                                   title='Login',
+                                   error='Too many attempts. Try again later.')
 
         if not nick or not pwd:
-            return render_template('base.html', title='Login', error='Please fill all fields')
+            return render_template('base.html',
+                                   title='Login',
+                                   error='Please fill all fields')
 
         expected_captcha = session.get('captcha_answer')
-        if not expected_captcha or str(captcha_answer) != str(expected_captcha):
+        if not expected_captcha or str(captcha_answer) != str(
+                expected_captcha):
             import random
             num1, num2 = random.randint(1, 10), random.randint(1, 10)
             session['captcha_answer'] = num1 + num2
             session['captcha_question'] = f"{num1} + {num2} = ?"
-            return render_template('base.html', title='Login', error='Incorrect CAPTCHA. Please try again.',
-                                 captcha_question=session.get('captcha_question'))
+            return render_template(
+                'base.html',
+                title='Login',
+                error='Incorrect CAPTCHA. Please try again.',
+                captcha_question=session.get('captcha_question'))
 
         current_time = time.time()
-        failed_login_attempts[ip] = [t for t in failed_login_attempts[ip] if current_time - t < 900]
+        failed_login_attempts[ip] = [
+            t for t in failed_login_attempts[ip] if current_time - t < 900
+        ]
         if len(failed_login_attempts[ip]) >= 5:
-            return render_template('base.html', title='Login', error='Too many failed attempts. Try again in 15 minutes.')
+            return render_template(
+                'base.html',
+                title='Login',
+                error='Too many failed attempts. Try again in 15 minutes.')
 
         # Check if user is banned
         is_banned, ban_info = is_user_banned(nick, ip)
@@ -398,9 +466,13 @@ def login():
                 duration_text = "permanently"
             else:
                 current_time_int = int(time.time())
-                remaining_hours = int((ban_info.get('until_timestamp', 0) - current_time_int) / 3600)
+                remaining_hours = int(
+                    (ban_info.get('until_timestamp', 0) - current_time_int) /
+                    3600)
                 if remaining_hours < 1:
-                    remaining_minutes = int((ban_info.get('until_timestamp', 0) - current_time_int) / 60)
+                    remaining_minutes = int(
+                        (ban_info.get('until_timestamp', 0) - current_time_int)
+                        / 60)
                     duration_text = f"for {remaining_minutes} more minutes"
                 elif remaining_hours < 24:
                     duration_text = f"for {remaining_hours} more hours"
@@ -415,11 +487,16 @@ def login():
         if check_account_exists(nick):
             if not verify_user(nick, pwd):
                 failed_login_attempts[ip].append(current_time)
-                return render_template('base.html', title='Login', error='Invalid credentials')
+                return render_template('base.html',
+                                       title='Login',
+                                       error='Invalid credentials')
         else:
             # Create new user
             if not save_user(ip, nick, pwd):
-                return render_template('base.html', title='Login', error='Failed to create account. Please try again.')
+                return render_template(
+                    'base.html',
+                    title='Login',
+                    error='Failed to create account. Please try again.')
 
         session['nickname'] = nick
         import random
@@ -433,7 +510,10 @@ def login():
         session['captcha_answer'] = num1 + num2
         session['captcha_question'] = f"{num1} + {num2} = ?"
 
-    return render_template('base.html', title='Login', captcha_question=session.get('captcha_question'))
+    return render_template('base.html',
+                           title='Login',
+                           captcha_question=session.get('captcha_question'))
+
 
 @app.route('/chat')
 @login_required
@@ -445,17 +525,16 @@ def chat():
         return redirect(url_for('login'))
 
     import time
-    online_users[nickname] = {
-        'last_seen': int(time.time()),
-        'room': 'general'
-    }
+    online_users[nickname] = {'last_seen': int(time.time()), 'room': 'general'}
 
     from flask import make_response
-    response = make_response(render_template('base.html', title='Chat', nickname=nickname))
+    response = make_response(
+        render_template('base.html', title='Chat', nickname=nickname))
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
 
 @app.route('/rooms')
 @login_required
@@ -469,12 +548,14 @@ def get_rooms():
 
     return jsonify(user_rooms)
 
+
 @app.route('/messages/<room>')
 @login_required
 def get_messages(room):
     if room != 'general':
         rooms_data = load_json('rooms')
-        if room not in rooms_data or session['nickname'] not in rooms_data[room].get('members', []):
+        if room not in rooms_data or session['nickname'] not in rooms_data[
+                room].get('members', []):
             return jsonify([])
 
     messages_data = load_json('messages')
@@ -492,19 +573,24 @@ def get_messages(room):
 
     return jsonify(messages)
 
+
 @app.route('/users')
 @login_required
 def get_users():
     users = get_user_list()
     return jsonify([u for u in users if u != session['nickname']])
 
+
 @app.route('/search_users')
 @login_required
 def search_users():
     query = request.args.get('q', '').lower()
     users = get_user_list()
-    filtered = [u for u in users if query in u.lower() and u != session['nickname']]
+    filtered = [
+        u for u in users if query in u.lower() and u != session['nickname']
+    ]
     return jsonify(filtered[:10])
+
 
 @app.route('/create_private', methods=['POST'])
 @login_required
@@ -535,6 +621,7 @@ def create_private():
 
     return jsonify(success=True, room=room)
 
+
 @app.route('/create_group', methods=['POST'])
 @login_required
 def create_group():
@@ -556,6 +643,7 @@ def create_group():
 
     return jsonify(success=True, room=group_name)
 
+
 @app.route('/delete_room', methods=['POST'])
 @login_required
 def delete_room():
@@ -576,7 +664,8 @@ def delete_room():
             return jsonify(success=False, error='Access denied'), 403
     else:
         if session['nickname'] not in room_info.get('admins', []):
-            return jsonify(success=False, error='Only admins can delete rooms'), 403
+            return jsonify(success=False,
+                           error='Only admins can delete rooms'), 403
 
     rooms_data.pop(room, None)
     save_json('rooms', rooms_data)
@@ -587,13 +676,15 @@ def delete_room():
 
     return jsonify(success=True)
 
+
 @app.route('/block_user', methods=['POST'])
 @login_required
 def block_user():
     room = request.json.get('room')
 
     if not room or not room.startswith('private_'):
-        return jsonify(success=False, error='Can only block users in private chats')
+        return jsonify(success=False,
+                       error='Can only block users in private chats')
 
     users = room.replace('private_', '').split('_')
     other_user = users[0] if users[1] == session['nickname'] else users[1]
@@ -608,23 +699,27 @@ def block_user():
 
     return jsonify(success=True)
 
+
 @app.route('/unblock_user', methods=['POST'])
 @login_required
 def unblock_user():
     room = request.json.get('room')
 
     if not room or not room.startswith('private_'):
-        return jsonify(success=False, error='Can only unblock users in private chats')
+        return jsonify(success=False,
+                       error='Can only unblock users in private chats')
 
     users = room.replace('private_', '').split('_')
     other_user = users[0] if users[1] == session['nickname'] else users[1]
 
     blocks_data = load_json('blocks')
-    if session['nickname'] in blocks_data and other_user in blocks_data[session['nickname']]:
+    if session['nickname'] in blocks_data and other_user in blocks_data[
+            session['nickname']]:
         blocks_data[session['nickname']].remove(other_user)
         save_json('blocks', blocks_data)
 
     return jsonify(success=True)
+
 
 @app.route('/admin/ban_user', methods=['POST'])
 @login_required
@@ -642,9 +737,10 @@ def admin_ban_user():
     # Get user's IP from users data
     users_data = load_json('users')
     user_ip = None
-    
+
     for user_info in users_data.values():
-        if isinstance(user_info, dict) and user_info.get('nickname') == username:
+        if isinstance(user_info,
+                      dict) and user_info.get('nickname') == username:
             user_ip = user_info.get('ip')
             break
 
@@ -657,13 +753,17 @@ def admin_ban_user():
         until_timestamp = -1
     else:
         until_timestamp = int(time.time()) + (duration * 3600)
-        until = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(until_timestamp))
+        until = time.strftime('%Y-%m-%d %H:%M:%S',
+                              time.localtime(until_timestamp))
 
     banned_data = load_json('banned')
     if 'users' not in banned_data:
         banned_data['users'] = []
 
-    banned_data['users'] = [b for b in banned_data['users'] if b.get('username') != username and b.get('ip') != user_ip]
+    banned_data['users'] = [
+        b for b in banned_data['users']
+        if b.get('username') != username and b.get('ip') != user_ip
+    ]
 
     banned_data['users'].append({
         'username': username,
@@ -685,8 +785,9 @@ def admin_ban_user():
 
     return jsonify(success=True)
 
+
 @app.route('/admin/banned_users')
-@login_required  
+@login_required
 def get_banned_users():
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
@@ -698,10 +799,12 @@ def get_banned_users():
     current_time = int(time.time())
 
     for ban in banned_data.get('users', []):
-        if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+        if ban.get('until_timestamp', 0) == -1 or ban.get(
+                'until_timestamp', 0) > current_time:
             active_bans.append(ban)
 
     return jsonify(banned=active_bans)
+
 
 @app.route('/admin/unban_user', methods=['POST'])
 @login_required
@@ -712,10 +815,14 @@ def unban_user():
     username = request.json.get('username')
 
     banned_data = load_json('banned')
-    banned_data['users'] = [b for b in banned_data.get('users', []) if b.get('username') != username]
+    banned_data['users'] = [
+        b for b in banned_data.get('users', [])
+        if b.get('username') != username
+    ]
     save_json('banned', banned_data)
 
     return jsonify(success=True)
+
 
 @app.route('/delete_message', methods=['POST'])
 @login_required
@@ -726,7 +833,8 @@ def delete_message():
 
     messages_data = load_json('messages')
 
-    if room not in messages_data or message_index < 0 or message_index >= len(messages_data[room]):
+    if room not in messages_data or message_index < 0 or message_index >= len(
+            messages_data[room]):
         return jsonify(success=False, error='Message not found')
 
     message = messages_data[room][message_index]
@@ -744,7 +852,8 @@ def delete_message():
             'room': room,
             'index': message_index,
             'deleted_by': session['nickname']
-        }, room=room)
+        },
+                      room=room)
 
     elif delete_type == 'me':
         hidden_data = load_json('hidden_messages')
@@ -759,6 +868,7 @@ def delete_message():
         save_json('hidden_messages', hidden_data)
 
     return jsonify(success=True)
+
 
 @app.route('/admin/clear_chat', methods=['POST'])
 @login_required
@@ -776,13 +886,15 @@ def admin_clear_chat():
 
     return jsonify(success=True)
 
+
 @app.route('/clear_private_history', methods=['POST'])
 @login_required
 def clear_private_history():
     room = request.json.get('room')
 
     if not room or not room.startswith('private_'):
-        return jsonify(success=False, error='Only private chats can be cleared this way')
+        return jsonify(success=False,
+                       error='Only private chats can be cleared this way')
 
     messages_data = load_json('messages')
     if room in messages_data:
@@ -798,6 +910,7 @@ def clear_private_history():
         save_json('hidden_messages', hidden_data)
 
     return jsonify(success=True)
+
 
 @app.route('/admin/stats')
 @login_required
@@ -827,6 +940,7 @@ def admin_stats():
         'online_list': online_list
     })
 
+
 @app.route('/user_status/<username>')
 @login_required
 def get_user_status(username):
@@ -842,39 +956,41 @@ def get_user_status(username):
 
     return jsonify({'status': 'offline', 'last_seen': None})
 
+
 @app.route('/room_stats/<room>')
 @login_required
 def get_room_stats(room):
     if room != 'general':
         rooms_data = load_json('rooms')
-        if room not in rooms_data or session['nickname'] not in rooms_data[room].get('members', []):
+        if room not in rooms_data or session['nickname'] not in rooms_data[
+                room].get('members', []):
             return jsonify({'error': 'Access denied'}), 403
 
     import time
     current_time = int(time.time())
 
     if room == 'general':
-        online_count = sum(1 for nickname, data in online_users.items() 
-                          if current_time - data['last_seen'] < 300 and data.get('room') == 'general')
+        online_count = sum(
+            1 for nickname, data in online_users.items() if current_time -
+            data['last_seen'] < 300 and data.get('room') == 'general')
         total_count = len(get_user_list())
     else:
         rooms_data = load_json('rooms')
         members = rooms_data.get(room, {}).get('members', [])
         total_count = len(members)
-        online_count = sum(1 for member in members 
-                          if member in online_users and 
-                          current_time - online_users[member]['last_seen'] < 300)
+        online_count = sum(1 for member in members
+                           if member in online_users and current_time -
+                           online_users[member]['last_seen'] < 300)
 
-    return jsonify({
-        'online_count': online_count,
-        'total_count': total_count
-    })
+    return jsonify({'online_count': online_count, 'total_count': total_count})
+
 
 def is_valid_nickname(nickname):
     pattern = r'^[a-zA-Z0-9]+$'
     if not re.match(pattern, nickname):
         return False, "Nickname can only contain English letters and digits."
     return True, None
+
 
 @app.route('/change_nickname', methods=['POST'])
 @login_required
@@ -907,15 +1023,20 @@ def change_nickname():
         hours_remaining = 24 - (time_since_change // 3600)
 
         if time_since_change < 86400:
-            return jsonify(success=False, error=f'You can change nickname once per day. Try again in {hours_remaining} hours.')
+            return jsonify(
+                success=False,
+                error=
+                f'You can change nickname once per day. Try again in {hours_remaining} hours.'
+            )
 
     # Update user nickname in users data
     users_data = load_json('users')
     for user_info in users_data.values():
-        if isinstance(user_info, dict) and user_info.get('nickname') == old_nickname:
+        if isinstance(user_info,
+                      dict) and user_info.get('nickname') == old_nickname:
             user_info['nickname'] = new_nickname
             break
-    
+
     save_json('users', users_data)
 
     # Update cooldown
@@ -933,9 +1054,15 @@ def change_nickname():
     rooms_data = load_json('rooms')
     for room_name, room_info in rooms_data.items():
         if old_nickname in room_info.get('members', []):
-            room_info['members'] = [new_nickname if m == old_nickname else m for m in room_info['members']]
+            room_info['members'] = [
+                new_nickname if m == old_nickname else m
+                for m in room_info['members']
+            ]
         if old_nickname in room_info.get('admins', []):
-            room_info['admins'] = [new_nickname if a == old_nickname else a for a in room_info['admins']]
+            room_info['admins'] = [
+                new_nickname if a == old_nickname else a
+                for a in room_info['admins']
+            ]
     save_json('rooms', rooms_data)
 
     # Update blocks data
@@ -963,6 +1090,7 @@ def change_nickname():
 
     return jsonify(success=True)
 
+
 @app.route('/leave_group', methods=['POST'])
 @login_required
 def leave_group():
@@ -979,7 +1107,8 @@ def leave_group():
     room_info = rooms_data[room]
 
     if room_info.get('type') == 'private':
-        return jsonify(success=False, error='Use block function for private chats')
+        return jsonify(success=False,
+                       error='Use block function for private chats')
 
     if session['nickname'] in room_info['members']:
         room_info['members'].remove(session['nickname'])
@@ -998,6 +1127,7 @@ def leave_group():
 
     save_json('rooms', rooms_data)
     return jsonify(success=True)
+
 
 @app.route('/add_to_group', methods=['POST'])
 @login_required
@@ -1025,14 +1155,16 @@ def add_to_group():
         room_info['members'].append(username)
         save_json('rooms', rooms_data)
 
-        socketio.emit('room_update', {
-            'action': 'added_to_group',
-            'room': room,
-            'username': username,
-            'by': session['nickname']
-        })
+        socketio.emit(
+            'room_update', {
+                'action': 'added_to_group',
+                'room': room,
+                'username': username,
+                'by': session['nickname']
+            })
 
     return jsonify(success=True)
+
 
 @app.route('/kick_from_group', methods=['POST'])
 @login_required
@@ -1064,14 +1196,16 @@ def kick_from_group():
 
     save_json('rooms', rooms_data)
 
-    socketio.emit('room_update', {
-        'action': 'kicked_from_group',
-        'room': room,
-        'username': username,
-        'by': session['nickname']
-    })
+    socketio.emit(
+        'room_update', {
+            'action': 'kicked_from_group',
+            'room': room,
+            'username': username,
+            'by': session['nickname']
+        })
 
     return jsonify(success=True)
+
 
 @app.route('/mute_user', methods=['POST'])
 @login_required
@@ -1090,7 +1224,8 @@ def mute_user():
 
     room_info = rooms_data[room]
 
-    if session['nickname'] not in room_info.get('admins', []) and session['nickname'] != 'Wixxy':
+    if session['nickname'] not in room_info.get(
+            'admins', []) and session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Only admins can mute users')
 
     muted_data = load_json('muted')
@@ -1107,14 +1242,16 @@ def mute_user():
 
     save_json('muted', muted_data)
 
-    socketio.emit('user_muted', {
-        'room': room,
-        'username': username,
-        'duration': duration,
-        'by': session['nickname']
-    })
+    socketio.emit(
+        'user_muted', {
+            'room': room,
+            'username': username,
+            'duration': duration,
+            'by': session['nickname']
+        })
 
     return jsonify(success=True)
+
 
 @app.route('/get_room_info/<room>')
 @login_required
@@ -1130,12 +1267,18 @@ def get_room_info(room):
         return jsonify(success=False, error='Access denied')
 
     return jsonify({
-        'success': True,
-        'members': room_info.get('members', []),
-        'admins': room_info.get('admins', []),
-        'type': room_info.get('type', 'group'),
-        'is_admin': session['nickname'] in room_info.get('admins', [])
+        'success':
+        True,
+        'members':
+        room_info.get('members', []),
+        'admins':
+        room_info.get('admins', []),
+        'type':
+        room_info.get('type', 'group'),
+        'is_admin':
+        session['nickname'] in room_info.get('admins', [])
     })
+
 
 @app.route('/delete_account', methods=['POST'])
 @login_required
@@ -1156,8 +1299,11 @@ def delete_account():
 
         # Remove from users data
         users_data = load_json('users')
-        users_data = {k: v for k, v in users_data.items() 
-                     if not (isinstance(v, dict) and v.get('nickname') == nickname)}
+        users_data = {
+            k: v
+            for k, v in users_data.items()
+            if not (isinstance(v, dict) and v.get('nickname') == nickname)
+        }
         save_json('users', users_data)
 
         # Remove from rooms
@@ -1165,12 +1311,16 @@ def delete_account():
         rooms_to_delete = []
         for room_name, room_info in rooms_data.items():
             if nickname in room_info.get('members', []):
-                room_info['members'] = [m for m in room_info['members'] if m != nickname]
+                room_info['members'] = [
+                    m for m in room_info['members'] if m != nickname
+                ]
             if nickname in room_info.get('admins', []):
-                room_info['admins'] = [a for a in room_info['admins'] if a != nickname]
+                room_info['admins'] = [
+                    a for a in room_info['admins'] if a != nickname
+                ]
             if not room_info.get('members'):
                 rooms_to_delete.append(room_name)
-        
+
         for room in rooms_to_delete:
             del rooms_data[room]
         save_json('rooms', rooms_data)
@@ -1197,12 +1347,14 @@ def delete_account():
 
         from flask import jsonify
         response = jsonify({'success': True, 'redirect': url_for('login')})
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers[
+            'Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         return response
     except Exception as e:
         return jsonify(success=False, error='Failed to delete account')
+
 
 @app.route('/logout', methods=['POST'])
 @login_required
@@ -1224,6 +1376,7 @@ def logout():
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
 
 @app.route('/upload_file', methods=['POST'])
 @login_required
@@ -1278,12 +1431,14 @@ def upload_file():
         socketio.emit('message', {
             'room': room,
             'message': f"{nickname}: {file_url}"
-        }, room=room)
+        },
+                      room=room)
 
         return jsonify(success=True, url=file_url)
 
     except Exception as e:
         return jsonify(success=False, error=f'Upload failed: {str(e)}')
+
 
 @socketio.on('join')
 def on_join(data):
@@ -1298,17 +1453,15 @@ def on_join(data):
 
     if room != 'general':
         rooms_data = load_json('rooms')
-        if room not in rooms_data or nickname not in rooms_data[room].get('members', []):
+        if room not in rooms_data or nickname not in rooms_data[room].get(
+                'members', []):
             emit('error', {'message': 'Access denied'})
             return
 
     join_room(room)
 
     import time
-    online_users[nickname] = {
-        'last_seen': int(time.time()),
-        'room': room
-    }
+    online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
     user_sessions[request.sid] = nickname
 
     socketio.emit('user_activity_update', {
@@ -1319,9 +1472,11 @@ def on_join(data):
 
     socketio.emit('user_count_update', room=room)
 
+
 @socketio.on('leave')
 def on_leave(data):
     leave_room(data['room'])
+
 
 @socketio.on('disconnect')
 def on_disconnect():
@@ -1331,6 +1486,7 @@ def on_disconnect():
             import time
             online_users[nickname]['last_seen'] = int(time.time())
         del user_sessions[request.sid]
+
 
 @socketio.on('message')
 def on_message(data):
@@ -1342,19 +1498,18 @@ def on_message(data):
         return
 
     if not check_account_exists(nickname):
-        emit('user_banned', {
-            'username': nickname,
-            'reason': 'Account no longer exists. Please create a new account.',
-            'until': 'Permanent'
-        })
+        emit(
+            'user_banned', {
+                'username': nickname,
+                'reason':
+                'Account no longer exists. Please create a new account.',
+                'until': 'Permanent'
+            })
         return
 
     import time
     current_time = int(time.time())
-    online_users[nickname] = {
-        'last_seen': current_time,
-        'room': room
-    }
+    online_users[nickname] = {'last_seen': current_time, 'room': room}
 
     spam_ok, spam_error = check_spam_protection(nickname, message)
     if not spam_ok:
@@ -1366,9 +1521,11 @@ def on_message(data):
         if ban_info.get('until_timestamp', 0) == -1:
             duration_text = "permanently"
         else:
-            remaining_hours = int((ban_info.get('until_timestamp', 0) - current_time) / 3600)
+            remaining_hours = int(
+                (ban_info.get('until_timestamp', 0) - current_time) / 3600)
             if remaining_hours < 1:
-                remaining_minutes = int((ban_info.get('until_timestamp', 0) - current_time) / 60)
+                remaining_minutes = int(
+                    (ban_info.get('until_timestamp', 0) - current_time) / 60)
                 duration_text = f"for {remaining_minutes} more minutes"
             elif remaining_hours < 24:
                 duration_text = f"for {remaining_hours} more hours"
@@ -1376,7 +1533,11 @@ def on_message(data):
                 remaining_days = int(remaining_hours / 24)
                 duration_text = f"for {remaining_days} more days"
 
-        emit('error', {'message': f'You are banned {duration_text}. Reason: {ban_info.get("reason", "No reason")}'})
+        emit(
+            'error', {
+                'message':
+                f'You are banned {duration_text}. Reason: {ban_info.get("reason", "No reason")}'
+            })
         return
 
     muted_data = load_json('muted')
@@ -1384,7 +1545,10 @@ def on_message(data):
         mute_info = muted_data[room][nickname]
         if mute_info['until'] > current_time:
             remaining_minutes = int((mute_info['until'] - current_time) / 60)
-            emit('error', {'message': f'You are muted for {remaining_minutes} more minutes'})
+            emit('error', {
+                'message':
+                f'You are muted for {remaining_minutes} more minutes'
+            })
             return
         else:
             del muted_data[room][nickname]
@@ -1419,19 +1583,26 @@ def on_message(data):
     emit('message', {
         'room': room,
         'message': f"{nickname}: {message}"
-    }, room=room, include_self=False)
+    },
+         room=room,
+         include_self=False)
+
 
 if __name__ == '__main__':
     # Create default JSON files on startup
     create_default_json_files()
-    
+
     # Auto-create JSONBin.io bins if API key is provided
     auto_create_bins()
-    
+
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
     if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
         pass
     else:
-        socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
+        socketio.run(app,
+                     host='0.0.0.0',
+                     port=port,
+                     debug=debug_mode,
+                     allow_unsafe_werkzeug=True)
