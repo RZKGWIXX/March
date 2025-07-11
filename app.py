@@ -856,8 +856,7 @@ def admin_ban_user():
 
     banned_data = load_json('banned')
     if 'users' not in banned_data:
-        banned_data['users']```python
- = []
+        banned_data['users'] = []
 
     banned_data['users'] = [
         b for b in banned_data['users']
