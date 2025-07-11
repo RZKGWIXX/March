@@ -218,7 +218,7 @@ def create_default_json_files():
 
 
 def jsonbin_request(method, bin_name, data=None):
-    """Make request to JSONBin.io API"""
+    """Make request to JSONBin.io API with better error handling"""
     if not JSONBIN_API_KEY or not BINS.get(bin_name):
         print(f"Missing API key or bin ID for {bin_name}")
         return {} if method == 'GET' else False
@@ -234,7 +234,7 @@ def jsonbin_request(method, bin_name, data=None):
 
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=15)
             if response.status_code == 200:
                 return response.json().get('record', {})
             else:
@@ -246,11 +246,14 @@ def jsonbin_request(method, bin_name, data=None):
             response = requests.put(url,
                                     json=data,
                                     headers=headers,
-                                    timeout=10)
+                                    timeout=15)
             return response.status_code == 200
 
-    except requests.RequestException as e:
+    except (requests.RequestException, ValueError, KeyError) as e:
         print(f"JSONBin API error for {bin_name}: {e}")
+        return {} if method == 'GET' else False
+    except Exception as e:
+        print(f"Unexpected error for {bin_name}: {e}")
         return {} if method == 'GET' else False
 
 
@@ -1644,12 +1647,11 @@ def on_message(data):
 
     save_json('messages', messages_data)
 
-    emit('message', {
+    # Emit message to specific room only
+    socketio.emit('message', {
         'room': room,
         'message': f"{nickname}: {message}"
-    },
-         room=room,
-         include_self=False)
+    }, room=room, include_self=False)
 
 
 # Initialize on app startup (works with both gunicorn and direct python run)

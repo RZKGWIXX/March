@@ -567,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
+      // Send message with room parameter
       socket.emit('message', {room: currentRoom, nickname, message});
       messageInput.value = '';
       lastMessageTime = now;
@@ -922,12 +923,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Socket event handlers
   socket.on('message', (data) => {
+    // Parse room and message from data
+    const msgRoom = data.room || 'general';
+    let msg = data.message || data;
+    
     // Only show message if it's for the current room
-    if (data.room && data.room !== currentRoom) {
+    if (msgRoom !== currentRoom) {
       return;
     }
 
-    let msg = data.message || data;
     if (typeof msg !== 'string') {
       return;
     }
@@ -951,7 +955,13 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
       // Update user activity status in real-time
-      updateRoomStats(currentRoom);
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        updateUserStatus(otherUser);
+      } else {
+        updateRoomStats(currentRoom);
+      }
 
       // Show notification and sound for others' messages
       if (document.hidden) {
@@ -1814,38 +1824,39 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Auto-refresh functionality
+  // Auto-refresh functionality - reduced frequency to prevent server overload
   let refreshInterval;
 
   function startAutoRefresh() {
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(() => {
       if (currentRoom) {
-        loadMessages(currentRoom);
-        updateRoomStats(currentRoom);
+        // Only refresh if we haven't received any socket messages recently
+        if (currentRoom.startsWith('private_')) {
+          const users = currentRoom.replace('private_', '').split('_');
+          const otherUser = users.find(u => u !== nickname) || users[0];
+          updateUserStatus(otherUser);
+        } else {
+          updateRoomStats(currentRoom);
+        }
       }
-    }, 10000); // Збільшено інтервал до 10 секунд
+    }, 30000); // Reduced to 30 seconds
   }
 
   // Start auto-refresh on load
   startAutoRefresh();
 
-  //function updateUserStatus() {
+  // Status update function for private chats
+  function updateUserStatusPeriodically() {
     if (currentRoom && currentRoom.startsWith('private_')) {
-      const otherUser = currentRoom.split('_').find(u => u !== nickname);
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
       if (otherUser) {
-        fetch(`/user_status/${otherUser}`)
-          .then(r => r.json())
-          .then(data => {
-            const statusEl = document.getElementById('room-type');
-            if (statusEl) {
-              statusEl.textContent = data.online ? 'Online' : 'Offline';
-            }
-          });
+        updateUserStatus(otherUser);
       }
     }
   }
 
-  // Збільшено інтервал оновлення статусу до 60 секунд
-  setInterval(updateUserStatus, 60000);
+  // Update user status every 60 seconds
+  setInterval(updateUserStatusPeriodically, 60000);
 });
