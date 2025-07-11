@@ -9,7 +9,7 @@ backlog = 2048
 
 # Worker processes - use 1 worker for better compatibility with SocketIO
 workers = 1
-worker_class = "sync"
+worker_class = "gevent"
 worker_connections = 1000
 timeout = 120
 keepalive = 2
