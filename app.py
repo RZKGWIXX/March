@@ -193,25 +193,25 @@ def login():
                                  captcha_question=session.get('captcha_question'))
 
         # Check failed login attempts
-        current_time = time.time()
+        import time as time_module
+        current_time = time_module.time()
         failed_login_attempts[ip] = [t for t in failed_login_attempts[ip] if current_time - t < 900]  # 15 minutes
         if len(failed_login_attempts[ip]) >= 5:
             return render_template('base.html', title='Login', error='Too many failed attempts. Try again in 15 minutes.')
 
         # Check if user/IP is banned
         banned_data = load_json(BANNED_FILE)
-        import time
-        current_time = int(time.time())
+        current_time_int = int(time_module.time())
 
         for ban in banned_data.get('users', []):
             if (ban.get('username') == nick or ban.get('ip') == ip):
-                if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
+                if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time_int:
                     if ban.get('until_timestamp', 0) == -1:
                         duration_text = "permanently"
                     else:
-                        remaining_hours = int((ban.get('until_timestamp', 0) - current_time) / 3600)
+                        remaining_hours = int((ban.get('until_timestamp', 0) - current_time_int) / 3600)
                         if remaining_hours < 1:
-                            remaining_minutes = int((ban.get('until_timestamp', 0) - current_time) / 60)
+                            remaining_minutes = int((ban.get('until_timestamp', 0) - current_time_int) / 60)
                             duration_text = f"for {remaining_minutes} more minutes"
                         elif remaining_hours < 24:
                             duration_text = f"for {remaining_hours} more hours"
@@ -223,9 +223,8 @@ def login():
                     return render_template('base.html', title='Login', error=error_msg)
 
         # Save user credentials with timestamp
-        import time
-        timestamp = int(time.time())
-        date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+        timestamp = int(time_module.time())
+        date_str = time_module.strftime('%Y-%m-%d %H:%M:%S', time_module.localtime(timestamp))
 
         # Check if user already exists, if not add them
         user_exists = False
