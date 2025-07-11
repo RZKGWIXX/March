@@ -1165,7 +1165,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(r => r.json())
       .then(data => {
         const statsDiv = document.getElementById('admin-stats');
-        statsDiv.innerHTML = `
+        if (statsDiv) {
+          statsDiv.innerHTML = `
           <div class="stats-grid">
             <div class="stat-item">
               <h3>👥 Total Users</h3>
@@ -1187,6 +1188,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('') || '<p>No users online</p>'}
           </div>
         `;
+        } else {
+          console.error('Stats div not found');
+        }
       })
       .catch(err => console.error('Failed to load stats:', err));
   };
@@ -1323,7 +1327,13 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         
-        
+        <div class="settings-section">
+          <h3>🚨 Account Actions</h3>
+          <div class="profile-section">
+            <button class="admin-btn" style="background: #e74c3c;" onclick="deleteAccount()">🗑️ Delete Account</button>
+            <button class="admin-btn" style="background: #f39c12;" onclick="logout()">🚪 Logout</button>
+          </div>
+        </div>
         
         <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
       </div>
@@ -1345,6 +1355,58 @@ document.addEventListener('DOMContentLoaded', () => {
     event.target.classList.add('active');
   };
   
+  // Delete account
+  window.deleteAccount = function() {
+    if (confirm('⚠️ Are you sure you want to delete your account? This action cannot be undone!')) {
+      if (confirm('🚨 This will permanently delete all your data. Type your nickname to confirm:')) {
+        const confirmNick = prompt('Enter your nickname to confirm deletion:');
+        if (confirmNick === nickname) {
+          fetch('/delete_account', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              showNotification('✅ Account deleted successfully. Redirecting...', 'success');
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 2000);
+            } else {
+              showNotification('❌ ' + (data.error || 'Failed to delete account'), 'error');
+            }
+          })
+          .catch(err => {
+            console.error('Failed to delete account:', err);
+            showNotification('❌ Error deleting account', 'error');
+          });
+        } else {
+          showNotification('❌ Nickname confirmation failed', 'error');
+        }
+      }
+    }
+  };
+
+  // Logout
+  window.logout = function() {
+    if (confirm('🚪 Are you sure you want to logout?')) {
+      fetch('/logout', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+      })
+      .then(() => {
+        showNotification('✅ Logged out successfully', 'success');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      })
+      .catch(err => {
+        console.error('Logout failed:', err);
+        window.location.href = '/';
+      });
+    }
+  };
+
   // Change nickname
   window.changeNickname = function() {
     const newNick = document.getElementById('new-nickname').value.trim();

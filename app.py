@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 import os
 import json
+import time
+import hashlib
+import secrets
 from functools import wraps
+from collections import defaultdict, deque
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import re
@@ -13,6 +17,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Track online users
 online_users = {}  # {nickname: {'last_seen': timestamp, 'room': current_room}}
 user_sessions = {}  # {session_id: nickname}
+
+# Anti-spam and security tracking
+message_timestamps = defaultdict(deque)  # {nickname: deque of timestamps}
+failed_login_attempts = defaultdict(list)  # {ip: [timestamps]}
+rate_limits = defaultdict(list)  # {ip: [timestamps]}
+spam_violations = defaultdict(int)  # {nickname: violation_count}
 
 USERS_FILE = 'users.txt'
 ROOMS_FILE = 'rooms.json'
@@ -72,6 +82,85 @@ def is_user_blocked(from_user, to_user):
     blocks = load_json(BLOCKS_FILE)
     return from_user in blocks.get(to_user, [])
 
+def check_rate_limit(ip, limit=30, window=60):
+    """Check if IP exceeds rate limit (30 requests per minute)"""
+    current_time = time.time()
+    rate_limits[ip] = [t for t in rate_limits[ip] if current_time - t < window]
+    if len(rate_limits[ip]) >= limit:
+        return False
+    rate_limits[ip].append(current_time)
+    return True
+
+def check_spam_protection(nickname, message):
+    """Advanced spam detection"""
+    current_time = time.time()
+    
+    # Clean old timestamps (last 60 seconds)
+    message_timestamps[nickname] = deque([t for t in message_timestamps[nickname] if current_time - t < 60])
+    
+    # Check message frequency (max 10 messages per minute)
+    if len(message_timestamps[nickname]) >= 10:
+        spam_violations[nickname] += 1
+        return False, "Too many messages. Please slow down."
+    
+    # Check for repeated characters spam
+    if len(message) > 10 and len(set(message)) < 4:
+        spam_violations[nickname] += 1
+        return False, "Spam detected: repeated characters"
+    
+    # Check for caps lock spam
+    if len(message) > 20 and sum(c.isupper() for c in message) / len(message) > 0.7:
+        spam_violations[nickname] += 1
+        return False, "Spam detected: excessive caps"
+    
+    # Check for URL spam
+    url_count = len(re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message))
+    if url_count > 2:
+        spam_violations[nickname] += 1
+        return False, "Spam detected: too many URLs"
+    
+    # Auto-mute for repeated violations
+    if spam_violations[nickname] >= 5:
+        # Mute for 1 hour
+        muted_data = load_json('muted.json') if os.path.exists('muted.json') else {}
+        if 'general' not in muted_data:
+            muted_data['general'] = {}
+        muted_data['general'][nickname] = {
+            'until': int(current_time) + 3600,
+            'by': 'SYSTEM',
+            'duration': 60,
+            'reason': 'Automated spam detection'
+        }
+        with open('muted.json', 'w') as f:
+            json.dump(muted_data, f, indent=2)
+        spam_violations[nickname] = 0  # Reset counter
+        return False, "You have been muted for 1 hour due to spam violations"
+    
+    message_timestamps[nickname].append(current_time)
+    return True, None
+
+def sanitize_input(text):
+    """Sanitize user input to prevent XSS"""
+    if not text:
+        return text
+    # Remove potential HTML/JS
+    text = re.sub(r'<[^>]*>', '', text)
+    text = re.sub(r'javascript:', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'on\w+\s*=', '', text, flags=re.IGNORECASE)
+    return text.strip()
+
+def check_account_exists(nickname):
+    """Check if account exists in users.txt"""
+    try:
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) >= 2 and parts[1] == nickname:
+                    return True
+    except:
+        pass
+    return False
+
 @app.route('/orb')
 def short_link():
     """Short link redirect to main page"""
@@ -80,12 +169,34 @@ def short_link():
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        nick = request.form['nickname'].strip()
+        nick = sanitize_input(request.form['nickname'].strip())
         pwd = request.form['password']
+        captcha_answer = request.form.get('captcha', '')
         ip = request.remote_addr
+
+        # Rate limiting
+        if not check_rate_limit(ip, limit=10, window=300):  # 10 attempts per 5 minutes
+            return render_template('base.html', title='Login', error='Too many attempts. Try again later.')
 
         if not nick or not pwd:
             return render_template('base.html', title='Login', error='Please fill all fields')
+
+        # Simple CAPTCHA check
+        expected_captcha = session.get('captcha_answer')
+        if not expected_captcha or str(captcha_answer) != str(expected_captcha):
+            # Generate new CAPTCHA
+            import random
+            num1, num2 = random.randint(1, 10), random.randint(1, 10)
+            session['captcha_answer'] = num1 + num2
+            session['captcha_question'] = f"{num1} + {num2} = ?"
+            return render_template('base.html', title='Login', error='Incorrect CAPTCHA. Please try again.',
+                                 captcha_question=session.get('captcha_question'))
+
+        # Check failed login attempts
+        current_time = time.time()
+        failed_login_attempts[ip] = [t for t in failed_login_attempts[ip] if current_time - t < 900]  # 15 minutes
+        if len(failed_login_attempts[ip]) >= 5:
+            return render_template('base.html', title='Login', error='Too many failed attempts. Try again in 15 minutes.')
 
         # Check if user/IP is banned
         banned_data = load_json(BANNED_FILE)
@@ -129,11 +240,34 @@ def login():
         if not user_exists:
             with open(USERS_FILE, 'a', encoding='utf-8') as fd:
                 fd.write(f"{ip},{nick},{pwd},{timestamp},{date_str}\n")
+        else:
+            # Verify password for existing users
+            user_found = False
+            with open(USERS_FILE, 'r', encoding='utf-8') as fd:
+                for line in fd:
+                    parts = line.strip().split(',')
+                    if len(parts) >= 3 and parts[1] == nick and parts[2] == pwd:
+                        user_found = True
+                        break
+            if not user_found:
+                failed_login_attempts[ip].append(current_time)
+                return render_template('base.html', title='Login', error='Invalid credentials')
 
         session['nickname'] = nick
+        # Generate new CAPTCHA for next time
+        import random
+        num1, num2 = random.randint(1, 10), random.randint(1, 10)
+        session['captcha_answer'] = num1 + num2
         return redirect(url_for('chat'))
 
-    return render_template('base.html', title='Login')
+    # Generate initial CAPTCHA
+    if 'captcha_answer' not in session:
+        import random
+        num1, num2 = random.randint(1, 10), random.randint(1, 10)
+        session['captcha_answer'] = num1 + num2
+        session['captcha_question'] = f"{num1} + {num2} = ?"
+
+    return render_template('base.html', title='Login', captcha_question=session.get('captcha_question'))
 
 @app.route('/chat')
 @login_required
@@ -925,6 +1059,77 @@ def get_room_info(room):
         'is_admin': session['nickname'] in room_info.get('admins', [])
     })
 
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    nickname = session['nickname']
+    
+    # Check if account exists
+    if not check_account_exists(nickname):
+        return jsonify(success=False, error='Account not found')
+    
+    try:
+        # Remove from users.txt
+        users_to_keep = []
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                parts = line.strip().split(',')
+                if not (len(parts) >= 2 and parts[1] == nickname):
+                    users_to_keep.append(line.strip())
+        
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            for line in users_to_keep:
+                f.write(line + '\n')
+        
+        # Remove from all other data files
+        for data_file in [ROOMS_FILE, BLOCKS_FILE]:
+            data = load_json(data_file)
+            # Remove user from rooms and blocks
+            if data_file == ROOMS_FILE:
+                rooms_to_delete = []
+                for room_name, room_info in data.items():
+                    if nickname in room_info.get('members', []):
+                        room_info['members'] = [m for m in room_info['members'] if m != nickname]
+                    if nickname in room_info.get('admins', []):
+                        room_info['admins'] = [a for a in room_info['admins'] if a != nickname]
+                    if not room_info.get('members'):
+                        rooms_to_delete.append(room_name)
+                for room in rooms_to_delete:
+                    del data[room]
+            elif data_file == BLOCKS_FILE:
+                if nickname in data:
+                    del data[nickname]
+                for user_blocks in data.values():
+                    if nickname in user_blocks:
+                        user_blocks.remove(nickname)
+            save_json(data_file, data)
+        
+        # Remove from hidden messages
+        try:
+            hidden_data = load_json('hidden_messages.json') if os.path.exists('hidden_messages.json') else {}
+            if nickname in hidden_data:
+                del hidden_data[nickname]
+            with open('hidden_messages.json', 'w') as f:
+                json.dump(hidden_data, f, indent=2)
+        except:
+            pass
+        
+        # Clear session
+        session.clear()
+        
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, error='Failed to delete account')
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    nickname = session.get('nickname')
+    if nickname and nickname in online_users:
+        del online_users[nickname]
+    session.clear()
+    return jsonify(success=True)
+
 @app.route('/upload_file', methods=['POST'])
 @login_required
 def upload_file():
@@ -1049,9 +1254,18 @@ def on_disconnect():
 def on_message(data):
     room = data['room']
     nickname = data['nickname']
-    message = data['message'].strip()
+    message = sanitize_input(data['message'].strip())
 
     if not message:
+        return
+
+    # Check if account still exists
+    if not check_account_exists(nickname):
+        emit('user_banned', {
+            'username': nickname,
+            'reason': 'Account no longer exists. Please create a new account.',
+            'until': 'Permanent'
+        })
         return
 
     # Update user activity
@@ -1061,6 +1275,12 @@ def on_message(data):
         'last_seen': current_time,
         'room': room
     }
+
+    # Advanced spam protection
+    spam_ok, spam_error = check_spam_protection(nickname, message)
+    if not spam_ok:
+        emit('error', {'message': spam_error})
+        return
 
     # Check if user is banned (enhanced check)
     banned_data = load_json(BANNED_FILE)
@@ -1137,4 +1357,6 @@ def on_message(data):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    # Відключити debug в продакшні для стабільності
+    debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
