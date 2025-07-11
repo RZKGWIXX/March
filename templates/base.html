@@ -11,7 +11,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <script>
     const nickname = "{{ nickname or '' }}";
-    
+
     // Prevent back navigation to protected pages after logout
     window.addEventListener('pageshow', function(event) {
       if (event.persisted) {
@@ -21,7 +21,7 @@
         }
       }
     });
-    
+
     // Prevent back navigation after logout/delete
     if (performance.navigation.type === 2 && (!nickname || nickname.trim() === '')) {
       window.location.replace('/');

@@ -228,17 +228,74 @@ document.addEventListener('DOMContentLoaded', () => {
                   <div class="chat-info">
                     <span class="chat-name">@ ${otherUser}</span>
                     <span class="chat-type">Private</span>
+                    <span class="chat-status" id="status-${otherUser}">Loading...</span>
                   </div>
                   <span class="chat-icon">🔐</span>
                 `;
+                
+                // Load user status
+                fetch(`/user_status/${otherUser}`)
+                  .then(r => r.json())
+                  .then(data => {
+                    const statusEl = document.getElementById(`status-${otherUser}`);
+                    if (statusEl) {
+                      if (data.status === 'online') {
+                        statusEl.innerHTML = '🟢 У мережі';
+                        statusEl.className = 'chat-status online';
+                      } else if (data.last_seen) {
+                        const lastSeen = new Date(data.last_seen * 1000);
+                        const now = new Date();
+                        const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+                        const diffDays = Math.floor(diffHours / 24);
+                        
+                        if (diffDays >= 3) {
+                          statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleDateString('uk-UA')}`;
+                        } else if (diffDays >= 1) {
+                          statusEl.innerHTML = `⚪ Був ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
+                        } else {
+                          statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+                        }
+                        statusEl.className = 'chat-status offline';
+                      } else {
+                        statusEl.innerHTML = '⚪ Був давно';
+                        statusEl.className = 'chat-status offline';
+                      }
+                    }
+                  })
+                  .catch(err => {
+                    const statusEl = document.getElementById(`status-${otherUser}`);
+                    if (statusEl) {
+                      statusEl.innerHTML = '⚪ Невідомо';
+                      statusEl.className = 'chat-status offline';
+                    }
+                  });
               } else {
                 li.innerHTML = `
                   <div class="chat-info">
                     <span class="chat-name"># ${room}</span>
                     <span class="chat-type">Group</span>
+                    <span class="chat-status" id="status-${room}">Loading...</span>
                   </div>
                   <span class="chat-icon">👥</span>
                 `;
+                
+                // Load room stats
+                fetch(`/room_stats/${room}`)
+                  .then(r => r.json())
+                  .then(data => {
+                    const statusEl = document.getElementById(`status-${room}`);
+                    if (statusEl) {
+                      statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
+                      statusEl.className = 'chat-status';
+                    }
+                  })
+                  .catch(err => {
+                    const statusEl = document.getElementById(`status-${room}`);
+                    if (statusEl) {
+                      statusEl.innerHTML = '👥 Статус невідомий';
+                      statusEl.className = 'chat-status';
+                    }
+                  });
               }
               chatList.appendChild(li);
             }
@@ -496,7 +553,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (lastSeen && statusData.last_seen) {
         const lastSeenDate = new Date(statusData.last_seen * 1000);
-        lastSeen.textContent = statusData.status === 'online' ? 'Online now' : `Last seen: ${lastSeenDate.toLocaleString()}`;
+        const now = new Date();
+        const diffHours = (now - lastSeenDate) / (1000 * 60 * 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (statusData.status === 'online') {
+          lastSeen.textContent = 'Зараз у мережі';
+        } else if (diffDays >= 3) {
+          lastSeen.textContent = `Був у мережі: ${lastSeenDate.toLocaleDateString('uk-UA')}`;
+        } else if (diffDays >= 1) {
+          lastSeen.textContent = `Був у мережі: ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
+        } else {
+          lastSeen.textContent = `Був у мережі: ${lastSeenDate.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+        }
       }
     });
   }
@@ -719,6 +788,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Show room context menu
   function showRoomContextMenu() {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+    
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
@@ -1391,6 +1464,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
@@ -1625,6 +1702,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Settings panel
   window.showSettings = function() {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+    
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
@@ -2178,6 +2259,33 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => {
     loadRooms();
   }, 120000);
+
+  // Add user avatar to user info
+  const userInfo = document.querySelector('.user-info');
+  if (userInfo) {
+    // Load user avatar
+    fetch(`/get_user_avatar/${nickname}`)
+      .then(r => r.json())
+      .then(data => {
+        const userAvatar = document.createElement('img');
+        userAvatar.className = 'user-info-avatar';
+        userAvatar.src = data.avatar && data.avatar !== '/static/default-avatar.png' ? data.avatar : '/static/default-avatar.png';
+        userAvatar.alt = nickname;
+        userAvatar.onerror = () => {
+          userAvatar.src = '/static/default-avatar.png';
+        };
+        
+        userInfo.insertBefore(userAvatar, userInfo.firstChild);
+      })
+      .catch(err => {
+        console.error('Failed to load user avatar:', err);
+        const userAvatar = document.createElement('img');
+        userAvatar.className = 'user-info-avatar';
+        userAvatar.src = '/static/default-avatar.png';
+        userAvatar.alt = nickname;
+        userInfo.insertBefore(userAvatar, userInfo.firstChild);
+      });
+  }
 
   // Add settings button to header
   const headerButtons = document.querySelector('.header-buttons');
