@@ -24,13 +24,5 @@
       "timestamp": 1752265284
     }
   ],
-  "test": [
-    {
-      "nick": "Wixxy",
-      "text": "/static/uploads/fbbc1484be17478b9e1a062149051aca.mp4",
-      "timestamp": 1752265652,
-      "type": "media",
-      "file_type": "video"
-    }
-  ]
+  "test": []
 }
