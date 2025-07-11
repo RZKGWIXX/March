@@ -86,6 +86,24 @@ def create_jsonbin_bin(bin_name, data, collection_id=None):
         return None
 
 
+def check_bin_exists(bin_id):
+    """Check if a bin exists on JSONBin.io"""
+    if not JSONBIN_API_KEY or not bin_id:
+        return False
+    
+    headers = {
+        'X-Master-Key': JSONBIN_API_KEY,
+        'X-Access-Key': JSONBIN_ACCESS_KEY_ID
+    }
+    
+    try:
+        url = f"{JSONBIN_BASE_URL}/{bin_id}"
+        response = requests.get(url, headers=headers, timeout=10)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+
 def auto_create_bins():
     """Automatically create all required bins if they don't exist"""
     print(f"JSONBin API Key: {'Present' if JSONBIN_API_KEY else 'Missing'}")
@@ -118,20 +136,28 @@ def auto_create_bins():
     print(f"Using Collection ID: {collection_id}")
 
     for bin_name, data in default_data.items():
-        if not BINS.get(bin_name):
+        bin_id = BINS.get(bin_name)
+        
+        if bin_id and check_bin_exists(bin_id):
+            print(f"✓ {bin_name} bin already exists: {bin_id}")
+        elif bin_id and not check_bin_exists(bin_id):
+            print(f"⚠ {bin_name} bin ID configured but bin doesn't exist, creating new one...")
+            new_bin_id = create_jsonbin_bin(bin_name, data, collection_id)
+            if new_bin_id:
+                BINS[bin_name] = new_bin_id
+                print(f"✓ Recreated {bin_name} bin: {new_bin_id}")
+                print(f"Update your environment: {bin_name.upper()}_BIN_ID={new_bin_id}")
+            else:
+                print(f"✗ Failed to recreate {bin_name} bin")
+        else:
             print(f"Creating bin for {bin_name}...")
             bin_id = create_jsonbin_bin(bin_name, data, collection_id)
             if bin_id:
-                # Update the BINS dictionary
                 BINS[bin_name] = bin_id
                 print(f"✓ Created {bin_name} bin: {bin_id}")
-                print(
-                    f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}"
-                )
+                print(f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}")
             else:
                 print(f"✗ Failed to create {bin_name} bin")
-        else:
-            print(f"✓ {bin_name} bin already configured: {BINS[bin_name]}")
 
 
 def create_default_json_files():
