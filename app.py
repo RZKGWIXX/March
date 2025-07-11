@@ -18,6 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # JSONBin.io configuration
 JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')  # Set this in your environment
+JSONBIN_ACCESS_KEY_ID = os.environ.get('JSONBIN_ACCESS_KEY_ID')  # Access Key ID
 JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
@@ -50,6 +51,7 @@ def create_jsonbin_bin(bin_name, data, collection_id=None):
     
     headers = {
         'X-Master-Key': JSONBIN_API_KEY,
+        'X-Access-Key': JSONBIN_ACCESS_KEY_ID,
         'Content-Type': 'application/json',
         'X-Bin-Name': bin_name
     }
@@ -148,6 +150,7 @@ def jsonbin_request(method, bin_name, data=None):
     
     headers = {
         'X-Master-Key': JSONBIN_API_KEY,
+        'X-Access-Key': JSONBIN_ACCESS_KEY_ID,
         'Content-Type': 'application/json'
     }
     
