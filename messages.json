@@ -1,24 +1,3 @@
 {
-  "general": [
-    {
-      "nick": "Wixxy",
-      "text": "Я Саня",
-      "timestamp": 1752180218
-    },
-    {
-      "nick": "Orest",
-      "text": "Помянимо testmama",
-      "timestamp": 1752180233
-    },
-    {
-      "nick": "Orest",
-      "text": "Okyn",
-      "timestamp": 1752180259
-    },
-    {
-      "nick": "Wixxy",
-      "text": "Окей народ скоро буде реліз!!",
-      "timestamp": 1752180968
-    }
-  ]
+  "general": []
 }
