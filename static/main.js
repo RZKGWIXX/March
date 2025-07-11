@@ -1670,31 +1670,19 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="admin-content">
         <h2>📋 OrbitMess Changelog</h2>
         <div class="changelog-item">
-          <div class="changelog-date">Version 2.1 - January 2025</div>
-          <div class="changelog-title">Style Update</div>
+          <div class="changelog-date">Version 1.3 - 11.07.25</div>
+          <div class="changelog-title">Style & UX Update</div>
           <ul class="changelog-changes">
-            <li class="added">Новий темний дизайн з градієнтами</li>
-            <li class="added">Покращена палітра кольорів</li>
-            <li class="added">Тіні для панелей та кнопок</li>
-            <li class="fixed">Виправлено індикатори статусу онлайн</li>
-            <li class="improved">Оптимізована швидкість роботи</li>
+            <li class="added">Жирний шрифт для повідомлень</li>
+            <li class="added">Світла тема з покращеним дизайном</li>
+            <li class="added">Галочки для статусу повідомлень</li>
+            <li class="added">Кнопка скидування відео файлів</li>
+            <li class="added">Охайніший та чистіший інтерфейс</li>
+            <li class="fixed">Виправлено відображення повідомлень</li>
+            <li class="improved">Покращена читабельність тексту</li>
+            <li class="improved">Оптимізована робота з медіа файлами</li>
           </ul>
-        </div>
-        <div class="changelog-item">
-          <div class="changelog-date">Version 2.0 - January 2025</div>
-          <div class="changelog-title">Major Update</div>
-          <ul class="changelog-changes">
-            <li class="added">Система аватарок для користувачів</li>
-            <li class="added">Відправка відео файлів</li>
-            <li class="added">Профілі користувачів з біо</li>
-            <li class="added">Статуси повідомлень (відправлено, переглянуто)</li>
-            <li class="added">Покращений дизайн та анімації</li>
-            <li class="added">Показ учасників в групах (свайп вправо)</li>
-            <li class="added">Індикатор з'єднання</li>
-            <li class="fixed">Виправлено подвійні кнопки в приватних чатах</li>
-            <li class="fixed">Прибрано зайві кнопки з general чату</li>
-            <li class="improved">Покращена швидкість роботи</li>
-            <li class="improved">Оптимізовано для мобільних пристроїв</li>
+        </div>о для мобільних пристроїв</li>
           </ul>
         </div>
         <div class="changelog-item">
