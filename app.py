@@ -234,7 +234,7 @@ def jsonbin_request(method, bin_name, data=None):
 
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=5, verify=False)
             if response.status_code == 200:
                 return response.json().get('record', {})
             else:
@@ -246,17 +246,12 @@ def jsonbin_request(method, bin_name, data=None):
             response = requests.put(url,
                                     json=data,
                                     headers=headers,
-                                    timeout=10)
+                                    timeout=5,
+                                    verify=False)
             return response.status_code == 200
 
-    except RecursionError:
-        print(f"Recursion error for {bin_name}, using local fallback")
-        return {} if method == 'GET' else False
-    except (requests.RequestException, ValueError, KeyError) as e:
-        print(f"JSONBin API error for {bin_name}: {e}")
-        return {} if method == 'GET' else False
     except Exception as e:
-        print(f"Unexpected error for {bin_name}: {e}")
+        print(f"JSONBin API error for {bin_name}: {e}")
         return {} if method == 'GET' else False
 
 
@@ -273,7 +268,7 @@ def load_json(bin_name):
     except Exception as e:
         print(f"Error loading {filepath}: {e}")
 
-    # Try JSONBin.io as backup
+    # Try JSONBin.io as backup only if local fails
     if JSONBIN_API_KEY and BINS.get(bin_name):
         try:
             data = jsonbin_request('GET', bin_name)
@@ -282,26 +277,26 @@ def load_json(bin_name):
                 try:
                     with open(filepath, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error saving to local file {filepath}: {e}")
                 return data
-        except:
-            pass
+        except Exception as e:
+            print(f"Error loading from JSONBin {bin_name}: {e}")
 
     # Return default data if both fail
     default_data = {
-        'users': {"placeholder": "data"},
-        'rooms': {"placeholder": "data"},
+        'users': {},
+        'rooms': {},
         'messages': {
             'general': []
         },
-        'blocks': {"placeholder": "data"},
+        'blocks': {},
         'banned': {
             'users': []
         },
-        'muted': {"placeholder": "data"},
-        'hidden_messages': {"placeholder": "data"},
-        'nickname_cooldowns': {"placeholder": "data"}
+        'muted': {},
+        'hidden_messages': {},
+        'nickname_cooldowns': {}
     }
     return default_data.get(bin_name, {})
 
@@ -348,19 +343,28 @@ def get_user_list():
 
 def save_user(ip, nickname, password):
     """Save user to JSONBin users storage"""
-    users_data = load_json('users')
+    try:
+        users_data = load_json('users')
+        
+        # Check if nickname already exists
+        for user_info in users_data.values():
+            if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
+                return False  # User already exists
 
-    user_id = hashlib.md5(f"{ip}_{nickname}".encode()).hexdigest()
+        user_id = hashlib.md5(f"{ip}_{nickname}".encode()).hexdigest()
 
-    users_data[user_id] = {
-        'ip': ip,
-        'nickname': nickname,
-        'password': password,
-        'timestamp': int(time.time()),
-        'date': time.strftime('%Y-%m-%d %H:%M:%S')
-    }
+        users_data[user_id] = {
+            'ip': ip,
+            'nickname': nickname,
+            'password': password,
+            'timestamp': int(time.time()),
+            'date': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
-    return save_json('users', users_data)
+        return save_json('users', users_data)
+    except Exception as e:
+        print(f"Error saving user {nickname}: {e}")
+        return False
 
 
 def verify_user(nickname, password):
@@ -558,14 +562,16 @@ def login():
                 failed_login_attempts[ip].append(current_time)
                 return render_template('base.html',
                                        title='Login',
-                                       error='Invalid credentials')
+                                       error='Invalid credentials',
+                                       captcha_question=session.get('captcha_question'))
         else:
             # Create new user
             if not save_user(ip, nick, pwd):
                 return render_template(
                     'base.html',
                     title='Login',
-                    error='Failed to create account. Please try again.')
+                    error='Failed to create account. Please try again.',
+                    captcha_question=session.get('captcha_question'))
 
         session['nickname'] = nick
         import random
@@ -1090,7 +1096,7 @@ def change_nickname():
 
     existing_users = get_user_list()
     if new_nickname in existing_users:
-        return jsonify(success=False, error='Nickname already taken')
+        return jsonify(success=False, error='This nickname already exists. Please choose another one.')
 
     old_nickname = session['nickname']
 

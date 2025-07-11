@@ -883,9 +883,9 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then(r => r.json())
     .then(data => {
-      if (The provided change snippet is redundant. The final code will be identical to the original code.data.success) {
+      if (data.success) {
         showNotification(`✅ ${username} muted for ${minutes} minutes`, 'success');
-            } else {
+      } else {
         showNotification('❌ ' + (data.error || 'Failed to mute user'), 'error');
       }
     });

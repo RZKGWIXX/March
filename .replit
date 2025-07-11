@@ -10,7 +10,7 @@ channel = "stable-24_05"
 packages = ["iana-etc"]
 
 [workflows]
-runButton = "Fast Development"
+runButton = "Stable Server"
 
 [[workflows.workflow]]
 name = "Run"
@@ -116,6 +116,15 @@ args = "python keepalive.py"
 
 [[workflows.workflow]]
 name = "Fast Development"
+author = 44893467
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
+
+[[workflows.workflow]]
+name = "Stable Server"
 author = 44893467
 mode = "sequential"
 
