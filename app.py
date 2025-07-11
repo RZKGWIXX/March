@@ -355,13 +355,18 @@ def save_user(ip, nickname, password):
 
         users_data[user_id] = {
             'ip': ip,
-            'nickname': nickname,
-            'password': password,
+            'nickname': nickname.strip(),
+            'password': password.strip(),
             'timestamp': int(time.time()),
             'date': time.strftime('%Y-%m-%d %H:%M:%S')
         }
 
-        return save_json('users', users_data)
+        result = save_json('users', users_data)
+        if result:
+            print(f"User {nickname} saved successfully")
+        else:
+            print(f"Failed to save user {nickname}")
+        return result
     except Exception as e:
         print(f"Error saving user {nickname}: {e}")
         return False
@@ -373,10 +378,15 @@ def verify_user(nickname, password):
 
     for user_info in users_data.values():
         if (isinstance(user_info, dict)
-                and user_info.get('nickname') == nickname
-                and user_info.get('password') == password):
-            return True
-
+                and user_info.get('nickname') == nickname):
+            # Check if passwords match (handle both string and encoded passwords)
+            stored_password = user_info.get('password', '')
+            if stored_password == password:
+                return True
+            # Also try comparing with stripped whitespace
+            if stored_password.strip() == password.strip():
+                return True
+    
     return False
 
 
@@ -560,9 +570,10 @@ def login():
         if check_account_exists(nick):
             if not verify_user(nick, pwd):
                 failed_login_attempts[ip].append(current_time)
+                print(f"Login failed for user: {nick}")  # Debug logging
                 return render_template('base.html',
                                        title='Login',
-                                       error='Invalid credentials',
+                                       error='Invalid username or password',
                                        captcha_question=session.get('captcha_question'))
         else:
             # Create new user
