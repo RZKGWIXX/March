@@ -1277,16 +1277,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
-      <div class="admin-content">
-        <h2>🔧 Admin Panel</h2>
-        <div id="admin-stats" class="admin-stats"></div>
-        <button class="admin-btn" onclick="loadStats()">📊 View Statistics</button>
-        <button class="admin-btn" onclick="createGroupAsAdmin()">Create Group</button>
-        <button class="admin-btn" onclick="loadBannedUsers()">View Banned Users</button>
-        <button class="admin-btn" onclick="clearChat()">Clear General Chat</button>
-        <button class="admin-btn" onclick="loadAllUsers()">Ban User</button>
-        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
-        <div id="admin-content-area"></div>
+      <div class="admin-content admin-main">
+        <div class="modal-header">
+          <h2>🔧 Admin Panel</h2>
+          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
+        </div>
+        
+        <div class="admin-layout">
+          <div class="admin-sidebar">
+            <div class="admin-section">
+              <h3>📊 Statistics</h3>
+              <div id="admin-stats" class="admin-stats"></div>
+              <button class="admin-btn" onclick="loadStats()">📊 Refresh Stats</button>
+            </div>
+            
+            <div class="admin-section">
+              <h3>👥 User Management</h3>
+              <button class="admin-btn" onclick="loadAllUsers()">🚫 Ban User</button>
+              <button class="admin-btn" onclick="loadBannedUsers()">📋 View Banned Users</button>
+            </div>
+            
+            <div class="admin-section">
+              <h3>🏠 Room Management</h3>
+              <button class="admin-btn" onclick="createGroupAsAdmin()">➕ Create Group</button>
+              <button class="admin-btn" onclick="clearChat()">🧹 Clear General Chat</button>
+            </div>
+          </div>
+          
+          <div class="admin-main-content">
+            <div id="admin-content-area">
+              <div class="welcome-message">
+                <h3>👋 Welcome to Admin Panel</h3>
+                <p>Select an action from the sidebar to get started.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close Panel</button>
+        </div>
       </div>
     `;
     document.body.appendChild(modal);
@@ -1667,35 +1697,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
-      <div class="admin-content">
-        <h2>📋 OrbitMess Changelog</h2>
-        <div class="changelog-item">
-          <div class="changelog-date">Version 1.3 - 11.07.25</div>
-          <div class="changelog-title">Style & UX Update</div>
-          <ul class="changelog-changes">
-            <li class="added">Жирний шрифт для повідомлень</li>
-            <li class="added">Світла тема з покращеним дизайном</li>
-            <li class="added">Галочки для статусу повідомлень</li>
-            <li class="added">Кнопка скидування відео файлів</li>
-            <li class="added">Охайніший та чистіший інтерфейс</li>
-            <li class="fixed">Виправлено відображення повідомлень</li>
-            <li class="improved">Покращена читабельність тексту</li>
-            <li class="improved">Оптимізована робота з медіа файлами</li>
-          </ul>
-        </div>о для мобільних пристроїв</li>
-          </ul>
+      <div class="admin-content changelog-content">
+        <div class="modal-header">
+          <h2>📋 OrbitMess Changelog</h2>
+          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
-        <div class="changelog-item">
-          <div class="changelog-date">Version 1.5 - December 2024</div>
-          <div class="changelog-title">Bug Fixes & Improvements</div>
-          <ul class="changelog-changes">
-            <li class="fixed">Виправлено синхронізацію повідомлень</li>
-            <li class="fixed">Покращено стабільність з'єднання</li>
-            <li class="added">Додано групові чати</li>
-            <li class="added">Система банів та модерації</li>
-          </ul>
+        <div class="changelog-scroll">
+          <div class="changelog-item">
+            <div class="changelog-date">Version 1.3 - 11.07.25</div>
+            <div class="changelog-title">Style & UX Update</div>
+            <ul class="changelog-changes">
+              <li class="added">Жирний шрифт для повідомлень</li>
+              <li class="added">Світла тема з покращеним дизайном</li>
+              <li class="added">Галочки для статусу повідомлень</li>
+              <li class="added">Кнопка скидування відео файлів</li>
+              <li class="added">Охайніший та чистіший інтерфейс</li>
+              <li class="fixed">Виправлено відображення повідомлень</li>
+              <li class="improved">Покращена читабельність тексту</li>
+              <li class="improved">Оптимізована робота з медіа файлами</li>
+            </ul>
+          </div>
+          <div class="changelog-item">
+            <div class="changelog-date">Version 1.5 - December 2024</div>
+            <div class="changelog-title">Bug Fixes & Improvements</div>
+            <ul class="changelog-changes">
+              <li class="fixed">Виправлено синхронізацію повідомлень</li>
+              <li class="fixed">Покращено стабільність з'єднання</li>
+              <li class="added">Додано групові чати</li>
+              <li class="added">Система банів та модерації</li>
+            </ul>
+          </div>
         </div>
-        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+        <div class="modal-footer">
+          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+        </div>
       </div>
     `;
     document.body.appendChild(modal);
