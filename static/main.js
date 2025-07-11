@@ -369,9 +369,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (text.startsWith('/static/uploads/')) {
         const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm');
         if (isVideo) {
-          messageContent = `<video src="${text}" controls class="shared-video" style="max-width: 250px; max-height: 200px; margin-top: 4px;" preload="metadata">
-            Your browser does not support the video tag.
-          </video>`;
+          const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          messageContent = `
+            <div class="video-container">
+              <video id="${videoId}" src="${text}" controls class="shared-video" style="max-width: 250px; max-height: 200px; margin-top: 4px;" preload="metadata">
+                Your browser does not support the video tag.
+              </video>
+              <button class="video-reset-btn" onclick="resetVideo('${videoId}')" title="Скинути відео">🔄</button>
+            </div>
+          `;
         } else {
           messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 250px; max-height: 200px; cursor: pointer; margin-top: 4px;">`;
         }
@@ -1077,6 +1083,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Handle real-time video/file messages
+  socket.on('new_message', (data) => {
+    if (data.room !== currentRoom) {
+      return;
+    }
+
+    // Don't show our own messages again
+    if (data.nickname === nickname) {
+      return;
+    }
+
+    addMessage(data.nickname, data.message, false);
+
+    // Update cache immediately
+    if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+    messageHistory[currentRoom].push({
+      nick: data.nickname, 
+      text: data.message, 
+      timestamp: data.timestamp
+    });
+    localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+
+    // Show notification for media files
+    if (data.message.startsWith('/static/uploads/')) {
+      const isVideo = data.message.includes('.mp4') || data.message.includes('.mov') || data.message.includes('.avi') || data.message.includes('.webm');
+      const mediaType = isVideo ? 'відео' : 'зображення';
+      
+      if (document.hidden) {
+        showDesktopNotification(data.nickname, `Надіслав ${mediaType}`);
+      }
+      playNotificationSound();
+    }
+  });
+
   socket.on('error', (data) => {
     showNotification('❌ ' + data.message, 'error');
   });
@@ -1488,13 +1528,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Detect mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isTablet = /iPad|Android/i.test(navigator.userAgent) && window.innerWidth > 768;
+  
+  // Apply mobile-specific styles and behaviors
+  if (isMobile && !isTablet) {
+    document.body.classList.add('mobile-device');
+    
+    // Mobile-specific optimizations
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+    
+    // Optimize touch interactions
+    document.addEventListener('touchstart', function() {}, {passive: true});
+    document.addEventListener('touchmove', function() {}, {passive: true});
+  }
+
   // Settings panel
   function showSettings() {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
     // Detect if user is on a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const mobileClass = isMobile ? 'mobile-settings' : '';
     modal.classList.add(mobileClass);
 
@@ -2226,6 +2284,17 @@ document.addEventListener('DOMContentLoaded', () => {
     onlineUsers = new Set(data.users);
     updateChatListStatus();
   });
+
+  // Video reset function
+  window.resetVideo = function(videoId) {
+    const video = document.getElementById(videoId);
+    if (video) {
+      video.currentTime = 0;
+      video.pause();
+      video.load(); // Reload video to reset completely
+      showNotification('✅ Відео скинуто', 'success');
+    }
+  };
 
   // Initialize
   loadChatHistory();

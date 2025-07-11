@@ -1103,37 +1103,60 @@ body {
 }
 
 /* Mobile device specific styles */
-.mobile-device .message-form input,
-.mobile-device .search input,
-.mobile-device .profile-section input,
-.mobile-device .profile-section textarea {
-  font-size: 16px !important;
-  -webkit-appearance: none;
-  appearance: none;
+.mobile-device {
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mobile-device .admin-content.mobile-optimized {
-  width: 95vw;
-  max-height: 90vh;
-  margin: 5vh auto;
+.mobile-device .shared-video {
+  max-width: calc(100vw - 40px) !important;
+  max-height: 200px !important;
+  width: auto !important;
+  height: auto !important;
 }
 
-.mobile-device .settings-scroll {
-  padding: 0.75rem;
+.mobile-device .shared-image {
+  max-width: calc(100vw - 40px) !important;
+  max-height: 200px !important;
+  width: auto !important;
+  height: auto !important;
 }
 
-.mobile-device .avatar-section {
-  text-align: center;
-  margin-bottom: 1rem;
+.mobile-device .message-text {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
-.mobile-device .settings-avatar {
-  width: 100px;
-  height: 100px;
-  margin-bottom: 1rem;
+.mobile-device .message {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  position: relative;
 }
 
-/* Mobile improvements */
+.mobile-device .message.own {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  margin-left: 20%;
+}
+
+.mobile-device .message:not(.own) {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  margin-right: 20%;
+}
+
+.mobile-device .message-status {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Mobile optimizations */
 @media (max-width: 768px) {
   .messages {
     flex: 1;
@@ -1144,7 +1167,7 @@ body {
     min-height: 0;
     padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   }
-  
+
   .message-form {
     padding: 0.75rem;
     gap: 0.5rem;
@@ -1154,7 +1177,7 @@ body {
     background: var(--surface-dark);
     border-top: 1px solid var(--surface-lighter);
   }
-  
+
   .chat-window {
     height: 100vh;
     height: 100dvh; /* Dynamic viewport height for mobile */
@@ -1162,7 +1185,7 @@ body {
     display: flex;
     flex-direction: column;
   }
-  
+
   .context-menu {
     left: 20px !important;
     right: 20px !important;
@@ -1171,12 +1194,12 @@ body {
     max-width: calc(100vw - 40px) !important;
     touch-action: manipulation;
   }
-  
+
   .settings-section {
     margin-bottom: 1rem;
     padding: 0.75rem;
   }
-  
+
   .theme-selector {
     flex-direction: column;
     gap: 0.5rem;
@@ -1801,16 +1824,16 @@ body[data-theme="dark"] .members-panel {
     width: 100%;
     right: -100%;
   }
-  
+
   .profile-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .profile-avatar {
     margin: 0 0 1rem 0;
   }
-  
+
   .profile-actions {
     flex-direction: column;
   }
@@ -1867,4 +1890,61 @@ body[data-theme="dark"] .members-panel {
 .ban-btn:hover,
 .cancel-btn:hover {
   transform: translateY(-1px);
+}
+
+/* Video and image styles */
+.shared-video, .shared-image {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.shared-video:hover, .shared-image:hover {
+  transform: scale(1.02);
+}
+
+.video-container {
+  position: relative;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.video-reset-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.video-reset-btn:hover {
+  background: rgba(0,0,0,0.9);
+  transform: scale(1.1);
+}
+
+.mobile-device .video-reset-btn {
+  width: 35px;
+  height: 35px;
+  font-size: 16px;
+  top: 8px;
+  right: 8px;
+}
+
+/* Avatar section in settings */
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }

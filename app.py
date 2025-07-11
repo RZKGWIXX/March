@@ -1542,6 +1542,17 @@ def upload_file():
 
         save_json('messages', messages_data)
 
+        # Broadcast to all users in room except sender
+        socketio.emit('new_message', {
+            'room': room,
+            'nickname': nickname,
+            'message': file_url,
+            'timestamp': int(time.time()),
+            'type': 'media',
+            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
+        }, room=room, include_self=False)
+        
+        # Also emit old format for compatibility
         socketio.emit('message', {
             'room': room,
             'message': f"{nickname}: {file_url}",
