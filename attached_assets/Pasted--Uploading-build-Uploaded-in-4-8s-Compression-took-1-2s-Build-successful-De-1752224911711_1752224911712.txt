@@ -1,0 +1,35 @@
+==> Uploading build...
+==> Uploaded in 4.8s. Compression took 1.2s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'gunicorn --config gunicorn.conf.py app:app'
+[2025-07-11 09:05:41 +0000] [103] [INFO] Starting gunicorn 21.2.0
+[2025-07-11 09:05:41 +0000] [103] [INFO] Listening at: http://0.0.0.0:10000 (103)
+[2025-07-11 09:05:41 +0000] [103] [INFO] Using worker: sync
+[2025-07-11 09:05:41 +0000] [105] [INFO] Booting worker with pid: 105
+[2025-07-11 09:05:41 +0000] [106] [INFO] Booting worker with pid: 106
+127.0.0.1 - - [11/Jul/2025:09:05:41 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://march-a5b5.onrender.com
+==> 
+Invalid session 8dYNZTwwhna6P3TwAAAe (further occurrences of this error will be logged with level INFO)
+127.0.0.1 - - [11/Jul/2025:09:05:50 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PVukyBS&sid=8dYNZTwwhna6P3TwAAAe HTTP/1.1" 400 38 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+==> ///////////////////////////////////////////////////////////
+127.0.0.1 - - [11/Jul/2025:09:05:52 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PVukybA HTTP/1.1" 200 118 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+Invalid session FneCuXpkylMW-bFZAAAA (further occurrences of this error will be logged with level INFO)
+127.0.0.1 - - [11/Jul/2025:09:05:52 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PVukyfA&sid=FneCuXpkylMW-bFZAAAA HTTP/1.1" 400 38 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:05:52 +0000] "GET / HTTP/1.1" 200 1868 "-" "Go-http-client/2.0"
+127.0.0.1 - - [11/Jul/2025:09:05:52 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PVukyjJ&sid=FneCuXpkylMW-bFZAAAA HTTP/1.1" 400 38 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:05:54 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PVukz4E HTTP/1.1" 200 118 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /socket.io/?EIO=4&transport=polling&t=PVukyfB&sid=FneCuXpkylMW-bFZAAAA HTTP/1.1" 200 1 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PVukz87&sid=JSXCmPgJzEaCeuBaAAAA HTTP/1.1" 400 38 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /socket.io/?EIO=4&transport=websocket&sid=JSXCmPgJzEaCeuBaAAAA HTTP/1.1" 400 38 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /chat HTTP/1.1" 302 189 "https://march-a5b5.onrender.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "POST /socket.io/?EIO=4&transport=polling&t=PVul10J&sid=JSXCmPgJzEaCeuBaAAAA HTTP/1.1" 400 38 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /room_stats/general HTTP/1.1" 200 35 "https://march-a5b5.onrender.com/chat" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET / HTTP/1.1" 200 1868 "https://march-a5b5.onrender.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /static/main.js HTTP/1.1" 200 0 "https://march-a5b5.onrender.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+127.0.0.1 - - [11/Jul/2025:09:06:17 +0000] "GET /static/style.css HTTP/1.1" 200 0 "https://march-a5b5.onrender.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
