@@ -12,13 +12,13 @@ from flask import Flask, render_template, request, redirect, session, url_for, j
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = os.environ.get('SECRET_KEY',
+app.secret_key = os.environ.get('%637&&7@(_72)(28',
                                 'fallback-secret-key-for-development')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # JSONBin.io configuration
-JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')  # Set this in your environment
-JSONBIN_ACCESS_KEY_ID = os.environ.get('JSONBIN_ACCESS_KEY_ID')  # Access Key ID
+JSONBIN_API_KEY = os.environ.get('$2a$10$RgQMxiMWDn4XRQ70aEs7NuP/rw2z1Ay1qEwR.xrXwTsIIISGQVTVm')  # Set this in your environment
+JSONBIN_ACCESS_KEY_ID = os.environ.get('6870d1a46063391d31ab5ece')  # Access Key ID
 JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
