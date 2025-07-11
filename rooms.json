@@ -38,5 +38,14 @@
       "Kostya464"
     ],
     "type": "private"
+  },
+  "test": {
+    "members": [
+      "Wixxy"
+    ],
+    "admins": [
+      "Wixxy"
+    ],
+    "type": "group"
   }
 }
