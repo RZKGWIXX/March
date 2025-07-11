@@ -1659,13 +1659,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Show changelog
+  // Show changelog - РЕДАГУЙТЕ ТУТ ДЛЯ ЗМІНИ CHANGELOG
   window.showChangelog = function() {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
       <div class="admin-content">
         <h2>📋 OrbitMess Changelog</h2>
+        <div class="changelog-item">
+          <div class="changelog-date">Version 2.1 - January 2025</div>
+          <div class="changelog-title">Style Update</div>
+          <ul class="changelog-changes">
+            <li class="added">Новий темний дизайн з градієнтами</li>
+            <li class="added">Покращена палітра кольорів</li>
+            <li class="added">Тіні для панелей та кнопок</li>
+            <li class="fixed">Виправлено індикатори статусу онлайн</li>
+            <li class="improved">Оптимізована швидкість роботи</li>
+          </ul>
+        </div>
         <div class="changelog-item">
           <div class="changelog-date">Version 2.0 - January 2025</div>
           <div class="changelog-title">Major Update</div>
