@@ -986,6 +986,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (data.room === currentRoom || currentRoom === 'general') {
       updateRoomStats(currentRoom);
     }
+    
+    // Handle account deletion or logout
+    if (data.action === 'account_deleted' || data.action === 'logout') {
+      // Reload admin stats if admin panel is open
+      const adminStats = document.getElementById('admin-stats');
+      if (adminStats && adminStats.style.display !== 'none') {
+        loadStats();
+      }
+    }
   });
 
   // Desktop notifications
@@ -1365,23 +1374,30 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
           })
-          .then(() => {
+          .then(r => r.json())
+          .then(data => {
             showNotification('✅ Account deleted successfully', 'success');
-            // Clear local data
+            // Clear all local data
             localStorage.clear();
             sessionStorage.clear();
+            // Prevent back navigation
+            window.history.pushState(null, null, '/');
+            window.addEventListener('popstate', function() {
+              window.location.replace('/');
+            });
             setTimeout(() => {
-              window.location.href = '/';
-              // Prevent back navigation
-              window.history.pushState(null, null, '/');
-              window.addEventListener('popstate', function() {
-                window.location.href = '/';
-              });
+              window.location.replace('/');
             }, 2000);
           })
           .catch(err => {
             console.error('Failed to delete account:', err);
+            // Clear local data even on error
+            localStorage.clear();
+            sessionStorage.clear();
             showNotification('❌ Error deleting account', 'error');
+            setTimeout(() => {
+              window.location.replace('/');
+            }, 1000);
           });
         } else {
           showNotification('❌ Nickname confirmation failed', 'error');
@@ -1397,15 +1413,27 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {'Content-Type': 'application/json'}
       })
-      .then(() => {
+      .then(r => r.json())
+      .then(data => {
         showNotification('✅ Logged out successfully', 'success');
-        setTimeout(() => {
+        // Clear all local data
+        localStorage.clear();
+        sessionStorage.clear();
+        // Prevent back navigation
+        window.history.pushState(null, null, '/');
+        window.addEventListener('popstate', function() {
           window.location.href = '/';
+        });
+        setTimeout(() => {
+          window.location.replace('/');
         }, 1000);
       })
       .catch(err => {
         console.error('Logout failed:', err);
-        window.location.href = '/';
+        // Clear all local data even on error
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('/');
       });
     }
   };

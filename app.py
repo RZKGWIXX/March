@@ -271,7 +271,27 @@ def login():
 @app.route('/chat')
 @login_required
 def chat():
-    return render_template('base.html', title='Chat', nickname=session['nickname'])
+    nickname = session['nickname']
+    
+    # Double check if account still exists
+    if not check_account_exists(nickname):
+        session.clear()
+        return redirect(url_for('login'))
+    
+    # Update online status
+    import time
+    online_users[nickname] = {
+        'last_seen': int(time.time()),
+        'room': 'general'
+    }
+    
+    # Set cache headers to prevent caching
+    from flask import make_response
+    response = make_response(render_template('base.html', title='Chat', nickname=nickname))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/rooms')
 @login_required
@@ -1068,6 +1088,16 @@ def delete_account():
         return jsonify(success=False, error='Account not found')
     
     try:
+        # Remove from online users immediately
+        if nickname in online_users:
+            del online_users[nickname]
+        
+        # Notify all users about status change
+        socketio.emit('user_activity_update', {
+            'user': nickname,
+            'action': 'account_deleted'
+        })
+        
         # Remove from users.txt
         users_to_keep = []
         with open(USERS_FILE, 'r', encoding='utf-8') as f:
@@ -1116,7 +1146,13 @@ def delete_account():
         # Clear session
         session.clear()
         
-        return redirect(url_for('login'))
+        # Return JSON response to prevent back navigation
+        from flask import jsonify
+        response = jsonify({'success': True, 'redirect': url_for('login')})
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         return jsonify(success=False, error='Failed to delete account')
 
@@ -1126,8 +1162,22 @@ def logout():
     nickname = session.get('nickname')
     if nickname and nickname in online_users:
         del online_users[nickname]
+    
+    # Notify all users about status change
+    socketio.emit('user_activity_update', {
+        'user': nickname,
+        'action': 'logout'
+    })
+    
     session.clear()
-    return redirect(url_for('login'))
+    
+    # Return JSON response to prevent back navigation
+    from flask import jsonify
+    response = jsonify({'success': True, 'redirect': url_for('login')})
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/upload_file', methods=['POST'])
 @login_required
