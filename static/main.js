@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateThemeIcon() {
     const theme = document.body.getAttribute('data-theme');
     if (themeToggle) {
-      themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
     }
   }
 
@@ -53,9 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (themeToggle) {
     themeToggle.onclick = () => {
       const body = document.body;
-      const theme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      body.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
+      const currentTheme = body.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
       updateThemeIcon();
     };
   } else {
@@ -368,9 +369,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (text.startsWith('/static/uploads/')) {
         const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm');
         if (isVideo) {
-          messageContent = `<video src="${text}" controls style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 4px;"></video>`;
+          messageContent = `<video src="${text}" controls class="shared-video" style="max-width: 250px; max-height: 200px; margin-top: 4px;" preload="metadata">
+            Your browser does not support the video tag.
+          </video>`;
         } else {
-          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
+          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 250px; max-height: 200px; cursor: pointer; margin-top: 4px;">`;
         }
       } else {
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
@@ -1892,8 +1895,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Upload file function
   function uploadFile(file) {
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      showNotification('❌ File too large (max 5MB)', 'error');
+    // Check file type
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    
+    if (!isVideo && !isImage) {
+      showNotification('❌ Only images and videos are allowed', 'error');
+      return;
+    }
+
+    // Different size limits for different file types
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for video, 5MB for images
+    const sizeText = isVideo ? '50MB' : '5MB';
+
+    if (file.size > maxSize) {
+      showNotification(`❌ File too large (max ${sizeText})`, 'error');
       return;
     }
 
@@ -1901,7 +1917,8 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('file', file);
     formData.append('room', currentRoom);
 
-    showNotification('📤 Uploading...', 'info');
+    const fileType = isVideo ? 'video' : 'image';
+    showNotification(`📤 Uploading ${fileType}...`, 'info');
 
     fetch('/upload_file', {
       method: 'POST',
@@ -1910,7 +1927,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        showNotification('✅ File uploaded successfully', 'success');
+        showNotification(`✅ ${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded successfully`, 'success');
         // File URL will be sent as message automatically
       } else {
         showNotification('❌ ' + (data.error || 'Upload failed'), 'error');

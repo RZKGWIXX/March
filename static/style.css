@@ -15,6 +15,22 @@
   --transition: all 0.2s ease;
 }
 
+/* Light theme variables */
+body[data-theme="light"] {
+  --bg-dark: #f8f9fa;
+  --surface-dark: #ffffff;
+  --surface-lighter: #f1f3f4;
+  --surface-accent: #ffffff;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #9aa0a6;
+  --accent-green: #34a853;
+  --accent-green-dark: #137333;
+  --red-disconnected: #ea4335;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  --shadow-light: 0 1px 5px rgba(0, 0, 0, 0.1);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -476,7 +492,7 @@ body {
 }
 
 .message-text {
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -546,11 +562,15 @@ body {
   color: var(--text-primary);
   min-width: 50px;
   padding: 1rem;
+  border: 2px solid var(--surface-lighter);
+  transition: var(--transition);
 }
 
 #file-upload-btn:hover {
   background: var(--accent-green);
   color: black;
+  border-color: var(--accent-green);
+  transform: scale(1.05);
 }
 
 .message-form button:hover {
@@ -876,6 +896,22 @@ body {
   height: auto;
   border-radius: var(--border-radius);
   margin-top: 0.5rem;
+  box-shadow: var(--shadow-light);
+  transition: var(--transition);
+}
+
+.shared-image:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow);
+}
+
+.shared-video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+  margin-top: 0.5rem;
+  box-shadow: var(--shadow-light);
 }
 
 /* Mobile improvements */
@@ -1202,28 +1238,32 @@ body[data-theme="dark"] .admin-content {
 .message-status {
   font-size: 0.8rem;
   margin-left: 0.5rem;
-  color: var(--accent);
+  color: var(--accent-green);
   align-self: flex-end;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .message-status[data-status="sending"] {
-  color: var(--warning);
+  color: #ff8800;
 }
 
 .message-status[data-status="sent"] {
-  color: var(--accent);
+  color: var(--accent-green);
 }
 
 .message-status[data-status="delivered"] {
-  color: var(--secondary);
+  color: var(--accent-green-dark);
 }
 
 .message-status[data-status="read"] {
-  color: var(--secondary);
+  color: #4285f4;
 }
 
 .message-status[data-status="error"] {
-  color: var(--danger);
+  color: var(--red-disconnected);
 }
 
 /* User Profile Modal */
