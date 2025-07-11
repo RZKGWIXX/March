@@ -100,18 +100,18 @@ def auto_create_bins():
                                    '6870ced0c17214220fc74e76')
 
     default_data = {
-        'users': {},
-        'rooms': {},
+        'users': {"placeholder": "data"},
+        'rooms': {"placeholder": "data"},
         'messages': {
             'general': []
         },
-        'blocks': {},
+        'blocks': {"placeholder": "data"},
         'banned': {
             'users': []
         },
-        'muted': {},
-        'hidden_messages': {},
-        'nickname_cooldowns': {}
+        'muted': {"placeholder": "data"},
+        'hidden_messages': {"placeholder": "data"},
+        'nickname_cooldowns': {"placeholder": "data"}
     }
 
     print("Checking and creating JSONBin.io bins...")
@@ -137,18 +137,18 @@ def auto_create_bins():
 def create_default_json_files():
     """Create default JSON files locally if they don't exist"""
     default_data = {
-        'users': {},
-        'rooms': {},
+        'users': {"placeholder": "data"},
+        'rooms': {"placeholder": "data"},
         'messages': {
             'general': []
         },
-        'blocks': {},
+        'blocks': {"placeholder": "data"},
         'banned': {
             'users': []
         },
-        'muted': {},
-        'hidden_messages': {},
-        'nickname_cooldowns': {}
+        'muted': {"placeholder": "data"},
+        'hidden_messages': {"placeholder": "data"},
+        'nickname_cooldowns': {"placeholder": "data"}
     }
 
     for filename, data in default_data.items():
@@ -218,18 +218,18 @@ def load_json(bin_name):
 
     # Return default data if file doesn't exist
     default_data = {
-        'users': {},
-        'rooms': {},
+        'users': {"placeholder": "data"},
+        'rooms': {"placeholder": "data"},
         'messages': {
             'general': []
         },
-        'blocks': {},
+        'blocks': {"placeholder": "data"},
         'banned': {
             'users': []
         },
-        'muted': {},
-        'hidden_messages': {},
-        'nickname_cooldowns': {}
+        'muted': {"placeholder": "data"},
+        'hidden_messages': {"placeholder": "data"},
+        'nickname_cooldowns': {"placeholder": "data"}
     }
     return default_data.get(bin_name, {})
 
@@ -898,7 +898,8 @@ def clear_private_history():
         hidden_data = load_json('hidden_messages')
         user_key = session['nickname']
 
-        if user_key not in hidden_data:
+        if user_key not in```python
+ hidden_data:
             hidden_data[user_key] = {}
         if room not in hidden_data[user_key]:
             hidden_data[user_key][room] = []
