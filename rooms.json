@@ -11,11 +11,32 @@
   "Vanilla": {
     "members": [
       "Wixxy",
-      "Orest"
+      "Orest",
+      "Kostya464"
     ],
     "admins": [
       "Wixxy"
     ],
     "type": "group"
+  },
+  "private_Testmamka_Wixxy": {
+    "members": [
+      "Testmamka",
+      "Wixxy"
+    ],
+    "admins": [
+      "Wixxy"
+    ],
+    "type": "private"
+  },
+  "private_Kostya464_Wixxy": {
+    "members": [
+      "Kostya464",
+      "Wixxy"
+    ],
+    "admins": [
+      "Kostya464"
+    ],
+    "type": "private"
   }
 }

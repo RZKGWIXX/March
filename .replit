@@ -10,7 +10,7 @@ channel = "stable-24_05"
 packages = ["iana-etc"]
 
 [workflows]
-runButton = "Always On with Keepalive"
+runButton = "Simple Run"
 
 [[workflows.workflow]]
 name = "Run"
