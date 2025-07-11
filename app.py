@@ -42,6 +42,29 @@ failed_login_attempts = defaultdict(list)
 rate_limits = defaultdict(list)
 spam_violations = defaultdict(int)
 
+def create_default_json_files():
+    """Create default JSON files locally if they don't exist"""
+    default_data = {
+        'users': {},
+        'rooms': {},
+        'messages': {'general': []},
+        'blocks': {},
+        'banned': {'users': []},
+        'muted': {},
+        'hidden_messages': {},
+        'nickname_cooldowns': {}
+    }
+    
+    for filename, data in default_data.items():
+        filepath = f"{filename}.json"
+        if not os.path.exists(filepath):
+            try:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                print(f"Created {filepath}")
+            except Exception as e:
+                print(f"Error creating {filepath}: {e}")
+
 def jsonbin_request(method, bin_name, data=None):
     """Make request to JSONBin.io API"""
     if not JSONBIN_API_KEY or not BINS.get(bin_name):
@@ -75,12 +98,50 @@ def jsonbin_request(method, bin_name, data=None):
         return {} if method == 'GET' else False
 
 def load_json(bin_name):
-    """Load data from JSONBin.io"""
-    return jsonbin_request('GET', bin_name)
+    """Load data from JSONBin.io or local file as fallback"""
+    # Try JSONBin.io first
+    if JSONBIN_API_KEY and BINS.get(bin_name):
+        data = jsonbin_request('GET', bin_name)
+        if data:
+            return data
+    
+    # Fallback to local file
+    filepath = f"{bin_name}.json"
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading {filepath}: {e}")
+    
+    # Return default data if file doesn't exist
+    default_data = {
+        'users': {},
+        'rooms': {},
+        'messages': {'general': []},
+        'blocks': {},
+        'banned': {'users': []},
+        'muted': {},
+        'hidden_messages': {},
+        'nickname_cooldowns': {}
+    }
+    return default_data.get(bin_name, {})
 
 def save_json(bin_name, data):
-    """Save data to JSONBin.io"""
-    return jsonbin_request('PUT', bin_name, data)
+    """Save data to JSONBin.io and local file as backup"""
+    # Save to local file first
+    filepath = f"{bin_name}.json"
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving to {filepath}: {e}")
+    
+    # Try to save to JSONBin.io
+    if JSONBIN_API_KEY and BINS.get(bin_name):
+        return jsonbin_request('PUT', bin_name, data)
+    
+    return True  # Return True if local save succeeded
 
 def login_required(f):
     @wraps(f)
@@ -1283,6 +1344,9 @@ def on_message(data):
     }, room=room, include_self=False)
 
 if __name__ == '__main__':
+    # Create default JSON files on startup
+    create_default_json_files()
+    
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
