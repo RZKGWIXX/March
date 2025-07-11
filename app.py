@@ -12,25 +12,24 @@ from flask import Flask, render_template, request, redirect, session, url_for, j
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = os.environ.get('SECRET_KEY',
-                                'fallback-secret-key-for-development')
+app.secret_key = '%637&&7@(_72)(28'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # JSONBin.io configuration
-JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')  # Set this in your environment
-JSONBIN_ACCESS_KEY_ID = os.environ.get('JSONBIN_ACCESS_KEY_ID')  # Access Key ID
+JSONBIN_API_KEY = '$2a$10$RgQMxiMWDn4XRQ70aEs7NuP/rw2z1Ay1qEwR.xrXwTsIIISGQVTVm'
+JSONBIN_ACCESS_KEY_ID = '6870d1a46063391d31ab5ece'
 JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
 BINS = {
-    'users': os.environ.get('USERS_BIN_ID'),
-    'rooms': os.environ.get('ROOMS_BIN_ID'),
-    'messages': os.environ.get('MESSAGES_BIN_ID'),
-    'blocks': os.environ.get('BLOCKS_BIN_ID'),
-    'banned': os.environ.get('BANNED_BIN_ID'),
-    'muted': os.environ.get('MUTED_BIN_ID'),
-    'hidden_messages': os.environ.get('HIDDEN_MESSAGES_BIN_ID'),
-    'nickname_cooldowns': os.environ.get('NICKNAME_COOLDOWNS_BIN_ID')
+    'users': '6870d7fbafef824ba9f9597a',
+    'rooms': '6870d7fcafef824ba9f9597d',
+    'messages': '6870d7fc6063391d31ab6137',
+    'blocks': '6870d7fd013b9e4bdcc09e06',
+    'banned': '6870d7fd013b9e4bdcc09e08',
+    'muted': '6870d7fe6063391d31ab6139',
+    'hidden_messages': '6870d7fe6063391d31ab613b',
+    'nickname_cooldowns': '6870d7ff013b9e4bdcc09e0a'
 }
 
 # Track online users
@@ -114,8 +113,7 @@ def auto_create_bins():
         return
 
     # Check if we have the Collection ID in environment
-    collection_id = os.environ.get('JSONBIN_COLLECTION_ID',
-                                   '6870ced0c17214220fc74e76')
+    collection_id = '6870ced0c17214220fc74e76'
 
     default_data = {
         'users': {"placeholder": "data"},
