@@ -286,11 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector(`[data-room="${room}"]`);
     if (activeItem) activeItem.classList.add('active');
 
-    // Update controls
+    // Update controls - hide all buttons for general chat
     if (deleteRoomBtn) {
-      deleteRoomBtn.disabled = room === 'general';
       deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
-      deleteRoomBtn.onclick = showRoomContextMenu;
+      if (room !== 'general') {
+        deleteRoomBtn.onclick = showRoomContextMenu;
+      }
     }
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
@@ -340,26 +341,55 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  function addMessage(nick, text, isOwnMessage = false, isSystemMessage = false, index = -1) {
+  function addMessage(nick, text, isOwnMessage = false, isSystemMessage = false, index = -1, messageData = null) {
     const div = document.createElement('div');
     div.className = `message ${isOwnMessage ? 'own' : ''} ${isSystemMessage ? 'system' : ''}`;
 
     if (isSystemMessage) {
       div.innerHTML = `<span class="system-text">${text}</span>`;
     } else {
-      // Check if message is a file URL (including relative paths)
+      // Get user avatar
+      let avatarHtml = '';
+      if (!isOwnMessage) {
+        avatarHtml = `<img src="/static/default-avatar.png" alt="${nick}" class="message-avatar" onclick="showUserProfile('${nick}')" onerror="this.src='/static/default-avatar.png'">`;
+        // Load actual avatar
+        fetch(`/get_user_avatar/${nick}`)
+          .then(r => r.json())
+          .then(data => {
+            const avatar = div.querySelector('.message-avatar');
+            if (avatar && data.avatar) {
+              avatar.src = data.avatar;
+            }
+          });
+      }
+
+      // Check if message is a file URL
       let messageContent = text;
-      if (text.startsWith('/static/uploads/') || (text.startsWith('http') && (text.includes('.jpg') || text.includes('.png') || text.includes('.gif') || text.includes('.jpeg')))) {
-        messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
+      if (text.startsWith('/static/uploads/')) {
+        const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm');
+        if (isVideo) {
+          messageContent = `<video src="${text}" controls style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 4px;"></video>`;
+        } else {
+          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer; margin-top: 4px;">`;
+        }
       } else {
-        // Convert URLs to clickable links
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
       }
 
+      // Message status for own messages
+      let statusHtml = '';
+      if (isOwnMessage) {
+        statusHtml = `<span class="message-status" data-status="sent">✓</span>`;
+      }
+
       div.innerHTML = `
-        <div class="message-content">
-          <span class="message-author">${nick}</span>
-          <span class="message-text">${messageContent}</span>
+        <div class="message-wrapper">
+          ${avatarHtml}
+          <div class="message-content">
+            <span class="message-author" onclick="showUserProfile('${nick}')">${nick}</span>
+            <span class="message-text">${messageContent}</span>
+            ${statusHtml}
+          </div>
         </div>
       `;
 
@@ -387,6 +417,78 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.appendChild(div);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
+
+  // Show user profile
+  function showUserProfile(username) {
+    if (username === nickname) return; // Don't show own profile
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    modal.innerHTML = `
+      <div class="admin-content user-profile">
+        <div class="profile-header">
+          <img src="/static/default-avatar.png" alt="${username}" class="profile-avatar" id="profile-avatar">
+          <div class="profile-info">
+            <h2>${username}</h2>
+            <p class="profile-status" id="profile-status">Loading...</p>
+          </div>
+        </div>
+        <div class="profile-details">
+          <div class="profile-section">
+            <h3>Info</h3>
+            <p id="profile-bio">Loading bio...</p>
+          </div>
+          <div class="profile-section">
+            <h3>Last seen</h3>
+            <p id="profile-last-seen">Loading...</p>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="admin-btn" onclick="startPrivateChat('${username}')">💬 Message</button>
+          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Load user data
+    Promise.all([
+      fetch(`/get_user_avatar/${username}`).then(r => r.json()),
+      fetch(`/user_status/${username}`).then(r => r.json()),
+      fetch(`/get_user_profile/${username}`).then(r => r.json())
+    ]).then(([avatarData, statusData, profileData]) => {
+      const avatar = document.getElementById('profile-avatar');
+      const status = document.getElementById('profile-status');
+      const bio = document.getElementById('profile-bio');
+      const lastSeen = document.getElementById('profile-last-seen');
+
+      if (avatar && avatarData.avatar) {
+        avatar.src = avatarData.avatar;
+      }
+
+      if (status) {
+        status.textContent = statusData.status === 'online' ? 'Online' : 'Offline';
+        status.className = `profile-status ${statusData.status}`;
+      }
+
+      if (bio) {
+        bio.textContent = profileData.bio || 'No bio available';
+      }
+
+      if (lastSeen && statusData.last_seen) {
+        const lastSeenDate = new Date(statusData.last_seen * 1000);
+        lastSeen.textContent = statusData.status === 'online' ? 'Online now' : `Last seen: ${lastSeenDate.toLocaleString()}`;
+      }
+    });
+  }
+
+  // Start private chat from profile
+  window.startPrivateChat = function(username) {
+    userSearch.value = username;
+    createPrivateChat();
+    document.querySelector('.admin-panel').remove();
+  };
 
   // Show context menu for messages
   function showMessageContextMenu(e, index, nick, isOwnMessage) {
@@ -1369,11 +1471,25 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="settings-section">
-          <h3>👤 Profile</h3>
+          <h3>👤 Edit Profile</h3>
           <div class="profile-section">
+            <div class="avatar-section">
+              <img src="/static/default-avatar.png" alt="Your avatar" class="settings-avatar" id="settings-avatar">
+              <button class="admin-btn" onclick="document.getElementById('avatar-input').click()">Change Avatar</button>
+              <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+            </div>
             <p><strong>Current nickname:</strong> ${nickname}</p>
             <input type="text" id="new-nickname" placeholder="New nickname" maxlength="20">
             <button class="admin-btn" onclick="changeNickname()">Change Nickname</button>
+            <textarea id="bio-input" placeholder="Your bio..." maxlength="200" style="width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; resize: vertical; min-height: 60px;"></textarea>
+            <button class="admin-btn" onclick="updateBio()">Update Bio</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>📋 Updates & Changelog</h3>
+          <div class="profile-section">
+            <button class="admin-btn" onclick="showChangelog()">View Changelog</button>
           </div>
         </div>
 
@@ -1519,6 +1635,113 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Error changing nickname', 'error');
     });
   };
+
+  // Update bio
+  window.updateBio = function() {
+    const bio = document.getElementById('bio-input').value.trim();
+
+    fetch('/update_profile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({bio: bio})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Bio updated successfully', 'success');
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to update bio'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Failed to update bio:', err);
+      showNotification('❌ Error updating bio', 'error');
+    });
+  };
+
+  // Show changelog
+  window.showChangelog = function() {
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    modal.innerHTML = `
+      <div class="admin-content">
+        <h2>📋 OrbitMess Changelog</h2>
+        <div class="changelog-item">
+          <div class="changelog-date">Version 2.0 - January 2025</div>
+          <div class="changelog-title">Major Update</div>
+          <ul class="changelog-changes">
+            <li class="added">Система аватарок для користувачів</li>
+            <li class="added">Відправка відео файлів</li>
+            <li class="added">Профілі користувачів з біо</li>
+            <li class="added">Статуси повідомлень (відправлено, переглянуто)</li>
+            <li class="added">Покращений дизайн та анімації</li>
+            <li class="added">Показ учасників в групах (свайп вправо)</li>
+            <li class="added">Індикатор з'єднання</li>
+            <li class="fixed">Виправлено подвійні кнопки в приватних чатах</li>
+            <li class="fixed">Прибрано зайві кнопки з general чату</li>
+            <li class="improved">Покращена швидкість роботи</li>
+            <li class="improved">Оптимізовано для мобільних пристроїв</li>
+          </ul>
+        </div>
+        <div class="changelog-item">
+          <div class="changelog-date">Version 1.5 - December 2024</div>
+          <div class="changelog-title">Bug Fixes & Improvements</div>
+          <ul class="changelog-changes">
+            <li class="fixed">Виправлено синхронізацію повідомлень</li>
+            <li class="fixed">Покращено стабільність з'єднання</li>
+            <li class="added">Додано групові чати</li>
+            <li class="added">Система банів та модерації</li>
+          </ul>
+        </div>
+        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  };
+
+  // Avatar upload functionality
+  if (document.getElementById('avatar-input')) {
+    document.getElementById('avatar-input').onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadAvatar(file);
+        e.target.value = '';
+      }
+    };
+  }
+
+  function uploadAvatar(file) {
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification('❌ Avatar too large (max 2MB)', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    showNotification('📤 Uploading avatar...', 'info');
+
+    fetch('/upload_avatar', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Avatar updated successfully', 'success');
+        const settingsAvatar = document.getElementById('settings-avatar');
+        if (settingsAvatar) {
+          settingsAvatar.src = data.avatar_url + '?t=' + Date.now();
+        }
+      } else {
+        showNotification('❌ ' + (data.error || 'Avatar upload failed'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Avatar upload failed:', err);
+      showNotification('❌ Avatar upload error', 'error');
+    });
+  }
 
   // Upload file
   function uploadFile(file) {

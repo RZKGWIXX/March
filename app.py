@@ -1083,6 +1083,20 @@ def get_room_stats(room):
     return jsonify({'online_count': online_count, 'total_count': total_count})
 
 
+@app.route('/get_user_profile/<username>')
+@login_required
+def get_user_profile(username):
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == username:
+            return jsonify({
+                'bio': user_info.get('bio', ''),
+                'joined': user_info.get('date', ''),
+                'nickname': username
+            })
+    return jsonify({'bio': '', 'joined': '', 'nickname': username})
+
+
 def is_valid_nickname(nickname):
     pattern = r'^[a-zA-Z0-9]+$'
     if not re.match(pattern, nickname):
@@ -1493,7 +1507,7 @@ def upload_file():
 
     file.seek(0)
 
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm'}
     file_ext = os.path.splitext(file.filename)[1].lower()
 
     if file_ext not in allowed_extensions:
@@ -1521,21 +1535,99 @@ def upload_file():
         messages_data[room].append({
             'nick': nickname,
             'text': file_url,
-            'timestamp': int(time.time())
+            'timestamp': int(time.time()),
+            'type': 'media',
+            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
         })
 
         save_json('messages', messages_data)
 
         socketio.emit('message', {
             'room': room,
-            'message': f"{nickname}: {file_url}"
-        },
-                      room=room)
+            'message': f"{nickname}: {file_url}",
+            'type': 'media'
+        }, room=room)
 
         return jsonify(success=True, url=file_url)
 
     except Exception as e:
         return jsonify(success=False, error=f'Upload failed: {str(e)}')
+
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'avatar' not in request.files:
+        return jsonify(success=False, error='No file selected')
+
+    file = request.files['avatar']
+
+    if file.filename == '':
+        return jsonify(success=False, error='No file selected')
+
+    if len(file.read()) > 2 * 1024 * 1024:  # 2MB limit for avatars
+        return jsonify(success=False, error='Avatar too large (max 2MB)')
+
+    file.seek(0)
+
+    allowed_extensions = {'.jpg', '.jpeg', '.png'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+
+    if file_ext not in allowed_extensions:
+        return jsonify(success=False, error='Invalid file type for avatar')
+
+    avatars_dir = os.path.join('static', 'avatars')
+    os.makedirs(avatars_dir, exist_ok=True)
+
+    # Use nickname as filename to overwrite old avatar
+    filename = f"{session['nickname']}{file_ext}"
+    filepath = os.path.join(avatars_dir, filename)
+
+    try:
+        file.save(filepath)
+        avatar_url = f"/static/avatars/{filename}"
+
+        # Update user's avatar in users data
+        users_data = load_json('users')
+        for user_info in users_data.values():
+            if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
+                user_info['avatar'] = avatar_url
+                break
+
+        save_json('users', users_data)
+
+        return jsonify(success=True, avatar_url=avatar_url)
+
+    except Exception as e:
+        return jsonify(success=False, error=f'Avatar upload failed: {str(e)}')
+
+
+@app.route('/get_user_avatar/<username>')
+@login_required
+def get_user_avatar(username):
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == username:
+            return jsonify({'avatar': user_info.get('avatar', '/static/default-avatar.png')})
+    return jsonify({'avatar': '/static/default-avatar.png'})
+
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    bio = request.json.get('bio', '').strip()
+    
+    if len(bio) > 200:
+        return jsonify(success=False, error='Bio too long (max 200 characters)')
+
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
+            user_info['bio'] = bio
+            break
+
+    save_json('users', users_data)
+    return jsonify(success=True)
 
 
 @socketio.on('join')
