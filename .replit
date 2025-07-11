@@ -1,5 +1,5 @@
 run = "python app.py"
-modules = ["python-3.12", "nodejs-20", "web"]
+modules = ["nodejs-20", "python-3.12", "web"]
 
 [[ports]]
 localPort = 5000
@@ -133,4 +133,4 @@ task = "shell.exec"
 args = "python app.py"
 
 [deployment]
-run = ["sh", "-c", "gunicorn --config gunicorn.conf.py app:app"]
+run = ["sh", "-c", "python app.py"]
