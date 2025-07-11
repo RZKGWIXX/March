@@ -1624,13 +1624,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Settings panel
-  function showSettings() {
+  window.showSettings = function() {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
     // Detect if user is on a mobile device
     const mobileClass = isMobile ? 'mobile-settings' : '';
-    modal.classList.add(mobileClass);
+    if (mobileClass) {
+      modal.classList.add(mobileClass);
+    }
 
     modal.innerHTML = `
       <div class="admin-content">
@@ -2183,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsBtn = document.createElement('button');
     settingsBtn.innerHTML = '⚙️';
     settingsBtn.title = 'Settings';
-    settingsBtn.onclick = showSettings;
+    settingsBtn.onclick = window.showSettings;
     headerButtons.appendChild(settingsBtn);
 
     // Add admin button if admin
