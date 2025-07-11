@@ -1684,4 +1684,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error starting with SocketIO: {e}")
         print("Falling back to Flask only...")
-        app.run(host='0.0.0.0', port=port, debug=debug_mode)ebug=debug_mode)
+        app.run(host='0.0.0.0', port=port, debug=debug_mode)

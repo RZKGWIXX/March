@@ -10,7 +10,7 @@ channel = "stable-24_05"
 packages = ["iana-etc"]
 
 [workflows]
-runButton = "Always On Server"
+runButton = "Always On Production"
 
 [[workflows.workflow]]
 name = "Run"
@@ -77,6 +77,19 @@ args = "gunicorn --config gunicorn.conf.py app:app"
 
 [[workflows.workflow]]
 name = "Always On with Keepalive"
+author = 44893467
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --config gunicorn.conf.py app:app"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python keepalive.py"
+
+[[workflows.workflow]]
+name = "Always On Production"
 author = 44893467
 mode = "parallel"
 
