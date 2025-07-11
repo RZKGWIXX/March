@@ -89,12 +89,12 @@ def check_bin_exists(bin_id):
     """Check if a bin exists on JSONBin.io"""
     if not JSONBIN_API_KEY or not bin_id:
         return False
-    
+
     headers = {
         'X-Master-Key': JSONBIN_API_KEY,
         'X-Access-Key': JSONBIN_ACCESS_KEY_ID
     }
-    
+
     try:
         url = f"{JSONBIN_BASE_URL}/{bin_id}"
         response = requests.get(url, headers=headers, timeout=10)
@@ -106,14 +106,14 @@ def check_bin_exists(bin_id):
 def migrate_local_data_to_bins():
     """Migrate existing local data to new JSONBin.io bins"""
     print("Migrating local data to JSONBin.io...")
-    
+
     for bin_name in BINS.keys():
         local_file = f"{bin_name}.json"
         if os.path.exists(local_file):
             try:
                 with open(local_file, 'r', encoding='utf-8') as f:
                     local_data = json.load(f)
-                
+
                 # Skip if it's just placeholder data
                 if local_data and not (len(local_data) == 1 and "placeholder" in local_data):
                     print(f"Migrating {bin_name} data...")
@@ -160,7 +160,7 @@ def auto_create_bins():
     bins_created = False
     for bin_name, data in default_data.items():
         bin_id = BINS.get(bin_name)
-        
+
         if bin_id and check_bin_exists(bin_id):
             print(f"✓ {bin_name} bin already exists: {bin_id}")
         elif bin_id and not check_bin_exists(bin_id):
@@ -183,7 +183,7 @@ def auto_create_bins():
                 bins_created = True
             else:
                 print(f"✗ Failed to create {bin_name} bin")
-    
+
     # If new bins were created, migrate local data
     if bins_created:
         migrate_local_data_to_bins()
@@ -345,7 +345,7 @@ def save_user(ip, nickname, password):
     """Save user to JSONBin users storage"""
     try:
         users_data = load_json('users')
-        
+
         # Check if nickname already exists
         for user_info in users_data.values():
             if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
@@ -386,7 +386,7 @@ def verify_user(nickname, password):
             # Also try comparing with stripped whitespace
             if stored_password.strip() == password.strip():
                 return True
-    
+
     return False
 
 
@@ -628,7 +628,7 @@ def get_rooms():
     try:
         rooms_data = load_json('rooms')
         user_rooms = ['general']
-        
+
         print(f"Loading rooms for user: {session['nickname']}")
         print(f"Rooms data: {rooms_data}")
 
@@ -856,7 +856,8 @@ def admin_ban_user():
 
     banned_data = load_json('banned')
     if 'users' not in banned_data:
-        banned_data['users'] = []
+        banned_data['users']```python
+ = []
 
     banned_data['users'] = [
         b for b in banned_data['users']
@@ -1616,7 +1617,7 @@ def get_user_avatar(username):
 @login_required
 def update_profile():
     bio = request.json.get('bio', '').strip()
-    
+
     if len(bio) > 200:
         return jsonify(success=False, error='Bio too long (max 200 characters)')
 
@@ -1777,7 +1778,7 @@ def on_message(data):
         'message': message,
         'timestamp': int(time.time())
     }, room=room)
-    
+
     # Also emit to sender for confirmation
     socketio.emit('message_sent', {
         'room': room,
@@ -1786,6 +1787,42 @@ def on_message(data):
         'timestamp': int(time.time())
     })
 
+@socketio.on('join_room')
+def handle_join_room(data):
+    try:
+        room = data.get('room', 'general')
+        nickname = session.get('nickname')
+
+        if not nickname:
+            return
+
+        join_room(room)
+
+        # Notify others about the join
+        emit('user_joined', {
+            'nickname': nickname,
+            'room': room
+        }, room=room, include_self=False)
+
+        # Send online users list to the joining user
+        online_users_list = [users[sid]['nickname'] for sid in users.keys()]
+        emit('online_users', {'users': online_users_list})
+
+    except Exception as e:
+        print(f"Error in join_room: {e}")
+
+@socketio.on('get_online_users')
+def handle_get_online_users():
+    try:
+        nickname = session.get('nickname')
+        if not nickname:
+            return
+
+        online_users_list = [users[sid]['nickname'] for sid in users.keys()]
+        emit('online_users', {'users': online_users_list})
+
+    except Exception as e:
+        print(f"Error getting online users: {e}")
 
 # Initialize on app startup (works with both gunicorn and direct python run)
 print("Initializing OrbitMess Chat...")

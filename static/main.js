@@ -1780,8 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(`/user_status/${username}`)
       .then(r => r.json())
       .then(data => {
-        const statusEl = document.getElementById('user-status');
-        if (statusEl) statusEl.remove();
+        const statusEl = document.getElementById('user-status');        if (statusEl) statusEl.remove();
 
         const chatHeader = document.querySelector('.chat-header');
         const statusDiv = document.createElement('div');
@@ -2082,4 +2081,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Update user status every 60 seconds
   setInterval(updateUserStatusPeriodically, 60000);
+
+  let onlineUsers = new Set();
+
+  function updateChatListStatus() {
+    document.querySelectorAll('.chat-item').forEach(item => {
+      const room = item.getAttribute('data-room');
+      const chatStatus = item.querySelector('.chat-status');
+      if (chatStatus) {
+        if (room && room.startsWith('private_')) {
+          const users = room.replace('private_', '').split('_');
+          const otherUser = users.find(u => u !== nickname) || users[0];
+          if (onlineUsers.has(otherUser)) {
+            chatStatus.textContent = '🟢 online';
+            chatStatus.style.color = 'green';
+          } else {
+            chatStatus.textContent = '🔴 offline';
+            chatStatus.style.color = 'red';
+          }
+        }
+      }
+    });
+  }
+
+  socket.on('connect', function() {
+    console.log('Connected to server');
+    updateConnectionStatus('connected');
+    socket.emit('join_room', { room: currentRoom });
+  });
+
+  socket.on('disconnect', function() {
+    console.log('Disconnected from server');
+    updateConnectionStatus('disconnected');
+  });
+
+  socket.on('connect_error', function() {
+    updateConnectionStatus('disconnected');
+  });
+
+  socket.on('reconnect', function() {
+    updateConnectionStatus('connected');
+  });
+
+  socket.on('reconnect_attempt', function() {
+    updateConnectionStatus('connecting');
+  });
+
+  socket.on('user_joined', function(data) {
+    appendMessage('system', '', `${data.nickname} joined the chat`);
+    onlineUsers.add(data.nickname);
+    updateUsersList();
+    updateChatListStatus();
+  });
+
+  socket.on('user_left', function(data) {
+    appendMessage('system', '', `${data.nickname} left the chat`);
+    onlineUsers.delete(data.nickname);
+    updateUsersList();
+    updateChatListStatus();
+  });
+
+  socket.on('online_users', function(data) {
+    onlineUsers = new Set(data.users);
+    updateChatListStatus();
+  });
+
+  // Initialize
+  loadChatHistory();
+  updateUsersList();
+  loadChatList();
+
+  // Request online users list
+  setTimeout(() => {
+    socket.emit('get_online_users');
+  }, 1000);
 });
