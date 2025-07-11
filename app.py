@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch(socket=True, select=True)
 
 import os
 import json
