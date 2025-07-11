@@ -13,7 +13,7 @@ from flask_socketio import SocketIO, join_room, leave_room, send, emit
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = '%637&&7@(_72)(28'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # JSONBin.io configuration
 JSONBIN_API_KEY = '$2a$10$RgQMxiMWDn4XRQ70aEs7NuP/rw2z1Ay1qEwR.xrXwTsIIISGQVTVm'
