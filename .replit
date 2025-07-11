@@ -18,7 +18,16 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "gunicorn --config gunicorn.conf.py app:app"
+
+[[workflows.workflow]]
+name = "Development"
+author = 44886293
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "python app.py"
 
 [deployment]
-run = ["sh", "-c", "python app.py"]
+run = ["sh", "-c", "gunicorn --config gunicorn.conf.py app:app"]

@@ -1408,4 +1408,11 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     # Відключити debug в продакшні для стабільності
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
-    socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
+    
+    # Check if running with Gunicorn
+    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+        # Running with Gunicorn - just create the app
+        pass
+    else:
+        # Running directly - use development server
+        socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
