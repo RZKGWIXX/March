@@ -5,3 +5,4 @@ python-socketio==5.13.0
 gunicorn==21.2.0
 eventlet==0.33.3
 eventlet
+distutils
