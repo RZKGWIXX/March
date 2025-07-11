@@ -166,6 +166,21 @@ def short_link():
     """Short link redirect to main page"""
     return redirect(url_for('login'))
 
+@app.route('/mess')
+def mess_link():
+    """Short messenger link"""
+    return redirect(url_for('login'))
+
+@app.route('/chat-orb')  
+def chat_orb_link():
+    """Chat orb short link"""
+    return redirect(url_for('login'))
+
+@app.route('/om')
+def om_link():
+    """OrbitMess short link"""
+    return redirect(url_for('login'))
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
