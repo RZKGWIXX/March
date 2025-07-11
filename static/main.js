@@ -892,7 +892,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Search functionality
         if (searchInput) {
           searchInput.oninput = function() {
-```python
             const query = this.value.toLowerCase();
             const filteredUsers = users.filter(user => user.toLowerCase().includes(query));
             displayUsers(filteredUsers);
