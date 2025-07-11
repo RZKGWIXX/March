@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
-    
+
     // Show clear history button for private chats on mobile
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     if (clearHistoryBtn) {
@@ -324,21 +324,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Convert URLs to clickable links
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
       }
-      
+
       div.innerHTML = `
         <div class="message-content">
           <span class="message-author">${nick}</span>
           <span class="message-text">${messageContent}</span>
         </div>
       `;
-      
+
       // Add context menu for message deletion
       if (index >= 0) {
         div.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           showMessageContextMenu(e, index, nick, isOwnMessage);
         });
-        
+
         // Mobile long press
         let pressTimer;
         div.addEventListener('touchstart', (e) => {
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showMessageContextMenu(e.touches[0], index, nick, isOwnMessage);
           }, 800);
         });
-        
+
         div.addEventListener('touchend', () => {
           clearTimeout(pressTimer);
         });
@@ -360,16 +360,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Show context menu for messages
   function showMessageContextMenu(e, index, nick, isOwnMessage) {
     hideContextMenu();
-    
+
     const contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
-    
+
     // Get click coordinates
     const clickX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
     const clickY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    
+
     const items = [];
-    
+
     if (isOwnMessage) {
       items.push({text: '🗑️ Delete for me', action: () => deleteMessage(index, 'me')});
       // Allow deletion for everyone in private chats and groups (not just general)
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
       items.push({text: '🗑️ Delete message', action: () => deleteMessage(index, 'all')});
       items.push({text: '🚫 Ban user', action: () => showBanDialog(nick)});
     }
-    
+
     // Add mute option for group admins
     if (currentRoom !== 'general' && !currentRoom.startsWith('private_') && !isOwnMessage) {
       checkIfAdmin(currentRoom).then(isAdmin => {
@@ -389,12 +389,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-    
+
     // Add clear history option for private chats
     if (currentRoom.startsWith('private_')) {
       items.push({text: '🧹 Clear history for me', action: () => clearPrivateHistory()});
     }
-    
+
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'context-item';
@@ -405,21 +405,21 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       contextMenu.appendChild(div);
     });
-    
+
     // Position menu after adding all items
     document.body.appendChild(contextMenu);
-    
+
     // Get actual menu dimensions
     const rect = contextMenu.getBoundingClientRect();
     const menuWidth = rect.width;
     const menuHeight = rect.height;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    
+
     // Calculate optimal position
     let left = clickX;
     let top = clickY;
-    
+
     // For mobile devices, always position on the left side
     if (window.innerWidth <= 768) {
       left = 20;
@@ -440,17 +440,17 @@ document.addEventListener('DOMContentLoaded', () => {
         top = Math.max(10, windowHeight - menuHeight - 10);
       }
     }
-    
+
     // Apply final position
     contextMenu.style.left = left + 'px';
     contextMenu.style.top = top + 'px';
-    
+
     // Hide on click outside
     setTimeout(() => {
       document.addEventListener('click', hideContextMenu);
     }, 0);
   }
-  
+
   // Clear private chat history for current user
   function clearPrivateHistory() {
     if (confirm('Clear chat history for yourself? This cannot be undone.')) {
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
-  
+
   function hideContextMenu() {
     const existing = document.querySelector('.context-menu');
     if (existing) {
@@ -478,11 +478,11 @@ document.addEventListener('DOMContentLoaded', () => {
       document.removeEventListener('click', hideContextMenu);
     }
   }
-  
+
   // Delete message function (global scope)
   window.deleteMessage = function(index, type = 'all') {
     const confirmText = type === 'me' ? 'Hide this message for yourself?' : 'Delete this message for everyone?';
-    
+
     if (confirm(confirmText)) {
       fetch('/delete_message', {
         method: 'POST',
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Show message immediately for better UX
       addMessage(nickname, message, true);
-      
+
       // Update local cache
       if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
       messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
@@ -569,12 +569,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function showRoomContextMenu() {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
-    
+
     if (currentRoom.startsWith('private_')) {
       // Check if user is blocked to show unblock option
       const users = currentRoom.replace('private_', '').split('_');
       const otherUser = users.find(u => u !== nickname) || users[0];
-      
+
       modal.innerHTML = `
         <div class="admin-content">
           <h2>💬 Private Chat Options</h2>
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" onclick="deleteCurrentRoom()">🗑️ Delete Group</button>
           `;
         }
-        
+
         modal.innerHTML = `
           <div class="admin-content">
             <h2>👥 Group Options</h2>
@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       });
     }
-    
+
     document.body.appendChild(modal);
   }
 
@@ -700,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close existing admin panel
     const existingPanel = document.querySelector('.admin-panel');
     if (existingPanel) existingPanel.remove();
-    
+
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
@@ -716,16 +716,16 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(modal);
-    
+
     // Load users and setup search
     fetch('/users')
       .then(r => r.json())
       .then(users => {
         const addUserList = document.getElementById('add-user-list');
         const searchInput = document.getElementById('add-user-search');
-        
+
         function displayUsers(userList) {
           addUserList.innerHTML = userList.map(user => `
             <div class="user-item" style="padding: 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer;" onclick="addUserToGroup('${user}')">
@@ -734,9 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           `).join('') || '<p style="padding: 1rem; text-align: center; color: #666;">No users found</p>';
         }
-        
+
         displayUsers(users);
-        
+
         // Search functionality
         if (searchInput) {
           searchInput.oninput = function() {
@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
   };
-  
+
   window.addUserByName = function() {
     const searchInput = document.getElementById('add-user-search');
     const username = searchInput ? searchInput.value.trim() : '';
@@ -756,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
       addUserToGroup(username);
     }
   };
-  
+
   window.addUserToGroup = function(username) {
     fetch('/add_to_group', {
       method: 'POST',
@@ -784,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('❌ No other members to kick', 'error');
             return;
           }
-          
+
           const modal = document.createElement('div');
           modal.className = 'admin-panel';
           modal.innerHTML = `
@@ -895,12 +895,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.room && data.room !== currentRoom) {
       return;
     }
-    
+
     let msg = data.message || data;
     if (typeof msg !== 'string') {
       return;
     }
-    
+
     // Parse message
     const colonIndex = msg.indexOf(':');
     if (colonIndex > 0) {
@@ -918,10 +918,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
       messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-      
+
       // Update user activity status in real-time
       updateRoomStats(currentRoom);
-      
+
       // Show notification and sound for others' messages
       if (document.hidden) {
         showDesktopNotification(nick, text);
@@ -933,14 +933,14 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('error', (data) => {
     showNotification('❌ ' + data.message, 'error');
   });
-  
+
   socket.on('chat_cleared', (data) => {
     if (data.room === currentRoom) {
       messagesDiv.innerHTML = '';
       showNotification('💬 Chat was cleared by admin', 'info');
     }
   });
-  
+
   socket.on('user_banned', (data) => {
     if (data.username === nickname) {
       showNotification(`🚫 You have been banned: ${data.reason}`, 'error');
@@ -949,13 +949,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 3000);
     }
   });
-  
+
   socket.on('message_deleted', (data) => {
     if (data.room === currentRoom) {
       loadMessages(currentRoom);
     }
   });
-  
+
   socket.on('room_update', (data) => {
     if (data.action === 'kicked_from_group' && data.username === nickname) {
       showNotification(`❌ You were kicked from ${data.room} by ${data.by}`, 'error');
@@ -968,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadRooms();
     }
   });
-  
+
   socket.on('user_muted', (data) => {
     if (data.username === nickname && data.room === currentRoom) {
       showNotification(`🔇 You were muted for ${data.duration} minutes by ${data.by}`, 'warning');
@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateRoomStats(currentRoom);
     }
   });
-  
+
   // Desktop notifications
   function showDesktopNotification(nick, text) {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -997,27 +997,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
-  
+
   // Request notification permission
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
-  
+
   // Play notification sound
   function playNotificationSound() {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     oscillator.frequency.value = 800;
     oscillator.type = 'sine';
-    
+
     gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    
+
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.1);
   }
@@ -1058,40 +1058,40 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `;
-    
+
     // Add event listeners after adding to DOM
     document.body.appendChild(modal);
-    
+
     const cancelBtn = modal.querySelector('.cancel-btn');
     const banBtn = modal.querySelector('.ban-btn');
-    
+
     cancelBtn.onclick = () => {
       modal.remove();
     };
-    
+
     banBtn.onclick = () => {
       banUser(username, modal);
     };
   }
-  
+
   // Ban user
   function banUser(username, modal) {
     const reasonInput = modal.querySelector('#ban-reason');
     const durationSelect = modal.querySelector('#ban-duration');
-    
+
     if (!reasonInput || !durationSelect) {
       showNotification('❌ Dialog elements not found', 'error');
       return;
     }
-    
+
     const reason = reasonInput.value.trim();
     const duration = parseInt(durationSelect.value);
-    
+
     if (!reason) {
       showNotification('❌ Please provide a ban reason', 'error');
       return;
     }
-    
+
     fetch('/admin/ban_user', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -1111,14 +1111,14 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Error banning user', 'error');
     });
   }
-  
+
   // Admin panel
   window.toggleAdminPanel = function() {
     if (nickname !== 'Wixxy') {
       showNotification('❌ Access denied', 'error');
       return;
     }
-    
+
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
@@ -1137,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(modal);
     loadStats(); // Load stats immediately
   };
-  
+
   // Create group as admin
   window.createGroupAsAdmin = function() {
     const groupName = prompt('Enter group name:');
@@ -1158,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   };
-  
+
   // Load statistics
   window.loadStats = function() {
     fetch('/admin/stats')
@@ -1194,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => console.error('Failed to load stats:', err));
   };
-  
+
   // Load all users for banning with search
   window.loadAllUsers = function() {
     fetch('/users')
@@ -1215,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('')}
           </div>
         `;
-        
+
         // Add search functionality
         const searchInput = document.getElementById('ban-user-search');
         if (searchInput) {
@@ -1232,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           };
         }
-        
+
         // Add click handlers for ban buttons
         const banButtons = document.querySelectorAll('#ban-user-list .ban-btn');
         banButtons.forEach(btn => {
@@ -1243,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
   };
-  
+
   // Load banned users
   window.loadBannedUsers = function() {
     fetch('/admin/banned_users')
@@ -1265,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
   };
-  
+
   // Unban user
   window.unbanUser = function(username) {
     fetch('/admin/unban_user', {
@@ -1283,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   };
-  
+
   // Clear chat
   window.clearChat = function() {
     if (confirm('Clear all messages in general chat?')) {
@@ -1309,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.innerHTML = `
       <div class="admin-content">
         <h2>⚙️ Settings</h2>
-        
+
         <div class="settings-section">
           <h3>🎨 Theme</h3>
           <div class="theme-selector">
@@ -1317,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="theme-btn ${document.body.getAttribute('data-theme') === 'dark' ? 'active' : ''}" onclick="switchTheme('dark')">🌙 Dark</button>
           </div>
         </div>
-        
+
         <div class="settings-section">
           <h3>👤 Profile</h3>
           <div class="profile-section">
@@ -1326,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" onclick="changeNickname()">Change Nickname</button>
           </div>
         </div>
-        
+
         <div class="settings-section">
           <h3>🚨 Account Actions</h3>
           <div class="profile-section">
@@ -1334,27 +1334,27 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" style="background: #f39c12;" onclick="logout()">🚪 Logout</button>
           </div>
         </div>
-        
+
         <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
       </div>
     `;
-    
+
     document.body.appendChild(modal);
   }
-  
+
   // Switch theme
   window.switchTheme = function(theme) {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
     updateThemeIcon();
-    
+
     // Update theme buttons
     document.querySelectorAll('.theme-btn').forEach(btn => {
       btn.classList.remove('active');
     });
     event.target.classList.add('active');
   };
-  
+
   // Delete account
   window.deleteAccount = function() {
     if (confirm('⚠️ Are you sure you want to delete your account? This action cannot be undone!')) {
@@ -1365,16 +1365,19 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
           })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              showNotification('✅ Account deleted successfully. Redirecting...', 'success');
-              setTimeout(() => {
+          .then(() => {
+            showNotification('✅ Account deleted successfully', 'success');
+            // Clear local data
+            localStorage.clear();
+            sessionStorage.clear();
+            setTimeout(() => {
+              window.location.href = '/';
+              // Prevent back navigation
+              window.history.pushState(null, null, '/');
+              window.addEventListener('popstate', function() {
                 window.location.href = '/';
-              }, 2000);
-            } else {
-              showNotification('❌ ' + (data.error || 'Failed to delete account'), 'error');
-            }
+              });
+            }, 2000);
           })
           .catch(err => {
             console.error('Failed to delete account:', err);
@@ -1410,22 +1413,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Change nickname
   window.changeNickname = function() {
     const newNick = document.getElementById('new-nickname').value.trim();
-    
+
     if (!newNick) {
       showNotification('❌ Please enter a new nickname', 'error');
       return;
     }
-    
+
     if (newNick === nickname) {
       showNotification('❌ This is already your nickname', 'error');
       return;
     }
-    
+
     if (newNick.length < 2 || newNick.length > 20) {
       showNotification('❌ Nickname must be 2-20 characters', 'error');
       return;
     }
-    
+
     fetch('/change_nickname', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -1447,20 +1450,20 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Error changing nickname', 'error');
     });
   };
-  
+
   // Upload file
   function uploadFile(file) {
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       showNotification('❌ File too large (max 5MB)', 'error');
       return;
     }
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('room', currentRoom);
-    
+
     showNotification('📤 Uploading...', 'info');
-    
+
     fetch('/upload_file', {
       method: 'POST',
       body: formData
@@ -1487,24 +1490,24 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         const statusEl = document.getElementById('user-status');
         if (statusEl) statusEl.remove();
-        
+
         const chatHeader = document.querySelector('.chat-header');
         const statusDiv = document.createElement('div');
         statusDiv.id = 'user-status';
         statusDiv.className = 'user-status';
-        
+
         if (data.status === 'online') {
           statusDiv.innerHTML = '<span class="status-indicator online">🟢</span> Online';
         } else {
           const lastSeen = data.last_seen ? new Date(data.last_seen * 1000).toLocaleString() : 'Unknown';
           statusDiv.innerHTML = `<span class="status-indicator offline">⚪</span> Last seen: ${lastSeen}`;
         }
-        
+
         chatHeader.appendChild(statusDiv);
       })
       .catch(err => console.error('Failed to get user status:', err));
   }
-  
+
   // Update room statistics
   function updateRoomStats(room) {
     fetch(`/room_stats/${room}`)
@@ -1512,18 +1515,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         const statusEl = document.getElementById('room-stats');
         if (statusEl) statusEl.remove();
-        
+
         const chatHeader = document.querySelector('.chat-header');
         const statsDiv = document.createElement('div');
         statsDiv.id = 'room-stats';
         statsDiv.className = 'room-stats';
         statsDiv.innerHTML = `<span class="stats-text">👥 ${data.online_count}/${data.total_count} online</span>`;
-        
+
         chatHeader.appendChild(statsDiv);
       })
       .catch(err => console.error('Failed to get room stats:', err));
   }
-  
+
   // Listen for user count updates
   socket.on('user_count_update', () => {
     if (currentRoom.startsWith('private_')) {
@@ -1569,12 +1572,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // File upload functionality
   const fileUploadBtn = document.getElementById('file-upload-btn');
   const fileInput = document.getElementById('file-input');
-  
+
   if (fileUploadBtn && fileInput) {
     fileUploadBtn.onclick = () => {
       fileInput.click();
     };
-    
+
     fileInput.onchange = function(e) {
       const file = e.target.files[0];
       if (file) {
@@ -1584,20 +1587,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
-  
+
   // Upload file function
   function uploadFile(file) {
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       showNotification('❌ File too large (max 5MB)', 'error');
       return;
     }
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('room', currentRoom);
-    
+
     showNotification('📤 Uploading...', 'info');
-    
+
     fetch('/upload_file', {
       method: 'POST',
       body: formData
@@ -1616,13 +1619,13 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Upload error', 'error');
     });
   }
-  
+
   // Handle nickname changes
   socket.on('nickname_changed', (data) => {
     // Update chat display names in real-time
     const oldNick = data.old_nickname;
     const newNick = data.new_nickname;
-    
+
     // Update room list display names
     document.querySelectorAll('.chat-item').forEach(item => {
       const room = item.getAttribute('data-room');
@@ -1637,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
-    
+
     // Update current room header if needed
     if (currentRoom.startsWith('private_')) {
       const users = currentRoom.replace('private_', '').split('_');
@@ -1646,14 +1649,14 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRoomEl.textContent = `@ ${newNick}`;
       }
     }
-    
+
     // Update message display names
     document.querySelectorAll('.message-author').forEach(author => {
       if (author.textContent === oldNick) {
         author.textContent = newNick;
       }
     });
-    
+
     // Reload rooms and messages to ensure consistency
     loadRooms();
     loadMessages(currentRoom);
@@ -1667,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => {
     loadRooms();
   }, 120000);
-  
+
   // Add settings button to header
   const headerButtons = document.querySelector('.header-buttons');
   if (headerButtons) {
@@ -1676,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsBtn.title = 'Settings';
     settingsBtn.onclick = showSettings;
     headerButtons.appendChild(settingsBtn);
-    
+
     // Add admin button if admin
     if (nickname === 'Wixxy') {
       const adminBtn = document.createElement('button');
@@ -1686,13 +1689,13 @@ document.addEventListener('DOMContentLoaded', () => {
       headerButtons.appendChild(adminBtn);
     }
   }
-  
+
   // Add create group button
   if (createGroupBtn) {
     createGroupBtn.onclick = () => {
       const groupPanel = document.getElementById('group-panel');
       const groupNameInput = document.getElementById('group-name-input');
-      
+
       if (groupPanel) {
         groupPanel.style.display = groupPanel.style.display === 'none' ? 'block' : 'none';
         if (groupPanel.style.display === 'block') {

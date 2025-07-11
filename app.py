@@ -1116,7 +1116,7 @@ def delete_account():
         # Clear session
         session.clear()
         
-        return jsonify(success=True)
+        return redirect(url_for('login'))
     except Exception as e:
         return jsonify(success=False, error='Failed to delete account')
 
@@ -1127,7 +1127,7 @@ def logout():
     if nickname and nickname in online_users:
         del online_users[nickname]
     session.clear()
-    return jsonify(success=True)
+    return redirect(url_for('login'))
 
 @app.route('/upload_file', methods=['POST'])
 @login_required
