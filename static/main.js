@@ -877,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Search functionality
         if (searchInput) {
           searchInput.oninput = function() {
+```python
             const query = this.value.toLowerCase();
             const filteredUsers = users.filter(user => user.toLowerCase().includes(query));
             displayUsers(filteredUsers);
@@ -1282,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2>🔧 Admin Panel</h2>
           <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
-        
+
         <div class="admin-layout">
           <div class="admin-sidebar">
             <div class="admin-section">
@@ -1290,20 +1291,20 @@ document.addEventListener('DOMContentLoaded', () => {
               <div id="admin-stats" class="admin-stats"></div>
               <button class="admin-btn" onclick="loadStats()">📊 Refresh Stats</button>
             </div>
-            
+
             <div class="admin-section">
               <h3>👥 User Management</h3>
               <button class="admin-btn" onclick="loadAllUsers()">🚫 Ban User</button>
               <button class="admin-btn" onclick="loadBannedUsers()">📋 View Banned Users</button>
             </div>
-            
+
             <div class="admin-section">
               <h3>🏠 Room Management</h3>
               <button class="admin-btn" onclick="createGroupAsAdmin()">➕ Create Group</button>
               <button class="admin-btn" onclick="clearChat()">🧹 Clear General Chat</button>
             </div>
           </div>
-          
+
           <div class="admin-main-content">
             <div id="admin-content-area">
               <div class="welcome-message">
@@ -1313,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         </div>
-        
+
         <div class="modal-footer">
           <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close Panel</button>
         </div>
@@ -1491,6 +1492,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function showSettings() {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
+
+    // Detect if user is on a mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const mobileClass = isMobile ? 'mobile-settings' : '';
+    modal.classList.add(mobileClass);
+
     modal.innerHTML = `
       <div class="admin-content">
         <h2>⚙️ Settings</h2>
@@ -1539,6 +1546,29 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     document.body.appendChild(modal);
+
+    // Load current user data
+    Promise.all([
+      fetch(`/get_user_avatar/${nickname}`).then(r => r.json()),
+      fetch(`/get_user_profile/${nickname}`).then(r => r.json())
+    ]).then(([avatarData, profileData]) => {
+      const avatar = document.getElementById('settings-avatar');
+      const bioInput = document.getElementById('bio-input');
+
+      if (avatar) {
+        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png') {
+          avatar.src = avatarData.avatar + '?t=' + Date.now(); // Force refresh
+        } else {
+          avatar.src = '/static/default-avatar.png';
+        }
+      }
+
+      if (bioInput) {
+        bioInput.value = profileData.bio || '';
+      }
+    }).catch(err => {
+      console.error('Failed to load profile data:', err);
+    });
   }
 
   // Switch theme
@@ -1921,7 +1951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check file type
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
-    
+
     if (!isVideo && !isImage) {
       showNotification('❌ Only images and videos are allowed', 'error');
       return;
