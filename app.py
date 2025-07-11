@@ -1619,11 +1619,16 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
-        pass
-    else:
-        socketio.run(app,
-                     host='0.0.0.0',
-                     port=port,
-                     debug=debug_mode,
-                     allow_unsafe_werkzeug=True)
+    try:
+        if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+            pass
+        else:
+            socketio.run(app,
+                         host='0.0.0.0',
+                         port=port,
+                         debug=debug_mode,
+                         allow_unsafe_werkzeug=True)
+    except Exception as e:
+        print(f"Error starting with SocketIO: {e}")
+        print("Falling back to Flask only...")
+        app.run(host='0.0.0.0', port=port, debug=debug_mode)
