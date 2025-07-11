@@ -1137,15 +1137,15 @@ body {
 }
 
 .mobile-device .message.own {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  color: white;
-  margin-left: 20%;
+  background: var(--accent-green);
+  color: black;
+  margin-left: 15%;
 }
 
 .mobile-device .message:not(.own) {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  margin-right: 20%;
+  background: var(--surface-dark);
+  border: 1px solid var(--surface-lighter);
+  margin-right: 15%;
 }
 
 .mobile-device .message-status {
@@ -1154,6 +1154,72 @@ body {
   right: 8px;
   font-size: 12px;
   opacity: 0.7;
+}
+
+/* Better mobile touch targets */
+.mobile-device .chat-controls button {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  font-size: 1.2rem !important;
+  padding: 0.75rem !important;
+}
+
+.mobile-device .header-buttons button {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  font-size: 1.2rem !important;
+  padding: 0.75rem !important;
+}
+
+.mobile-device .message-form button {
+  min-width: 50px !important;
+  min-height: 44px !important;
+  font-size: 1.1rem !important;
+}
+
+.mobile-device .message-form input {
+  font-size: 16px !important; /* Prevent zoom on iOS */
+  min-height: 44px !important;
+}
+
+/* Clickable room title indicator */
+.chat-title h2 {
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.chat-title h2:hover {
+  color: var(--accent-green);
+}
+
+.chat-title h2::after {
+  content: '👥';
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+  opacity: 0.6;
+}
+
+.chat-title h2[data-room^="private_"]::after {
+  content: '👤';
+}
+
+.chat-title h2[data-room="general"]::after {
+  content: '🌍';
+}
+
+/* Mobile swipe hint */
+@media (max-width: 768px) {
+  .chat-title h2::after {
+    content: '→';
+    opacity: 0.4;
+    animation: swipeHint 2s infinite;
+  }
+}
+
+@keyframes swipeHint {
+  0%, 100% { transform: translateX(0); opacity: 0.4; }
+  50% { transform: translateX(5px); opacity: 0.8; }
 }
 
 /* Mobile optimizations */

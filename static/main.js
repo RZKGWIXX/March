@@ -269,15 +269,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (room.startsWith('private_')) {
       const users = room.replace('private_', '').split('_');
       const otherUser = users.find(u => u !== nickname) || users[0];
-      if (currentRoomEl) currentRoomEl.textContent = `@ ${otherUser}`;
+      if (currentRoomEl) {
+        currentRoomEl.textContent = `@ ${otherUser}`;
+        currentRoomEl.setAttribute('data-room', room);
+      }
       if (roomTypeEl) roomTypeEl.textContent = 'Private Chat';
       updateUserStatus(otherUser);
     } else if (room === 'general') {
-      if (currentRoomEl) currentRoomEl.textContent = '# general';
+      if (currentRoomEl) {
+        currentRoomEl.textContent = '# general';
+        currentRoomEl.setAttribute('data-room', room);
+      }
       if (roomTypeEl) roomTypeEl.textContent = 'Public Chat';
       updateRoomStats(room);
     } else {
-      if (currentRoomEl) currentRoomEl.textContent = `# ${room}`;
+      if (currentRoomEl) {
+        currentRoomEl.textContent = `# ${room}`;
+        currentRoomEl.setAttribute('data-room', room);
+      }
       if (roomTypeEl) roomTypeEl.textContent = 'Group Chat';
       updateRoomStats(room);
     }
@@ -1033,6 +1042,70 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Mobile swipe functionality
+  let startX = 0;
+  let currentX = 0;
+  let isSwiping = false;
+
+  // Swipe to show members panel on mobile
+  function handleTouchStart(e) {
+    if (window.innerWidth > 768) return; // Only on mobile
+    startX = e.touches[0].clientX;
+    isSwiping = false;
+  }
+
+  function handleTouchMove(e) {
+    if (window.innerWidth > 768) return;
+    currentX = e.touches[0].clientX;
+    const deltaX = currentX - startX;
+    
+    if (Math.abs(deltaX) > 10) {
+      isSwiping = true;
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (window.innerWidth > 768 || !isSwiping) return;
+    
+    const deltaX = currentX - startX;
+    const swipeThreshold = 100;
+    
+    if (deltaX > swipeThreshold) {
+      // Swipe right - show members/profile
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        showUserProfile(otherUser);
+      } else {
+        showGroupMembers();
+      }
+    }
+    
+    isSwiping = false;
+  }
+
+  // Add touch event listeners to chat area
+  if (messagesDiv) {
+    messagesDiv.addEventListener('touchstart', handleTouchStart, {passive: true});
+    messagesDiv.addEventListener('touchmove', handleTouchMove, {passive: true});
+    messagesDiv.addEventListener('touchend', handleTouchEnd, {passive: true});
+  }
+
+  // Desktop click handler for room title
+  if (currentRoomEl) {
+    currentRoomEl.addEventListener('click', () => {
+      if (window.innerWidth > 768) { // Only on desktop
+        if (currentRoom.startsWith('private_')) {
+          const users = currentRoom.replace('private_', '').split('_');
+          const otherUser = users.find(u => u !== nickname) || users[0];
+          showUserProfile(otherUser);
+        } else if (currentRoom !== 'general') {
+          showGroupMembers();
+        }
+      }
+    });
+  }
+
   // Socket event handlers
   socket.on('message', (data) => {
     // Parse room and message from data
@@ -1201,21 +1274,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Play notification sound
   function playNotificationSound() {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
 
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (e) {
+      // Ignore audio errors
+    }
   }
 
   // Handle window resize
