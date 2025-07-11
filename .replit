@@ -7,9 +7,10 @@ externalPort = 80
 
 [nix]
 channel = "stable-24_05"
+packages = ["iana-etc"]
 
 [workflows]
-runButton = "Simple Run"
+runButton = "Production Server"
 
 [[workflows.workflow]]
 name = "Run"
@@ -56,5 +57,14 @@ mode = "sequential"
 task = "shell.exec"
 args = "python app.py"
 
+[[workflows.workflow]]
+name = "Production Server"
+author = 44893467
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --config gunicorn.conf.py app:app"
+
 [deployment]
-run = ["sh", "-c", "python app.py"]
+run = ["sh", "-c", "gunicorn --config gunicorn.conf.py app:app"]
