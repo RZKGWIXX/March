@@ -42,6 +42,65 @@ failed_login_attempts = defaultdict(list)
 rate_limits = defaultdict(list)
 spam_violations = defaultdict(int)
 
+def create_jsonbin_bin(bin_name, data):
+    """Create a new bin on JSONBin.io"""
+    if not JSONBIN_API_KEY:
+        print(f"No API key provided for creating {bin_name} bin")
+        return None
+    
+    headers = {
+        'X-Master-Key': JSONBIN_API_KEY,
+        'Content-Type': 'application/json',
+        'X-Bin-Name': bin_name
+    }
+    
+    try:
+        response = requests.post(JSONBIN_BASE_URL, json=data, headers=headers, timeout=10)
+        if response.status_code == 200:
+            bin_data = response.json()
+            bin_id = bin_data.get('metadata', {}).get('id')
+            print(f"Created JSONBin for {bin_name}: {bin_id}")
+            return bin_id
+        else:
+            print(f"Failed to create bin {bin_name}: {response.status_code} - {response.text}")
+            return None
+    except requests.RequestException as e:
+        print(f"Error creating bin {bin_name}: {e}")
+        return None
+
+def auto_create_bins():
+    """Automatically create all required bins if they don't exist"""
+    if not JSONBIN_API_KEY:
+        print("JSONBin API key not provided - skipping bin creation")
+        return
+    
+    default_data = {
+        'users': {},
+        'rooms': {},
+        'messages': {'general': []},
+        'blocks': {},
+        'banned': {'users': []},
+        'muted': {},
+        'hidden_messages': {},
+        'nickname_cooldowns': {}
+    }
+    
+    print("Checking and creating JSONBin.io bins...")
+    
+    for bin_name, data in default_data.items():
+        if not BINS.get(bin_name):
+            print(f"Creating bin for {bin_name}...")
+            bin_id = create_jsonbin_bin(bin_name, data)
+            if bin_id:
+                # Update the BINS dictionary
+                BINS[bin_name] = bin_id
+                print(f"✓ Created {bin_name} bin: {bin_id}")
+                print(f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}")
+            else:
+                print(f"✗ Failed to create {bin_name} bin")
+        else:
+            print(f"✓ {bin_name} bin already configured: {BINS[bin_name]}")
+
 def create_default_json_files():
     """Create default JSON files locally if they don't exist"""
     default_data = {
@@ -1346,6 +1405,9 @@ def on_message(data):
 if __name__ == '__main__':
     # Create default JSON files on startup
     create_default_json_files()
+    
+    # Auto-create JSONBin.io bins if API key is provided
+    auto_create_bins()
     
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
