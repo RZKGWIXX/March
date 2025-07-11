@@ -1658,6 +1658,16 @@ create_default_json_files()
 auto_create_bins()
 print("Initialization complete!")
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint для keepalive"""
+    return jsonify({'status': 'healthy', 'timestamp': time.time()})
+
+@app.route('/ping')
+def ping():
+    """Простий ping endpoint"""
+    return 'pong'
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
@@ -1674,4 +1684,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error starting with SocketIO: {e}")
         print("Falling back to Flask only...")
-        app.run(host='0.0.0.0', port=port, debug=debug_mode)
+        app.run(host='0.0.0.0', port=port, debug=debug_mode)ebug=debug_mode)

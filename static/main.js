@@ -191,12 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(rooms => {
         console.log('Rooms received:', rooms);
-        
+
         if (!chatList) {
           console.error('Chat list element not found');
           return;
         }
-        
+
         chatList.innerHTML = '';
 
         // Add general room first
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeItem) {
           activeItem.classList.add('active');
         }
-        
+
         console.log('Rooms loaded successfully');
       })
       .catch(err => {
@@ -884,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.success) {
         showNotification(`✅ ${username} muted for ${minutes} minutes`, 'success');
-      } else {
+            } else {
         showNotification('❌ ' + (data.error || 'Failed to mute user'), 'error');
       }
     });
@@ -1017,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (data.room === currentRoom || currentRoom === 'general') {
       updateRoomStats(currentRoom);
     }
-    
+
     // Handle account deletion or logout
     if (data.action === 'account_deleted' || data.action === 'logout') {
       // Reload admin stats if admin panel is open
@@ -1813,4 +1813,39 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+  // Auto-refresh functionality
+  let refreshInterval;
+
+  function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+      if (currentRoom) {
+        loadMessages(currentRoom);
+        updateRoomStats(currentRoom);
+      }
+    }, 10000); // Збільшено інтервал до 10 секунд
+  }
+
+  // Start auto-refresh on load
+  startAutoRefresh();
+
+  //function updateUserStatus() {
+    if (currentRoom && currentRoom.startsWith('private_')) {
+      const otherUser = currentRoom.split('_').find(u => u !== nickname);
+      if (otherUser) {
+        fetch(`/user_status/${otherUser}`)
+          .then(r => r.json())
+          .then(data => {
+            const statusEl = document.getElementById('room-type');
+            if (statusEl) {
+              statusEl.textContent = data.online ? 'Online' : 'Offline';
+            }
+          });
+      }
+    }
+  }
+
+  // Збільшено інтервал оновлення статусу до 60 секунд
+  setInterval(updateUserStatus, 60000);
 });
