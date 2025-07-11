@@ -42,7 +42,7 @@ failed_login_attempts = defaultdict(list)
 rate_limits = defaultdict(list)
 spam_violations = defaultdict(int)
 
-def create_jsonbin_bin(bin_name, data):
+def create_jsonbin_bin(bin_name, data, collection_id=None):
     """Create a new bin on JSONBin.io"""
     if not JSONBIN_API_KEY:
         print(f"No API key provided for creating {bin_name} bin")
@@ -54,8 +54,17 @@ def create_jsonbin_bin(bin_name, data):
         'X-Bin-Name': bin_name
     }
     
+    # Add collection ID if provided
+    if collection_id:
+        headers['X-Collection-Id'] = collection_id
+    
     try:
+        print(f"Making request to create bin: {bin_name}")
+        print(f"Headers: {headers}")
         response = requests.post(JSONBIN_BASE_URL, json=data, headers=headers, timeout=10)
+        print(f"Response status: {response.status_code}")
+        print(f"Response text: {response.text[:200]}...")
+        
         if response.status_code == 200:
             bin_data = response.json()
             bin_id = bin_data.get('metadata', {}).get('id')
@@ -70,9 +79,15 @@ def create_jsonbin_bin(bin_name, data):
 
 def auto_create_bins():
     """Automatically create all required bins if they don't exist"""
+    print(f"JSONBin API Key: {'Present' if JSONBIN_API_KEY else 'Missing'}")
+    
     if not JSONBIN_API_KEY:
         print("JSONBin API key not provided - skipping bin creation")
+        print("Please set JSONBIN_API_KEY environment variable")
         return
+    
+    # Check if we have the Collection ID in environment
+    collection_id = os.environ.get('JSONBIN_COLLECTION_ID', '6870ced0c17214220fc74e76')
     
     default_data = {
         'users': {},
@@ -86,11 +101,12 @@ def auto_create_bins():
     }
     
     print("Checking and creating JSONBin.io bins...")
+    print(f"Using Collection ID: {collection_id}")
     
     for bin_name, data in default_data.items():
         if not BINS.get(bin_name):
             print(f"Creating bin for {bin_name}...")
-            bin_id = create_jsonbin_bin(bin_name, data)
+            bin_id = create_jsonbin_bin(bin_name, data, collection_id)
             if bin_id:
                 # Update the BINS dictionary
                 BINS[bin_name] = bin_id
