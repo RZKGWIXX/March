@@ -22,14 +22,14 @@ JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
 BINS = {
-    'users': '6870d7fbafef824ba9f9597a',
-    'rooms': '6870d7fcafef824ba9f9597d',
-    'messages': '6870d7fc6063391d31ab6137',
-    'blocks': '6870d7fd013b9e4bdcc09e06',
-    'banned': '6870d7fd013b9e4bdcc09e08',
-    'muted': '6870d7fe6063391d31ab6139',
-    'hidden_messages': '6870d7fe6063391d31ab613b',
-    'nickname_cooldowns': '6870d7ff013b9e4bdcc09e0a'
+    'users': '6870e467afef824ba9f95e49',
+    'rooms': '6870e469afef824ba9f95e4c',
+    'messages': '6870e46aafef824ba9f95e4e',
+    'blocks': '6870e46cafef824ba9f95e50',
+    'banned': '6870e46dafef824ba9f95e52',
+    'muted': '6870e46fafef824ba9f95e54',
+    'hidden_messages': '6870e471afef824ba9f95e58',
+    'nickname_cooldowns': '6870e472afef824ba9f95e5a'
 }
 
 # Track online users
@@ -103,6 +103,30 @@ def check_bin_exists(bin_id):
         return False
 
 
+def migrate_local_data_to_bins():
+    """Migrate existing local data to new JSONBin.io bins"""
+    print("Migrating local data to JSONBin.io...")
+    
+    for bin_name in BINS.keys():
+        local_file = f"{bin_name}.json"
+        if os.path.exists(local_file):
+            try:
+                with open(local_file, 'r', encoding='utf-8') as f:
+                    local_data = json.load(f)
+                
+                # Skip if it's just placeholder data
+                if local_data and not (len(local_data) == 1 and "placeholder" in local_data):
+                    print(f"Migrating {bin_name} data...")
+                    if save_json(bin_name, local_data):
+                        print(f"✓ Successfully migrated {bin_name} data")
+                    else:
+                        print(f"✗ Failed to migrate {bin_name} data")
+                else:
+                    print(f"- Skipping {bin_name} (placeholder data)")
+            except Exception as e:
+                print(f"Error migrating {bin_name}: {e}")
+
+
 def auto_create_bins():
     """Automatically create all required bins if they don't exist"""
     print(f"JSONBin API Key: {'Present' if JSONBIN_API_KEY else 'Missing'}")
@@ -133,6 +157,7 @@ def auto_create_bins():
     print("Checking and creating JSONBin.io bins...")
     print(f"Using Collection ID: {collection_id}")
 
+    bins_created = False
     for bin_name, data in default_data.items():
         bin_id = BINS.get(bin_name)
         
@@ -145,6 +170,7 @@ def auto_create_bins():
                 BINS[bin_name] = new_bin_id
                 print(f"✓ Recreated {bin_name} bin: {new_bin_id}")
                 print(f"Update your environment: {bin_name.upper()}_BIN_ID={new_bin_id}")
+                bins_created = True
             else:
                 print(f"✗ Failed to recreate {bin_name} bin")
         else:
@@ -154,8 +180,13 @@ def auto_create_bins():
                 BINS[bin_name] = bin_id
                 print(f"✓ Created {bin_name} bin: {bin_id}")
                 print(f"Add to your environment: {bin_name.upper()}_BIN_ID={bin_id}")
+                bins_created = True
             else:
                 print(f"✗ Failed to create {bin_name} bin")
+    
+    # If new bins were created, migrate local data
+    if bins_created:
+        migrate_local_data_to_bins()
 
 
 def create_default_json_files():
