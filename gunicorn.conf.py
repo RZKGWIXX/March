@@ -1,15 +1,17 @@
 
 import os
 
-# Server socket
-bind = "0.0.0.0:5000"
+# Server socket - use PORT from environment for Render
+import os
+port = os.environ.get('PORT', '5000')
+bind = f"0.0.0.0:{port}"
 backlog = 2048
 
-# Worker processes
-workers = 2
-worker_class = "sync"
+# Worker processes - use 1 worker for better compatibility with SocketIO
+workers = 1
+worker_class = "eventlet"
 worker_connections = 1000
-timeout = 30
+timeout = 120
 keepalive = 2
 
 # Restart workers after this many requests, to help prevent memory leaks

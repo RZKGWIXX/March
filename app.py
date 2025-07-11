@@ -1611,13 +1611,13 @@ def on_message(data):
          include_self=False)
 
 
+# Initialize on app startup (works with both gunicorn and direct python run)
+print("Initializing OrbitMess Chat...")
+create_default_json_files()
+auto_create_bins()
+print("Initialization complete!")
+
 if __name__ == '__main__':
-    # Create default JSON files on startup
-    create_default_json_files()
-
-    # Auto-create JSONBin.io bins if API key is provided
-    auto_create_bins()
-
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
