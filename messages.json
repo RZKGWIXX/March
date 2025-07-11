@@ -24,5 +24,21 @@
       "timestamp": 1752265284
     }
   ],
-  "test": []
+  "test": [
+    {
+      "nick": "Wixxy",
+      "text": "св",
+      "timestamp": 1752266494
+    },
+    {
+      "nick": "Wixxy",
+      "text": "і",
+      "timestamp": 1752266495
+    },
+    {
+      "nick": "Wixxy",
+      "text": "і",
+      "timestamp": 1752266495
+    }
+  ]
 }
