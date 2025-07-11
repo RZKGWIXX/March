@@ -18,8 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.querySelector('.sidebar');
   const createGroupBtn = document.getElementById('create-group-btn');
 
+  // Debug logging
+  console.log('Chat list element:', chatList);
+  console.log('Messages div:', messagesDiv);
+  console.log('Nickname:', nickname);
+
   // If essential elements don't exist, we're probably on the wrong page
-  if (!chatList || !messagesDiv) return;
+  if (!chatList || !messagesDiv) {
+    console.error('Essential elements not found - chat list or messages div missing');
+    return;
+  }
 
   let currentRoom = 'general';
   let messageHistory = JSON.parse(localStorage.getItem('messageHistory') || '{}');
@@ -172,9 +180,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load rooms
   function loadRooms() {
+    console.log('Loading rooms...');
     fetch('/rooms')
-      .then(r => r.json())
+      .then(r => {
+        console.log('Rooms response status:', r.status);
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
       .then(rooms => {
+        console.log('Rooms received:', rooms);
+        
+        if (!chatList) {
+          console.error('Chat list element not found');
+          return;
+        }
+        
         chatList.innerHTML = '';
 
         // Add general room first
@@ -191,42 +213,51 @@ document.addEventListener('DOMContentLoaded', () => {
         chatList.appendChild(generalLi);
 
         // Add other rooms
-        rooms.forEach(room => {
-          if (room !== 'general') {
-            const li = document.createElement('li');
-            li.className = 'chat-item';
-            li.setAttribute('data-room', room);
+        if (Array.isArray(rooms)) {
+          rooms.forEach(room => {
+            if (room !== 'general') {
+              const li = document.createElement('li');
+              li.className = 'chat-item';
+              li.setAttribute('data-room', room);
 
-            if (room.startsWith('private_')) {
-              const users = room.replace('private_', '').split('_');
-              const otherUser = users.find(u => u !== nickname) || users[0];
-              li.innerHTML = `
-                <div class="chat-info">
-                  <span class="chat-name">@ ${otherUser}</span>
-                  <span class="chat-type">Private</span>
-                </div>
-                <span class="chat-icon">🔐</span>
-              `;
-            } else {
-              li.innerHTML = `
-                <div class="chat-info">
-                  <span class="chat-name"># ${room}</span>
-                  <span class="chat-type">Group</span>
-                </div>
-                <span class="chat-icon">👥</span>
-              `;
+              if (room.startsWith('private_')) {
+                const users = room.replace('private_', '').split('_');
+                const otherUser = users.find(u => u !== nickname) || users[0];
+                li.innerHTML = `
+                  <div class="chat-info">
+                    <span class="chat-name">@ ${otherUser}</span>
+                    <span class="chat-type">Private</span>
+                  </div>
+                  <span class="chat-icon">🔐</span>
+                `;
+              } else {
+                li.innerHTML = `
+                  <div class="chat-info">
+                    <span class="chat-name"># ${room}</span>
+                    <span class="chat-type">Group</span>
+                  </div>
+                  <span class="chat-icon">👥</span>
+                `;
+              }
+              chatList.appendChild(li);
             }
-            chatList.appendChild(li);
-          }
-        });
+          });
+        } else {
+          console.error('Rooms is not an array:', rooms);
+        }
 
         // Set active room
         const activeItem = document.querySelector(`[data-room="${currentRoom}"]`);
         if (activeItem) {
           activeItem.classList.add('active');
         }
+        
+        console.log('Rooms loaded successfully');
       })
-      .catch(err => console.error('Failed to load rooms:', err));
+      .catch(err => {
+        console.error('Failed to load rooms:', err);
+        showNotification('❌ Failed to load rooms', 'error');
+      });
   }
 
   // Join room

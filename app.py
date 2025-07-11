@@ -591,14 +591,26 @@ def chat():
 @app.route('/rooms')
 @login_required
 def get_rooms():
-    rooms_data = load_json('rooms')
-    user_rooms = ['general']
+    try:
+        rooms_data = load_json('rooms')
+        user_rooms = ['general']
+        
+        print(f"Loading rooms for user: {session['nickname']}")
+        print(f"Rooms data: {rooms_data}")
 
-    for room_name, room_info in rooms_data.items():
-        if session['nickname'] in room_info.get('members', []):
-            user_rooms.append(room_name)
+        if isinstance(rooms_data, dict):
+            for room_name, room_info in rooms_data.items():
+                if isinstance(room_info, dict) and session['nickname'] in room_info.get('members', []):
+                    user_rooms.append(room_name)
+                    print(f"Added room: {room_name}")
+        else:
+            print(f"Warning: rooms_data is not a dict: {type(rooms_data)}")
 
-    return jsonify(user_rooms)
+        print(f"Final user_rooms: {user_rooms}")
+        return jsonify(user_rooms)
+    except Exception as e:
+        print(f"Error in get_rooms: {e}")
+        return jsonify(['general'])
 
 
 @app.route('/messages/<room>')
