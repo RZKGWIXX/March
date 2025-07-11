@@ -7,7 +7,7 @@ backlog = 2048
 
 # Worker processes
 workers = 2
-worker_class = "eventlet"
+worker_class = "gevent"
 worker_connections = 1000
 timeout = 30
 keepalive = 2
