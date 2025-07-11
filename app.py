@@ -17,11 +17,8 @@ app.secret_key = os.environ.get('SECRET_KEY',
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # JSONBin.io configuration
-JSONBIN_API_KEY = os.environ.get(
-    '$2a$10$AA5a5OV4o58flX623KenTuhLAsXe8MV1Ng0gpLwY/qIvMyX0nmbRK'
-)  # Set this in your environment
-JSONBIN_ACCESS_KEY_ID = os.environ.get(
-    '6870d1a46063391d31ab5ece')  # Access Key ID
+JSONBIN_API_KEY = os.environ.get('JSONBIN_API_KEY')  # Set this in your environment
+JSONBIN_ACCESS_KEY_ID = os.environ.get('JSONBIN_ACCESS_KEY_ID')  # Access Key ID
 JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b'
 
 # Bin IDs for different data types - you'll need to create these bins first
