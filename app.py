@@ -8,7 +8,7 @@ import time
 import hashlib
 import secrets
 from functools import wraps
-from collections import defaultdict, deque
+from setuptools import setup
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import re
