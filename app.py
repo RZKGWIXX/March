@@ -234,7 +234,7 @@ def jsonbin_request(method, bin_name, data=None):
 
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=15)
+            response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
                 return response.json().get('record', {})
             else:
@@ -246,9 +246,12 @@ def jsonbin_request(method, bin_name, data=None):
             response = requests.put(url,
                                     json=data,
                                     headers=headers,
-                                    timeout=15)
+                                    timeout=10)
             return response.status_code == 200
 
+    except RecursionError:
+        print(f"Recursion error for {bin_name}, using local fallback")
+        return {} if method == 'GET' else False
     except (requests.RequestException, ValueError, KeyError) as e:
         print(f"JSONBin API error for {bin_name}: {e}")
         return {} if method == 'GET' else False
@@ -258,23 +261,34 @@ def jsonbin_request(method, bin_name, data=None):
 
 
 def load_json(bin_name):
-    """Load data from JSONBin.io or local file as fallback"""
-    # Try JSONBin.io first
-    if JSONBIN_API_KEY and BINS.get(bin_name):
-        data = jsonbin_request('GET', bin_name)
-        if data:
-            return data
-
-    # Fallback to local file
+    """Load data from local file first, then JSONBin.io as backup"""
+    # Try local file first for better performance
     filepath = f"{bin_name}.json"
     try:
         if os.path.exists(filepath):
             with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                if data and data != {"placeholder": "data"}:
+                    return data
     except Exception as e:
         print(f"Error loading {filepath}: {e}")
 
-    # Return default data if file doesn't exist
+    # Try JSONBin.io as backup
+    if JSONBIN_API_KEY and BINS.get(bin_name):
+        try:
+            data = jsonbin_request('GET', bin_name)
+            if data and data != {"placeholder": "data"}:
+                # Save to local file for next time
+                try:
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                except:
+                    pass
+                return data
+        except:
+            pass
+
+    # Return default data if both fail
     default_data = {
         'users': {"placeholder": "data"},
         'rooms': {"placeholder": "data"},
@@ -1647,11 +1661,21 @@ def on_message(data):
 
     save_json('messages', messages_data)
 
-    # Emit message to specific room only
-    socketio.emit('message', {
+    # Emit message to specific room with better data structure
+    socketio.emit('new_message', {
         'room': room,
-        'message': f"{nickname}: {message}"
-    }, room=room, include_self=False)
+        'nickname': nickname,
+        'message': message,
+        'timestamp': int(time.time())
+    }, room=room)
+    
+    # Also emit to sender for confirmation
+    socketio.emit('message_sent', {
+        'room': room,
+        'nickname': nickname,
+        'message': message,
+        'timestamp': int(time.time())
+    })
 
 
 # Initialize on app startup (works with both gunicorn and direct python run)

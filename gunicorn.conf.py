@@ -2,14 +2,12 @@ import os
 
 # Основні налаштування
 bind = "0.0.0.0:5000"
-workers = 2
-worker_class = "eventlet"
-worker_connections = 100
-timeout = 120
+workers = 1
+worker_class = "gevent"
+worker_connections = 1000
+timeout = 60
 keepalive = 5
-
-# Налаштування для стабільності
-max_requests = 1000
+max_requests = 2000
 max_requests_jitter = 100
 preload_app = True
 

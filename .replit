@@ -10,7 +10,7 @@ channel = "stable-24_05"
 packages = ["iana-etc"]
 
 [workflows]
-runButton = "Optimized Production"
+runButton = "Fast Development"
 
 [[workflows.workflow]]
 name = "Run"
@@ -113,6 +113,15 @@ args = "gunicorn --workers=2 --timeout=30 --keep-alive=2 --max-requests=1000 --c
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python keepalive.py"
+
+[[workflows.workflow]]
+name = "Fast Development"
+author = 44893467
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
 
 [deployment]
 run = ["sh", "-c", "gunicorn --config gunicorn.conf.py app:app"]
