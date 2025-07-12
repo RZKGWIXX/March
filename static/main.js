@@ -385,6 +385,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (blockUserBtn) {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
+    
+    // Show/hide settings button only in general chat
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+      settingsBtn.style.display = room === 'general' ? 'block' : 'none';
+    }
 
     // Setup mobile chat options and home button
     const mobileChatOptions = document.getElementById('mobile-chat-options');
@@ -817,12 +823,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             return `
-              <div class="forward-room-item" data-room="${room}" style="${isMobile ? 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-lighter); border-radius: var(--border-radius); border: 1px solid var(--surface-accent);' : ''}">
-                <div class="forward-room-info" style="${isMobile ? 'flex: 1;' : ''}">
-                  <div class="forward-room-name" style="${isMobile ? 'font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;' : ''}">${emoji} ${displayName}</div>
-                  <div class="forward-room-type" style="${isMobile ? 'font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;' : ''}">${roomType}</div>
+              <div class="forward-room-item" data-room="${room}">
+                <div class="forward-room-info">
+                  <div class="forward-room-name">${emoji} ${displayName}</div>
+                  <div class="forward-room-type">${roomType}</div>
                 </div>
-                <button class="forward-btn" onclick="forwardMessageToRoom('${room}', '${messageIndex}', '${originalSender}')" style="${isMobile ? 'padding: 0.75rem 1rem; background: var(--accent-green); color: black; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; min-width: 80px;' : ''}">
+                <button class="forward-btn" onclick="forwardMessageToRoom('${room}', '${messageIndex}', '${originalSender}')">
                   Forward
                 </button>
               </div>
