@@ -386,10 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
     
-    // Show/hide settings button only in general chat
+    // Always show settings button
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
-      settingsBtn.style.display = room === 'general' ? 'block' : 'none';
+      settingsBtn.style.display = 'block';
     }
 
     // Setup mobile chat options and home button

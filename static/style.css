@@ -623,8 +623,13 @@ body {
 .room-stats {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-left: 1rem;
   white-space: nowrap;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin: 0 auto;
 }
 
 .status-indicator {
@@ -1022,6 +1027,10 @@ body {
   transition: var(--transition);
   margin-bottom: 0.5rem;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
 .connection-status.connected {
@@ -2828,6 +2837,10 @@ body[data-theme="dark"] .admin-content {
       white-space: nowrap;
       margin: 0;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
     }
 
     #menu-toggle {
