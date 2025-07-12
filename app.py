@@ -1859,6 +1859,11 @@ def handle_join_room(data):
 
         join_room(room)
 
+        # Update online users
+        import time
+        online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
+        user_sessions[request.sid] = nickname
+
         # Notify others about the join
         emit('user_joined', {
             'nickname': nickname,
@@ -1866,7 +1871,7 @@ def handle_join_room(data):
         }, room=room, include_self=False)
 
         # Send online users list to the joining user
-        online_users_list = [users[sid]['nickname'] for sid in users.keys()]
+        online_users_list = list(online_users.keys())
         emit('online_users', {'users': online_users_list})
 
     except Exception as e:
@@ -1879,7 +1884,7 @@ def handle_get_online_users():
         if not nickname:
             return
 
-        online_users_list = [users[sid]['nickname'] for sid in users.keys()]
+        online_users_list = list(online_users.keys())
         emit('online_users', {'users': online_users_list})
 
     except Exception as e:
