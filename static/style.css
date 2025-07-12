@@ -721,6 +721,30 @@ body {
   margin-left: 0.5rem;
 }
 
+/* Fixed media display sizes */
+.shared-image, .shared-video {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+  background: var(--surface-dark);
+  max-width: 400px;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+}
+
+.shared-image:hover {
+  transform: scale(1.02);
+}
+
+/* Desktop media sizes - not half screen */
+@media (min-width: 769px) {
+  .shared-image, .shared-video {
+    max-width: 450px;
+    max-height: 350px;
+  }
+}
+
 /* Connection Status */
 .connection-status {
   position: fixed;
@@ -2506,19 +2530,45 @@ body[data-theme="dark"] .admin-content {
     .chat-header {
       padding: 1rem;
       align-items: center;
+      display: flex;
+      justify-content: space-between;
+      position: relative;
     }
 
     .chat-title-wrapper {
+      display: flex;
+      align-items: center;
       gap: 0.75rem;
+      flex: 1;
+    }
+
+    .chat-title {
+      flex: 1;
+      text-align: center;
+      position: relative;
     }
 
     .chat-title h2 {
       font-size: 1.1rem;
-      margin-bottom: 0.2rem;
+      margin: 0;
+      line-height: 1.2;
     }
 
     #room-type {
-      font-size: 0.8rem;
+      display: none !important;
+    }
+
+    /* Status positioned between title and controls */
+    .user-status,
+    .room-stats {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0.25rem 0 0 0;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
     }
 
     #menu-toggle {
@@ -2526,6 +2576,13 @@ body[data-theme="dark"] .admin-content {
       min-height: 40px;
       font-size: 1.2rem;
       padding: 0.5rem;
+      position: absolute;
+      left: 0;
+    }
+
+    .chat-controls {
+      position: absolute;
+      right: 0;
     }
   }
 

@@ -330,21 +330,43 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRoomEl.textContent = `@ ${otherUser}`;
         currentRoomEl.setAttribute('data-room', room);
       }
-      if (roomTypeEl) roomTypeEl.textContent = 'Private Chat';
+      if (roomTypeEl) {
+        // Move status between nickname and controls on mobile
+        if (useMobileInterface) {
+          roomTypeEl.style.display = 'none';
+        } else {
+          roomTypeEl.textContent = 'Private Chat';
+          roomTypeEl.style.display = 'block';
+        }
+      }
       updateUserStatus(otherUser);
     } else if (room === 'general') {
       if (currentRoomEl) {
         currentRoomEl.textContent = '# general';
         currentRoomEl.setAttribute('data-room', room);
       }
-      if (roomTypeEl) roomTypeEl.textContent = 'Public Chat';
+      if (roomTypeEl) {
+        if (useMobileInterface) {
+          roomTypeEl.style.display = 'none';
+        } else {
+          roomTypeEl.textContent = 'Public Chat';
+          roomTypeEl.style.display = 'block';
+        }
+      }
       updateRoomStats(room);
     } else {
       if (currentRoomEl) {
         currentRoomEl.textContent = `# ${room}`;
         currentRoomEl.setAttribute('data-room', room);
       }
-      if (roomTypeEl) roomTypeEl.textContent = 'Group Chat';
+      if (roomTypeEl) {
+        if (useMobileInterface) {
+          roomTypeEl.style.display = 'none';
+        } else {
+          roomTypeEl.textContent = 'Group Chat';
+          roomTypeEl.style.display = 'block';
+        }
+      }
       updateRoomStats(room);
     }
 
@@ -623,6 +645,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const items = [];
 
+    // Add forward option for all messages
+    items.push({text: '↗️ Forward message', action: () => showForwardModal(index, nick)});
+
     if (isOwnMessage) {
       items.push({text: '🗑️ Delete for me', action: () => deleteMessage(index, 'me')});
       // Allow deletion for everyone in private chats and groups (not just general)
@@ -703,6 +728,157 @@ document.addEventListener('DOMContentLoaded', () => {
       document.addEventListener('click', hideContextMenu);
     }, 0);
   }
+
+  // Show forward modal
+  function showForwardModal(messageIndex, originalSender) {
+    const messages = messageHistory[currentRoom] || [];
+    const message = messages[messageIndex];
+    
+    if (!message) {
+      showNotification('❌ Message not found', 'error');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel forward-modal';
+    modal.innerHTML = `
+      <div class="admin-content forward-content">
+        <div class="modal-header">
+          <h2>📤 Forward Message</h2>
+          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
+        </div>
+        
+        <div class="forward-preview">
+          <div class="preview-label">Message to forward:</div>
+          <div class="preview-message">
+            <span class="preview-sender">${originalSender}</span>
+            <div class="preview-text">${message.text}</div>
+          </div>
+        </div>
+
+        <div class="forward-search">
+          <input type="text" id="forward-search" placeholder="Search rooms..." />
+        </div>
+
+        <div class="forward-rooms" id="forward-rooms-list">
+          <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+            Loading rooms...
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Load available rooms
+    fetch('/rooms')
+      .then(r => r.json())
+      .then(rooms => {
+        const roomsList = document.getElementById('forward-rooms-list');
+        const searchInput = document.getElementById('forward-search');
+        
+        function displayRooms(filteredRooms) {
+          if (filteredRooms.length === 0) {
+            roomsList.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No rooms found</div>';
+            return;
+          }
+
+          roomsList.innerHTML = filteredRooms.map(room => {
+            let displayName, roomType;
+            
+            if (room === 'general') {
+              displayName = '# general';
+              roomType = 'Public Chat';
+            } else if (room.startsWith('private_')) {
+              const users = room.replace('private_', '').split('_');
+              const otherUser = users.find(u => u !== nickname) || users[0];
+              displayName = `@ ${otherUser}`;
+              roomType = 'Private Chat';
+            } else {
+              displayName = `# ${room}`;
+              roomType = 'Group Chat';
+            }
+
+            return `
+              <div class="forward-room-item" data-room="${room}">
+                <div class="forward-room-info">
+                  <div class="forward-room-name">${displayName}</div>
+                  <div class="forward-room-type">${roomType}</div>
+                </div>
+                <button class="forward-btn" onclick="forwardMessageToRoom('${room}', '${messageIndex}', '${originalSender}')">
+                  Forward
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+
+        displayRooms(rooms.filter(room => room !== currentRoom));
+
+        // Search functionality
+        if (searchInput) {
+          searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const filteredRooms = rooms.filter(room => {
+              if (room === currentRoom) return false;
+              
+              if (room === 'general') return 'general'.includes(query);
+              if (room.startsWith('private_')) {
+                const users = room.replace('private_', '').split('_');
+                const otherUser = users.find(u => u !== nickname) || users[0];
+                return otherUser.toLowerCase().includes(query);
+              }
+              return room.toLowerCase().includes(query);
+            });
+            displayRooms(filteredRooms);
+          };
+          searchInput.focus();
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load rooms:', err);
+        document.getElementById('forward-rooms-list').innerHTML = 
+          '<div style="text-align: center; padding: 2rem; color: var(--red-disconnected);">Failed to load rooms</div>';
+      });
+  }
+
+  // Forward message to specific room
+  window.forwardMessageToRoom = function(targetRoom, messageIndex, originalSender) {
+    const messages = messageHistory[currentRoom] || [];
+    const message = messages[messageIndex];
+    
+    if (!message) {
+      showNotification('❌ Message not found', 'error');
+      return;
+    }
+
+    fetch('/forward_message', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        target_room: targetRoom,
+        message: message.text,
+        original_sender: originalSender
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Message forwarded successfully', 'success');
+        document.querySelector('.forward-modal').remove();
+      } else {
+        showNotification('❌ Failed to forward message: ' + (data.error || 'Unknown error'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Failed to forward message:', err);
+      showNotification('❌ Error forwarding message', 'error');
+    });
+  };
 
   // Clear private chat history for current user
   function clearPrivateHistory() {
@@ -1177,15 +1353,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.innerWidth > 768 || !isSwiping) return;
 
     const deltaX = currentX - startX;
-    const swipeThreshold = 100;
+    const swipeThreshold = 50; // Reduced threshold for easier swiping
 
-    if (deltaX > swipeThreshold) {
-      // Swipe right - show members/profile
+    // Swipe left - show profile/members
+    if (deltaX < -swipeThreshold) {
       if (currentRoom.startsWith('private_')) {
         const users = currentRoom.replace('private_', '').split('_');
         const otherUser = users.find(u => u !== nickname) || users[0];
         showUserProfile(otherUser);
-      } else {
+      } else if (currentRoom !== 'general') {
         showGroupMembers();
       }
     }
@@ -1791,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.className = 'admin-panel';
 
     // Detect if user is on a mobile device
-    const mobileClass = isMobile ? 'mobile-settings' : '';
+    const mobileClass = useMobileInterface ? 'mobile-settings' : '';
     if (mobileClass) {
       modal.classList.add(mobileClass);
     }

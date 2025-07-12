@@ -1012,10 +1012,15 @@ def forward_message():
     if target_room not in messages_data:
         messages_data[target_room] = []
 
+    # Create forwarded message format
+    forwarded_text = f"📤 Forwarded from {original_sender}:\n{message}"
+
     messages_data[target_room].append({
         'nick': nickname,
-        'text': message,
-        'timestamp': int(time.time())
+        'text': forwarded_text,
+        'timestamp': int(time.time()),
+        'forwarded': True,
+        'original_sender': original_sender
     })
 
     save_json('messages', messages_data)
@@ -1023,8 +1028,10 @@ def forward_message():
     socketio.emit('new_message', {
         'room': target_room,
         'nickname': nickname,
-        'message': message,
-        'timestamp': int(time.time())
+        'message': forwarded_text,
+        'timestamp': int(time.time()),
+        'forwarded': True,
+        'original_sender': original_sender
     }, room=target_room)
 
     return jsonify({'success': True})
