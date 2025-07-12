@@ -1543,6 +1543,38 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('/admin/stats')
       .then(r => r.json())
       .then(data => {
+        const area = document.getElementById('admin-content-area');
+        if (area) {
+          area.innerHTML = `
+            <div class="admin-stats-display">
+              <h3>📊 Server Statistics</h3>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <h3>👥 Total Users</h3>
+                  <div class="stat-number">${data.total_users}</div>
+                </div>
+                <div class="stat-item">
+                  <h3>🟢 Online Users</h3>
+                  <div class="stat-number">${data.online_users}</div>
+                </div>
+              </div>
+              <div class="online-users-list">
+                <h4>Online Users:</h4>
+                <div class="online-users-container">
+                  ${data.online_list.map(user => `
+                    <div class="online-user">
+                      <span class="user-name">${user.nickname}</span>
+                      <span class="user-room">in ${user.room}</span>
+                      <span class="online-indicator">🟢</span>
+                    </div>
+                  `).join('') || '<p>No users online</p>'}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Also update sidebar stats
         const statsDiv = document.getElementById('admin-stats');
         if (statsDiv) {
           statsDiv.innerHTML = `
@@ -1556,19 +1588,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="stat-number">${data.online_users}</div>
             </div>
           </div>
-          <div class="online-users-list">
-            <h4>Online Users:</h4>
-            ${data.online_list.map(user => `
-              <div class="online-user">
-                <span class="user-name">${user.nickname}</span>
-                <span class="user-room">in ${user.room}</span>
-                <span class="online-indicator">🟢</span>
-              </div>
-            `).join('') || '<p>No users online</p>'}
-          </div>
         `;
-        } else {
-          console.error('Stats div not found');
         }
       })
       .catch(err => console.error('Failed to load stats:', err));
@@ -1964,16 +1984,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <li class="improved">Оптимізована робота з медіа файлами</li>
             </ul>
           </div>
-          <div class="changelog-item">
-            <div class="changelog-date">Version 1.5 - December 2024</div>
-            <div class="changelog-title">Bug Fixes & Improvements</div>
-            <ul class="changelog-changes">
-              <li class="fixed">Виправлено синхронізацію повідомлень</li>
-              <li class="fixed">Покращено стабільність з'єднання</li>
-              <li class="added">Додано групові чати</li>
-              <li class="added">Система банів та модерації</li>
-            </ul>
-          </div>
+          
         </div>
         <div class="modal-footer">
           <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
@@ -2064,7 +2075,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(`/user_status/${username}`)
       .then(r => r.json())
       .then(data => {
-        const statusEl = document.getElementById('user-status');        if (statusEl) statusEl.remove();
+        const statusEl = document.getElementById('user-status');
+        if (statusEl) statusEl.remove();
 
         const chatHeader = document.querySelector('.chat-header');
         const statusDiv = document.createElement('div');
@@ -2073,9 +2085,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.status === 'online') {
           statusDiv.innerHTML = '<span class="status-indicator online">🟢</span> Online';
+        } else if (data.last_seen) {
+          const lastSeen = new Date(data.last_seen * 1000);
+          const now = new Date();
+          const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+          const diffDays = Math.floor(diffHours / 24);
+          
+          let lastSeenText;
+          if (diffDays >= 3) {
+            lastSeenText = `був ${lastSeen.toLocaleDateString('uk-UA')}`;
+          } else if (diffDays >= 1) {
+            lastSeenText = `був ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
+          } else if (diffHours >= 1) {
+            lastSeenText = `був ${Math.floor(diffHours)} ${Math.floor(diffHours) === 1 ? 'годину' : 'годин'} тому`;
+          } else {
+            lastSeenText = `був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+          }
+          
+          statusDiv.innerHTML = `<span class="status-indicator offline">⚪</span> ${lastSeenText}`;
         } else {
-          const lastSeen = data.last_seen ? new Date(data.last_seen * 1000).toLocaleString() : 'Unknown';
-          statusDiv.innerHTML = `<span class="status-indicator offline">⚪</span> Last seen: ${lastSeen}`;
+          statusDiv.innerHTML = '<span class="status-indicator offline">⚪</span> був давно';
         }
 
         chatHeader.appendChild(statusDiv);

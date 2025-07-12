@@ -1507,7 +1507,7 @@ def upload_file():
 
     file.seek(0)
 
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'}
     file_ext = os.path.splitext(file.filename)[1].lower()
 
     if file_ext not in allowed_extensions:
@@ -1537,7 +1537,7 @@ def upload_file():
             'text': file_url,
             'timestamp': int(time.time()),
             'type': 'media',
-            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
+            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'] else 'image'
         })
 
         save_json('messages', messages_data)
@@ -1549,7 +1549,7 @@ def upload_file():
             'message': file_url,
             'timestamp': int(time.time()),
             'type': 'media',
-            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
+            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'] else 'image'
         }, room=room, include_self=False)
         
         # Also emit old format for compatibility

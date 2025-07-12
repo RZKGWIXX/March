@@ -403,9 +403,11 @@ body {
   border-bottom: 1px solid var(--surface-lighter); 
   display: flex; 
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   background: var(--surface-dark);
   box-shadow: var(--shadow-light);
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .chat-title h2 {
@@ -422,6 +424,25 @@ body {
 .chat-controls {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.user-status,
+.room-stats {
+  width: 100%;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  order: 3;
+}
+
+.status-indicator {
+  font-size: 0.8rem;
+  margin-right: 0.25rem;
+}
+
+.stats-text {
+  color: var(--text-secondary);
 }
 
 .chat-controls button { 
@@ -534,7 +555,7 @@ body {
 }
 
 .message-text {
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
 }
 
@@ -702,7 +723,7 @@ body {
 /* Modal Header */
 .modal-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--surface-lighter);
@@ -712,27 +733,6 @@ body {
 .modal-header h2 {
   margin: 0;
   color: var(--text-primary);
-}
-
-.close-button {
-  background: var(--red-disconnected);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-}
-
-.close-button:hover {
-  background: #cc0000;
-  transform: scale(1.1);
 }
 
 /* Admin Layout */
@@ -806,6 +806,84 @@ body {
 .welcome-message h3 {
   color: var(--accent-green);
   margin-bottom: 1rem;
+}
+
+/* Admin Stats Display */
+.admin-stats-display {
+  padding: 2rem;
+}
+
+.admin-stats-display h3 {
+  color: var(--accent-green);
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.admin-stats-display .stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.admin-stats-display .stat-item {
+  text-align: center;
+  padding: 2rem;
+  background: var(--surface-accent);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-light);
+}
+
+.admin-stats-display .stat-item h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.admin-stats-display .stat-number {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--accent-green);
+}
+
+.admin-stats-display .online-users-list h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+}
+
+.online-users-container {
+  background: var(--surface-accent);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.admin-stats-display .online-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--surface-dark);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.admin-stats-display .user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-stats-display .user-room {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.admin-stats-display .online-indicator {
+  font-size: 1rem;
 }
 
 /* Admin Stats Improvements */
