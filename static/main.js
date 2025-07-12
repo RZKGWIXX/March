@@ -436,14 +436,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           messageContent = `
             <div class="video-container">
-              <video id="${videoId}" src="${text}" controls class="shared-video" style="max-width: 250px; max-height: 200px; margin-top: 4px;" preload="metadata">
+              <video id="${videoId}" src="${text}" controls class="shared-video" preload="metadata">
                 Your browser does not support the video tag.
               </video>
               <button class="video-reset-btn" onclick="resetVideo('${videoId}')" title="Скинути відео">🔄</button>
             </div>
           `;
         } else {
-          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="max-width: 250px; max-height: 200px; cursor: pointer; margin-top: 4px;">`;
+          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="cursor: pointer; margin-top: 4px;">`;
         }
       } else {
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
@@ -466,26 +466,26 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Add click handler for username
+      // Add click handler for username and avatar
       const usernameEl = div.querySelector('.message-author');
+      const avatarEl = div.querySelector('.message-avatar');
+      
+      const showProfile = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (nick !== nickname) {
+          showUserProfile(nick);
+        }
+      };
+
       if (usernameEl) {
-        usernameEl.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showUserProfile(nick);
-        });
+        usernameEl.addEventListener('click', showProfile);
+        usernameEl.addEventListener('touchend', showProfile);
+      }
 
-        // Mobile touch handling
-        usernameEl.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-
-        usernameEl.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showUserProfile(nick);
-        });
+      if (avatarEl) {
+        avatarEl.addEventListener('click', showProfile);
+        avatarEl.addEventListener('touchend', showProfile);
       }
 
       // Add context menu for message deletion
@@ -1199,17 +1199,15 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.addEventListener('touchend', handleTouchEnd, {passive: true});
   }
 
-  // Desktop click handler for room title
+  // Click handler for room title (both mobile and desktop)
   if (currentRoomEl) {
     currentRoomEl.addEventListener('click', () => {
-      if (window.innerWidth > 768) { // Only on desktop
-        if (currentRoom.startsWith('private_')) {
-          const users = currentRoom.replace('private_', '').split('_');
-          const otherUser = users.find(u => u !== nickname) || users[0];
-          showUserProfile(otherUser);
-        } else if (currentRoom !== 'general') {
-          showGroupMembers();
-        }
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        showUserProfile(otherUser);
+      } else if (currentRoom !== 'general') {
+        showGroupMembers();
       }
     });
   }
@@ -2455,62 +2453,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Add settings button to header
-  const headerButtons = document.querySelector('.header-buttons');
-  if (headerButtons) {
-    // Desktop buttons
-    if (!useMobileInterface) {
-      const settingsBtn = document.createElement('button');
-      settingsBtn.innerHTML = '⚙️';
-      settingsBtn.title = 'Settings';
-      settingsBtn.onclick = window.showSettings;
-      headerButtons.appendChild(settingsBtn);
+  // Setup header buttons
+  const settingsBtn = document.getElementById('settings-btn');
+  const adminBtn = document.getElementById('admin-btn');
 
-      // Add admin button if admin
-      if (nickname === 'Wixxy') {
-        const adminBtn = document.createElement('button');
-        adminBtn.innerHTML = '🔧';
-        adminBtn.title = 'Admin Panel';
-        adminBtn.onclick = toggleAdminPanel;
-        headerButtons.appendChild(adminBtn);
-      }
-    } else {
-      // Mobile dropdown setup
-      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-      const mobileDropdown = document.getElementById('mobile-header-dropdown');
-      const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
-      const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+  if (settingsBtn) {
+    settingsBtn.onclick = window.showSettings;
+  }
 
-      if (mobileMenuBtn) {
-        mobileMenuBtn.style.display = 'block';
-        mobileMenuBtn.onclick = (e) => {
-          e.stopPropagation();
-          mobileDropdown.classList.toggle('show');
-        };
-      }
-
-      if (mobileSettingsBtn) {
-        mobileSettingsBtn.onclick = () => {
-          mobileDropdown.classList.remove('show');
-          window.showSettings();
-        };
-      }
-
-      if (nickname === 'Wixxy' && mobileAdminBtn) {
-        mobileAdminBtn.style.display = 'block';
-        mobileAdminBtn.onclick = () => {
-          mobileDropdown.classList.remove('show');
-          toggleAdminPanel();
-        };
-      }
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.header-buttons')) {
-          mobileDropdown.classList.remove('show');
-        }
-      });
-    }
+  if (adminBtn && nickname === 'Wixxy') {
+    adminBtn.style.display = 'block';
+    adminBtn.onclick = toggleAdminPanel;
   }
 
   // Add create group button

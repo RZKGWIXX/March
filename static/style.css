@@ -2305,13 +2305,41 @@ body[data-theme="dark"] .admin-content {
   transform: scale(0.98);
 }
 
-/* Mobile specific profile styles */
-@media (max-width: 768px) {
-  .user-profile-modal {
-    padding: 0;
-    align-items: flex-start;
-    justify-content: flex-start;
+/* Mobile chat header layout */
+  @media (max-width: 768px) {
+    .chat-header {
+      padding: 1rem;
+      align-items: center;
+    }
+
+    .chat-title-wrapper {
+      gap: 0.75rem;
+    }
+
+    .chat-title h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    #room-type {
+      font-size: 0.8rem;
+    }
+
+    #menu-toggle {
+      min-width: 40px;
+      min-height: 40px;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+    }
   }
+
+  /* Mobile specific profile styles */
+  @media (max-width: 768px) {
+    .user-profile-modal {
+      padding: 0;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
 
   .mobile-profile {
     width: 100vw;
@@ -2371,14 +2399,6 @@ body[data-theme="dark"] .admin-content {
     font-size: 1.1rem;
     min-height: 50px;
   }
-
-  .close-profile-btn {
-    top: 15px;
-    right: 15px;
-    width: 35px;
-    height: 35px;
-    font-size: 20px;
-  }
 }
 
 /* Chat list improvements */
@@ -2402,8 +2422,7 @@ body[data-theme="dark"] .admin-content {
   font-size: 0.8rem;
   font-weight: 600;
   z-index: 10000;
-  ```text
-transition: var(--transition);
+  transition: var(--transition);
 }
 
 .connection-status.connected {

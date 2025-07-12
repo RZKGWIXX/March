@@ -55,11 +55,8 @@
         <h1>💬 OrbitMess</h1>
         <div class="header-buttons">
           <button id="theme-toggle" title="Toggle theme">🌙</button>
-          <button id="mobile-menu-btn" class="mobile-only" title="Menu" style="display: none;">☰</button>
-          <div id="mobile-header-dropdown" class="mobile-header-dropdown">
-            <div class="mobile-dropdown-item" id="mobile-settings-btn">⚙️ Налаштування</div>
-            <div class="mobile-dropdown-item" id="mobile-admin-btn" style="display: none;">🔧 Адмін панель</div>
-          </div>
+          <button id="settings-btn" title="Settings">⚙️</button>
+          <button id="admin-btn" title="Admin Panel" style="display: none;">🔧</button>
         </div>
       </header>
 
@@ -87,12 +84,14 @@
 
     <div class="chat-window">
       <div class="chat-header">
-        <div class="chat-title">
-          <h2 id="current-room"># general</h2>
-          <span id="room-type">Public Chat</span>
+        <div class="chat-title-wrapper">
+          <button id="menu-toggle" class="mobile-only" title="Toggle menu">☰</button>
+          <div class="chat-title">
+            <h2 id="current-room"># general</h2>
+            <span id="room-type">Public Chat</span>
+          </div>
         </div>
         <div class="chat-controls">
-          <button id="menu-toggle" class="mobile-only" title="Toggle menu">☰</button>
           <button id="mobile-chat-options" class="mobile-only" title="Chat options" style="display: none;">⋮</button>
           <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
             <div class="mobile-chat-option" id="mobile-view-profile">👤 Переглянути профіль</div>
