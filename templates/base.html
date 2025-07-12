@@ -98,9 +98,11 @@
         
         <!-- Controls on the right -->
         <div class="chat-controls">
-          <!-- Desktop controls - only show settings in general chat -->
+          <!-- Settings button (visible in general chat) -->
+          <button onclick="showSettings()" id="settings-btn" title="Settings" class="general-only" style="display: none;">⚙️</button>
+          
+          <!-- Desktop controls -->
           <button onclick="toggleAdminPanel()" id="admin-btn" title="Admin Panel" class="desktop-only" style="display: none;">🔧</button>
-          <button onclick="showSettings()" id="settings-btn" title="Settings" class="desktop-only general-only">⚙️</button>
           <button onclick="showRoomContextMenu()" id="delete-room-btn" title="Room Options" class="desktop-only" style="display: none;">⚙️</button>
           <button onclick="blockCurrentUser()" id="block-user-btn" title="Block User" class="desktop-only" style="display: none;">🚫</button>
 

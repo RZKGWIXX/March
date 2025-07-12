@@ -389,7 +389,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show settings button only in general chat
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
-      settingsBtn.style.display = room === 'general' ? 'block' : 'none';
+      if (room === 'general') {
+        settingsBtn.style.display = 'flex';
+        settingsBtn.classList.add('general-only');
+      } else {
+        settingsBtn.style.display = 'none';
+        settingsBtn.classList.remove('general-only');
+      }
     }
 
     // Setup mobile chat options and home button
