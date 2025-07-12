@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showForwardModal(messageIndex, originalSender) {
     const messages = messageHistory[currentRoom] || [];
     const message = messages[messageIndex];
-    
+
     if (!message) {
       showNotification('❌ Message not found', 'error');
       return;
@@ -747,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2>📤 Forward Message</h2>
           <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
-        
+
         <div class="forward-preview">
           <div class="preview-label">Message to forward:</div>
           <div class="preview-message">
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(rooms => {
         const roomsList = document.getElementById('forward-rooms-list');
         const searchInput = document.getElementById('forward-search');
-        
+
         function displayRooms(filteredRooms) {
           if (filteredRooms.length === 0) {
             roomsList.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No rooms found</div>';
@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           roomsList.innerHTML = filteredRooms.map(room => {
             let displayName, roomType;
-            
+
             if (room === 'general') {
               displayName = '# general';
               roomType = 'Public Chat';
@@ -825,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = this.value.toLowerCase();
             const filteredRooms = rooms.filter(room => {
               if (room === currentRoom) return false;
-              
+
               if (room === 'general') return 'general'.includes(query);
               if (room.startsWith('private_')) {
                 const users = room.replace('private_', '').split('_');
@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.forwardMessageToRoom = function(targetRoom, messageIndex, originalSender) {
     const messages = messageHistory[currentRoom] || [];
     const message = messages[messageIndex];
-    
+
     if (!message) {
       showNotification('❌ Message not found', 'error');
       return;
@@ -887,8 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({room: currentRoom})
-      })
-      .then(r => r.json())
+      })      .then(r => r.json())
       .then(data => {
         if (data.success) {
           loadMessages(currentRoom);
@@ -1059,8 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({room: currentRoom})
       })
       .then(r => r.json())
-      .then(data```python
- => {
+      .then(data => {
         if (data.success) {
           delete messageHistory[currentRoom];
           localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
@@ -2693,7 +2691,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  if (createGroupCancel && groupNameInput && groupPanel) {
+  if (createGroupCancel && groupNameInput && groupPanel){
     createGroupCancel.onclick = () => {
       groupNameInput.value = '';
       groupPanel.style.display = 'none';
@@ -2828,4 +2826,28 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     socket.emit('get_online_users');
   }, 1000);
+
+  // Add swipe gesture for mobile status
+  let startX = 0;
+  let startY = 0;
+  const chatHeader = document.querySelector('.chat-header');
+
+  if (chatHeader && window.innerWidth <= 768) {
+    chatHeader.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    });
+
+    chatHeader.addEventListener('touchend', (e) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = startX - endX;
+      const diffY = Math.abs(startY - endY);
+
+      // Swipe left to show settings
+      if (diffX > 50 && diffY < 100) {
+        window.showSettings();
+      }
+    });
+  }
 });

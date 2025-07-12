@@ -84,25 +84,26 @@
 
     <div class="chat-window">
       <div class="chat-header">
-        <div class="chat-title-wrapper">
-          <button id="menu-toggle" class="mobile-only" title="Toggle menu">☰</button>
-          <div class="chat-title">
-            <h2 id="current-room"># general</h2>
-            <span id="room-type">Public Chat</span>
+          <div class="chat-title-section">
+            <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+            <div class="chat-info">
+              <div class="chat-title-row">
+                <h2 id="chat-title"># general 🌍</h2>
+                <div id="user-status" class="user-status"></div>
+              </div>
+              <div id="chat-subtitle">Public Chat</div>
+            </div>
+          </div>
+          <div class="chat-controls">
+            <button id="mobile-chat-options" class="mobile-chat-btn">⋮</button>
+            <div id="mobile-chat-dropdown" class="mobile-header-dropdown">
+              <div id="mobile-view-profile" class="mobile-dropdown-item">👤 View Profile</div>
+              <div id="mobile-block-user" class="mobile-dropdown-item">🚫 Block User</div>
+              <div id="mobile-clear-history" class="mobile-dropdown-item">🗑️ Clear History</div>
+              <div id="mobile-delete-chat" class="mobile-dropdown-item">❌ Delete Chat</div>
+            </div>
           </div>
         </div>
-        <div class="chat-controls">
-          <button id="mobile-chat-options" class="mobile-only" title="Chat options" style="display: none;">⋮</button>
-          <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
-            <div class="mobile-chat-option" id="mobile-view-profile">👤 Переглянути профіль</div>
-            <div class="mobile-chat-option" id="mobile-clear-history">🧹 Очистити історію</div>
-            <div class="mobile-chat-option" id="mobile-delete-chat">🗑️ Видалити чат</div>
-            <div class="mobile-chat-option" id="mobile-block-user">🚫 Заблокувати</div>
-          </div>
-          <button id="delete-room-btn" title="Delete room">🗑️</button>
-          <button id="block-user-btn" title="Block user" style="display: none;">🚫</button>
-        </div>
-      </div>
 
       <div id="messages" class="messages"></div>
 

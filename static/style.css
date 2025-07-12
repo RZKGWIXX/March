@@ -292,6 +292,132 @@ body {
   background: var(--accent-green-dark);
 }
 
+/* Context Menu Styles */
+.context-menu {
+  position: fixed;
+  background: var(--surface-dark);
+  border: 1px solid var(--surface-lighter);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 0;
+  min-width: 150px;
+  z-index: 10000;
+}
+
+.context-menu-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.context-menu-item:hover {
+  background: var(--accent-green);
+  color: black;
+}
+
+/* Forward Dialog Styles */
+.forward-preview {
+  background: var(--surface-lighter);
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin: 1rem 0;
+  border-left: 3px solid var(--accent-green);
+}
+
+.room-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 1rem 0;
+}
+
+.room-item {
+  padding: 1rem;
+  cursor: pointer;
+  border: 1px solid var(--surface-lighter);
+  border-radius: var(--border-radius);
+  margin: 0.5rem 0;
+  transition: var(--transition);
+  background: var(--surface-lighter);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.room-item:hover {
+  background: var(--accent-green);
+  color: black;
+  transform: translateX(5px);
+}
+
+/* Message Media Improvements */
+.message-media {
+  max-width: 50% !important;
+  max-height: 300px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.message-media:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile Responsiveness for Media */
+/* User Status in Header */
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.user-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  background: var(--surface-lighter);
+  border-radius: 10px;
+  display: none; /* Hidden by default, shown in private chats */
+}
+
+.user-status.online {
+  color: var(--accent-green);
+  background: rgba(78, 205, 196, 0.1);
+}
+
+.user-status.offline {
+  color: var(--text-muted);
+  background: var(--surface-lighter);
+}
+
+@media (max-width: 768px) {
+  .message-media {
+    max-width: 80% !important;
+  }
+  
+  .context-menu {
+    min-width: 120px;
+    font-size: 0.9rem;
+  }
+  
+  .context-menu-item {
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .chat-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+  
+  .user-status {
+    font-size: 0.7rem;
+  }
+}
+
 /* User Suggestions */
 .user-suggestions {
   position: absolute;
