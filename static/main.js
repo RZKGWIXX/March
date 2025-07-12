@@ -1,4 +1,3 @@
-javascript
 document.addEventListener('DOMContentLoaded', () => {
   // Check if we're on the login page - if so, don't initialize chat functionality
   if (!nickname || nickname.trim() === '') return;
@@ -376,29 +375,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector(`[data-room="${room}"]`);
     if (activeItem) activeItem.classList.add('active');
 
-    // Update controls based on room type
-    const generalOnlyElements = document.querySelectorAll('.general-only');
-    const roomOnlyElements = document.querySelectorAll('.room-only');
-
-    if (room === 'general') {
-      generalOnlyElements.forEach(el => el.style.display = 'block');
-      roomOnlyElements.forEach(el => el.style.display = 'none');
-    } else {
-      generalOnlyElements.forEach(el => el.style.display = 'none');
-      roomOnlyElements.forEach(el => el.style.display = 'block');
-    }
-
+    // Update controls - hide all buttons for general chat
     if (deleteRoomBtn) {
       deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
       if (room !== 'general') {
         deleteRoomBtn.onclick = showRoomContextMenu;
       }
     }
+    if (blockUserBtn) {
+      blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
+    }
 
     // Setup mobile chat options and home button
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-    const mobileHomeBtn = document.getElementById('mobile-home-btn');
+    const homeBtnMobile = document.getElementById('home-btn-mobile');
 
     if (mobileChatOptions) {
       mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
@@ -406,9 +397,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setupMobileChatDropdown(room);
     }
 
-    if (mobileHomeBtn) {
-      mobileHomeBtn.style.display = room !== 'general' ? 'block' : 'none';
-      mobileHomeBtn.onclick = () => {
+    if (homeBtnMobile) {
+      homeBtnMobile.style.display = room !== 'general' ? 'block' : 'none';
+      homeBtnMobile.onclick = () => {
         sidebar.classList.add('open');
       };
     }
@@ -758,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel forward-modal';
     const isMobile = window.innerWidth <= 768;
-
+    
     modal.innerHTML = `
       <div class="admin-content forward-content">
         <div class="modal-header">
@@ -805,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const isMobile = window.innerWidth <= 768;
-
+          
           roomsList.innerHTML = filteredRooms.map(room => {
             let displayName, roomType, emoji;
 
@@ -852,8 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (room.startsWith('private_')) {
                 const users = room.replace('private_', '').split('_');
                 const otherUser = users.find(u => u !== nickname) || users[0];
-                return otherUser.```javascript
-toLowerCase().includes(query);
+                return otherUser.toLowerCase().includes(query);
               }
               return room.toLowerCase().includes(query);
             });
@@ -1782,7 +1772,7 @@ toLowerCase().includes(query);
       </div>
     `;
     document.body.appendChild(modal);
-    loadStats();    // Load stats immediately
+    loadStats(); // Load stats immediately
   };
 
   // Create group as admin
@@ -2658,7 +2648,6 @@ toLowerCase().includes(query);
 
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
-```javascript
         mobileDeleteChat.textContent = '🚪 Leave Group';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');
@@ -2672,6 +2661,7 @@ toLowerCase().includes(query);
       e.stopPropagation();
       mobileChatDropdown.classList.toggle('show');
     };
+
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.chat-controls')) {

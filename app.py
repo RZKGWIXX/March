@@ -32,11 +32,9 @@ BINS = {
     'nickname_cooldowns': '6870e472afef824ba9f95e5a'
 }
 
-# Global variables for socket.io
+# Track online users
 online_users = {}
 user_sessions = {}
-users = {}  # Add missing users dictionary
-
 
 # Anti-spam and security tracking
 message_timestamps = defaultdict(deque)
@@ -1801,7 +1799,7 @@ def on_message(data):
             remaining_minutes = int((mute_info['until'] - current_time) / 60)
             emit('error', {
                 'message':
-                                f'You are muted for {remaining_minutes} more minutes'
+                f'You are muted for {remaining_minutes} more minutes'
             })
             return
         else:
@@ -1877,13 +1875,15 @@ def handle_join_room(data):
 @socketio.on('get_online_users')
 def handle_get_online_users():
     try:
-        current_room = user_sessions.get(request.sid, 'general')
-        room_users = [u['nickname'] for u in online_users.items() if u[1].get('room') == current_room]
-        emit('online_users', {'users': room_users})
+        nickname = session.get('nickname')
+        if not nickname:
+            return
+
+        online_users_list = [users[sid]['nickname'] for sid in users.keys()]
+        emit('online_users', {'users': online_users_list})
+
     except Exception as e:
         print(f"Error getting online users: {e}")
-        # Return empty list if error occurs
-        emit('online_users', {'users': []})
 
 # Initialize on app startup (works with both gunicorn and direct python run)
 print("Initializing OrbitMess Chat...")

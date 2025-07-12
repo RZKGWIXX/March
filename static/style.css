@@ -456,7 +456,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
 }
 
 .user-info-avatar {
@@ -656,14 +655,6 @@ body {
 
 .mobile-only {
   display: none;
-}
-
-.room-only {
-  display: none;
-}
-
-.general-only {
-  display: block;
 }
 
 /* Mobile Chat Options Dropdown */
@@ -967,13 +958,13 @@ body {
 
 /* Connection Status */
 .connection-status {
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.7rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: var(--transition);
-  margin-left: auto;
-  white-space: nowrap;
+  margin-bottom: 0.5rem;
+  text-align: center;
 }
 
 .connection-status.connected {
@@ -2052,18 +2043,19 @@ body {
     flex: 1;
   }
 
-/* Center status below title on mobile */
-    .user-status,
-    .room-stats {
-      order: 0;
-      margin: 0;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      text-align: center;
-      display: block;
-      width: 100%;
-    }
+  /* Move status between nickname and controls */
+  .user-status,
+  .room-stats {
+    order: 0;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
 
   .chat-controls {
     gap: 0.75rem;
@@ -2094,26 +2086,25 @@ body {
 
   /* Mobile Admin Panel */
   .admin-content {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 15px;
     overflow: hidden;
     background: var(--surface-dark);
-    border: none;
-    margin: 0;
+    border: 2px solid var(--accent-green);
   }
 
   .admin-layout {
     flex-direction: column;
-    height: calc(100vh - 80px);
+    max-height: calc(90vh - 120px);
   }
 
   .admin-sidebar {
     width: 100%;
-    max-height: 40vh;
+    max-height: 200px;
     overflow-y: auto;
     border-right: none;
-    border-bottom: 1px solid var(--surface-lighter);
+    border-bottom: 2px solid var(--accent-green);
     background: var(--surface-lighter);
     padding: 1rem;
   }
@@ -2750,7 +2741,6 @@ body[data-theme="dark"] .admin-content {
       justify-content: space-between;
       position: relative;
       gap: 1rem;
-      min-height: 4rem;
     }
 
     .chat-title {
@@ -2761,7 +2751,6 @@ body[data-theme="dark"] .admin-content {
       align-items: center;
       gap: 0.25rem;
       order: 2;
-      position: relative;
     }
 
     .chat-title h2 {
