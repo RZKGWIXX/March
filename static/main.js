@@ -386,15 +386,22 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
 
-    // Setup mobile chat options
+    // Setup mobile chat options and home button
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
+    const homeBtnMobile = document.getElementById('home-btn-mobile');
 
-    if (mobileChatOptions && useMobileInterface) {
+    if (mobileChatOptions) {
       mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
-
       // Setup mobile chat dropdown
       setupMobileChatDropdown(room);
+    }
+
+    if (homeBtnMobile) {
+      homeBtnMobile.style.display = room !== 'general' ? 'block' : 'none';
+      homeBtnMobile.onclick = () => {
+        sidebar.classList.add('open');
+      };
     }
 
     // Close mobile menu
@@ -2610,6 +2617,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mobileClearHistory) {
         mobileClearHistory.style.display = 'block';
+        mobileClearHistory.textContent = '🗑️ Clear History';
         mobileClearHistory.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           clearPrivateHistory();
@@ -2618,6 +2626,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
+        mobileDeleteChat.textContent = '❌ Delete Chat';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           deleteCurrentRoom();
@@ -2639,7 +2648,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
-        mobileDeleteChat.textContent = '🚪 Покинути групу';
+        mobileDeleteChat.textContent = '🚪 Leave Group';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           leaveCurrentGroup();
