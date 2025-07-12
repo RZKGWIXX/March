@@ -2788,6 +2788,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Connection status functions
+  function updateConnectionStatus(status) {
+    const statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+      statusEl.className = `connection-status ${status}`;
+      statusEl.textContent = status === 'connected' ? '🟢 Connected' : 
+                            status === 'connecting' ? '🟡 Connecting...' : 
+                            '🔴 Disconnected';
+    }
+  }
+
+  function updateUsersList() {
+    // Update users list - placeholder for future implementation
+  }
+
+  function loadChatList() {
+    // Load chat list - placeholder for future implementation  
+  }
+
+  function loadChatHistory() {
+    // Load chat history - placeholder for future implementation
+  }
+
   socket.on('connect', function() {
     console.log('Connected to server');
     updateConnectionStatus('connected');
@@ -2841,10 +2864,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Initialize
-  loadChatHistory();
-  updateUsersList();
-  loadChatList();
+  // Initialize - removed undefined function calls
 
   // Request online users list
   setTimeout(() => {
