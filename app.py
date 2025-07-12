@@ -858,6 +858,7 @@ def admin_ban_user():
     if 'users' not in banned_data:
         banned_data['users'] = []
 
+```python
     banned_data['users'] = [
         b for b in banned_data['users']
         if b.get('username') != username and b.get('ip') != user_ip
@@ -983,6 +984,50 @@ def admin_clear_chat():
     socketio.emit('chat_cleared', {'room': room}, room=room)
 
     return jsonify(success=True)
+
+@app.route('/forward_message', methods=['POST'])
+@login_required
+def forward_message():
+    """Forward a message to another room"""
+    data = request.get_json()
+    target_room = data.get('target_room')
+    message = data.get('message')
+    original_sender = data.get('original_sender')
+    nickname = session.get('nickname')
+
+    if not target_room or not message:
+        return jsonify({'success': False, 'error': 'Missing required fields'})
+
+    rooms_data = load_json('rooms')
+
+    if target_room != 'general':
+        if target_room not in rooms_data:
+            return jsonify({'success': False, 'error': 'Room not found'})
+
+        room_info = rooms_data[target_room]
+        if nickname not in room_info.get('members', []):
+            return jsonify({'success': False, 'error': 'Access denied to target room'})
+
+    messages_data = load_json('messages')
+    if target_room not in messages_data:
+        messages_data[target_room] = []
+
+    messages_data[target_room].append({
+        'nick': nickname,
+        'text': message,
+        'timestamp': int(time.time())
+    })
+
+    save_json('messages', messages_data)
+
+    socketio.emit('new_message', {
+        'room': target_room,
+        'nickname': nickname,
+        'message': message,
+        'timestamp': int(time.time())
+    }, room=target_room)
+
+    return jsonify({'success': True})
 
 
 @app.route('/clear_private_history', methods=['POST'])
@@ -1551,7 +1596,7 @@ def upload_file():
             'type': 'media',
             'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'] else 'image'
         }, room=room, include_self=False)
-        
+
         # Also emit old format for compatibility
         socketio.emit('message', {
             'room': room,

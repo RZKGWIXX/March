@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   </div>
                   <span class="chat-icon">🔐</span>
                 `;
-                
+
                 // Load user status
                 fetch(`/user_status/${otherUser}`)
                   .then(r => r.json())
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const now = new Date();
                         const diffHours = (now - lastSeen) / (1000 * 60 * 60);
                         const diffDays = Math.floor(diffHours / 24);
-                        
+
                         if (diffDays >= 3) {
                           statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleDateString('uk-UA')}`;
                         } else if (diffDays >= 1) {
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   </div>
                   <span class="chat-icon">👥</span>
                 `;
-                
+
                 // Load room stats
                 fetch(`/room_stats/${room}`)
                   .then(r => r.json())
@@ -367,10 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup mobile chat options
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-    
+
     if (mobileChatOptions && useMobileInterface) {
       mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
-      
+
       // Setup mobile chat dropdown
       setupMobileChatDropdown(room);
     }
@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add click handler for username and avatar
       const usernameEl = div.querySelector('.message-author');
       const avatarEl = div.querySelector('.message-avatar');
-      
+
       const showProfile = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -524,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel user-profile-modal';
     const isMobile = window.innerWidth <= 768;
-    
+
     modal.innerHTML = `
       <div class="admin-content user-profile ${isMobile ? 'mobile-profile' : ''}">
         <div class="profile-header">
@@ -589,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const diffHours = (now - lastSeenDate) / (1000 * 60 * 60);
         const diffDays = Math.floor(diffHours / 24);
-        
+
         if (statusData.status === 'online') {
           lastSeen.textContent = 'Зараз у мережі';
         } else if (diffDays >= 3) {
@@ -824,10 +824,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close any existing modals first
     const existingModals = document.querySelectorAll('.admin-panel');
     existingModals.forEach(modal => modal.remove());
-    
+
     // Close any existing context menus
     hideContextMenu();
-    
+
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
@@ -883,7 +883,8 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({room: currentRoom})
       })
       .then(r => r.json())
-      .then(data => {
+      .then(data```python
+ => {
         if (data.success) {
           delete messageHistory[currentRoom];
           localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
@@ -1166,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.innerWidth > 768) return;
     currentX = e.touches[0].clientX;
     const deltaX = currentX - startX;
-    
+
     if (Math.abs(deltaX) > 10) {
       isSwiping = true;
     }
@@ -1174,10 +1175,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleTouchEnd(e) {
     if (window.innerWidth > 768 || !isSwiping) return;
-    
+
     const deltaX = currentX - startX;
     const swipeThreshold = 100;
-    
+
     if (deltaX > swipeThreshold) {
       // Swipe right - show members/profile
       if (currentRoom.startsWith('private_')) {
@@ -1188,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showGroupMembers();
       }
     }
-    
+
     isSwiping = false;
   }
 
@@ -1288,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.message.startsWith('/static/uploads/')) {
       const isVideo = data.message.includes('.mp4') || data.message.includes('.mov') || data.message.includes('.avi') || data.message.includes('.webm');
       const mediaType = isVideo ? 'відео' : 'зображення';
-      
+
       if (document.hidden) {
         showDesktopNotification(data.nickname, `Надіслав ${mediaType}`);
       }
@@ -1404,7 +1405,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Handle window resize
   window.addEventListener('resize', () => {
     const isNowMobile = window.innerWidth <= 768;
-    
+
     if (!isNowMobile) {
       sidebar.classList.remove('open');
       // Hide mobile dropdowns
@@ -1417,7 +1418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileChatDropdown.classList.remove('show');
       }
     }
-    
+
     // Update mobile chat options visibility
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     if (mobileChatOptions && currentRoom !== 'general') {
@@ -1624,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           `;
         }
-        
+
         // Also update sidebar stats
         const statsDiv = document.getElementById('admin-stats');
         if (statsDiv) {
@@ -1758,21 +1759,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const isTabletDevice = /ipad|android/i.test(userAgent) && window.innerWidth > 768;
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const isSmallScreen = window.innerWidth <= 768;
-  
+
   // Determine if we should use mobile interface
   const useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
-  
+
   // Apply mobile-specific styles and behaviors
   if (useMobileInterface) {
     document.body.classList.add('mobile-device');
     console.log('Mobile interface activated');
-    
+
     // Mobile-specific optimizations
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
       viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
     }
-    
+
     // Optimize touch interactions
     document.addEventListener('touchstart', function() {}, {passive: true});
     document.addEventListener('touchmove', function() {}, {passive: true});
@@ -1785,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close any existing modals first
     const existingModals = document.querySelectorAll('.admin-panel');
     existingModals.forEach(modal => modal.remove());
-    
+
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
 
@@ -2044,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <li class="improved">Оптимізована робота з медіа файлами</li>
             </ul>
           </div>
-          
+
         </div>
         <div class="modal-footer">
           <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
@@ -2150,7 +2151,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const now = new Date();
           const diffHours = (now - lastSeen) / (1000 * 60 * 60);
           const diffDays = Math.floor(diffHours / 24);
-          
+
           let lastSeenText;
           if (diffDays >= 3) {
             lastSeenText = `був ${lastSeen.toLocaleDateString('uk-UA')}`;
@@ -2161,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             lastSeenText = `був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
           }
-          
+
           statusDiv.innerHTML = `<span class="status-indicator offline">⚪</span> ${lastSeenText}`;
         } else {
           statusDiv.innerHTML = '<span class="status-indicator offline">⚪</span> був давно';
@@ -2363,7 +2364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatar.onerror = () => {
           userAvatar.src = '/static/default-avatar.png';
         };
-        
+
         userInfo.insertBefore(userAvatar, userInfo.firstChild);
       })
       .catch(err => {
@@ -2391,7 +2392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (room.startsWith('private_')) {
       const users = room.replace('private_', '').split('_');
       const otherUser = users.find(u => u !== nickname) || users[0];
-      
+
       if (mobileViewProfile) {
         mobileViewProfile.style.display = 'block';
         mobileViewProfile.onclick = () => {
@@ -2399,7 +2400,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showUserProfile(otherUser);
         };
       }
-      
+
       if (mobileClearHistory) {
         mobileClearHistory.style.display = 'block';
         mobileClearHistory.onclick = () => {
@@ -2407,7 +2408,7 @@ document.addEventListener('DOMContentLoaded', () => {
           clearPrivateHistory();
         };
       }
-      
+
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
         mobileDeleteChat.onclick = () => {
@@ -2415,7 +2416,7 @@ document.addEventListener('DOMContentLoaded', () => {
           deleteCurrentRoom();
         };
       }
-      
+
       if (mobileBlockUser) {
         mobileBlockUser.style.display = 'block';
         mobileBlockUser.onclick = () => {
@@ -2428,7 +2429,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mobileViewProfile) mobileViewProfile.style.display = 'none';
       if (mobileBlockUser) mobileBlockUser.style.display = 'none';
       if (mobileClearHistory) mobileClearHistory.style.display = 'none';
-      
+
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
         mobileDeleteChat.textContent = '🚪 Покинути групу';

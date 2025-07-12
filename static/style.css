@@ -345,18 +345,30 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.2s ease;
   background: var(--surface-dark);
+  max-width: 300px;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+}
+
+.shared-image:hover {
+  transform: scale(1.02);
 }
 
 .mobile-device .shared-image {
   background: var(--surface-dark);
   padding: 2px;
   border: 1px solid var(--surface-lighter);
+  max-width: calc(100vw - 120px);
+  max-height: 250px;
 }
 
 .mobile-device .shared-video {
   background: var(--surface-dark);
   padding: 2px;
   border: 1px solid var(--surface-lighter);
+  max-width: calc(100vw - 120px);
+  max-height: 250px;
 }
 
 #chat-list { 
@@ -552,6 +564,161 @@ body {
 
 .mobile-chat-option:last-child {
   border-bottom: none;
+}
+
+/* Forward Modal Styles */
+.forward-modal {
+  z-index: 10003;
+}
+
+.forward-content {
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+}
+
+.forward-preview {
+  padding: 1rem;
+  background: var(--surface-lighter);
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+}
+
+.preview-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.preview-message {
+  background: var(--surface-dark);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent-green);
+}
+
+.preview-sender {
+  font-size: 0.8rem;
+  color: var(--accent-green);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.preview-text {
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.forward-search {
+  margin-bottom: 1rem;
+}
+
+.forward-search input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--surface-lighter);
+  border-radius: var(--border-radius);
+  background: var(--surface-lighter);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.forward-search input:focus {
+  outline: none;
+  border-color: var(--accent-green);
+}
+
+.forward-rooms {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.forward-room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--surface-lighter);
+  border-radius: var(--border-radius);
+  margin-bottom: 0.5rem;
+  transition: var(--transition);
+}
+
+.forward-room-item:hover {
+  background: var(--surface-accent);
+}
+
+.forward-room-info {
+  flex: 1;
+}
+
+.forward-room-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.forward-room-type {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.forward-btn {
+  padding: 0.5rem 1rem;
+  background: var(--accent-green);
+  color: black;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.forward-btn:hover {
+  background: var(--accent-green-dark);
+}
+
+/* Forwarded Message Styles */
+.forwarded-message {
+  background: var(--surface-lighter);
+  border-left: 4px solid var(--accent-green);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.forwarded-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.forwarded-icon {
+  font-size: 1rem;
+}
+
+.forwarded-from {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.forwarded-from:hover {
+  text-decoration: underline;
+}
+
+.forwarded-content {
+  color: var(--text-primary);
+  line-height: 1.4;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--surface-accent);
+  margin-left: 0.5rem;
 }
 
 /* Connection Status */
@@ -1624,15 +1791,44 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
   }
 
   .chat-title h2 {
     font-size: 1.2rem;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .chat-title {
+    flex: 1;
+  }
+
+  /* Move status between nickname and controls */
+  .user-status,
+  .room-stats {
+    order: 0;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
   }
 
   .chat-controls {
     gap: 0.75rem;
+    position: relative;
   }
 
   .chat-controls button {
