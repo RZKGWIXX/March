@@ -461,12 +461,34 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="message-wrapper">
           ${avatarHtml}
           <div class="message-content">
-            <span class="message-author clickable-username" onclick="showUserProfile('${nick}')" title="View ${nick}'s profile">${nick}</span>
+            <span class="message-author clickable-username" data-username="${nick}" title="View ${nick}'s profile">${nick}</span>
             <span class="message-text">${messageContent}</span>
             ${statusHtml}
           </div>
         </div>
       `;
+
+      // Add click handler for username
+      const usernameEl = div.querySelector('.message-author');
+      if (usernameEl) {
+        usernameEl.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showUserProfile(nick);
+        });
+
+        // Mobile touch handling
+        usernameEl.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        usernameEl.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showUserProfile(nick);
+        });
+      }
 
       // Add context menu for message deletion
       if (index >= 0) {
@@ -496,6 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Show user profile
   function showUserProfile(username) {
     if (username === nickname) return; // Don't show own profile
+
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
 
     const modal = document.createElement('div');
     modal.className = 'admin-panel user-profile-modal';
@@ -800,6 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close any existing modals first
     const existingModals = document.querySelectorAll('.admin-panel');
     existingModals.forEach(modal => modal.remove());
+    
+    // Close any existing context menus
+    hideContextMenu();
     
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
@@ -1380,6 +1409,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (window.innerWidth > 768) {
       sidebar.classList.remove('open');
+      // Hide mobile dropdown
+      const mobileDropdown = document.getElementById('mobile-header-dropdown');
+      if (mobileDropdown) {
+        mobileDropdown.classList.remove('show');
+      }
     }
   });
 
@@ -2328,19 +2362,57 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add settings button to header
   const headerButtons = document.querySelector('.header-buttons');
   if (headerButtons) {
-    const settingsBtn = document.createElement('button');
-    settingsBtn.innerHTML = '⚙️';
-    settingsBtn.title = 'Settings';
-    settingsBtn.onclick = window.showSettings;
-    headerButtons.appendChild(settingsBtn);
+    // Desktop buttons
+    if (window.innerWidth > 768) {
+      const settingsBtn = document.createElement('button');
+      settingsBtn.innerHTML = '⚙️';
+      settingsBtn.title = 'Settings';
+      settingsBtn.onclick = window.showSettings;
+      headerButtons.appendChild(settingsBtn);
 
-    // Add admin button if admin
-    if (nickname === 'Wixxy') {
-      const adminBtn = document.createElement('button');
-      adminBtn.innerHTML = '🔧';
-      adminBtn.title = 'Admin Panel';
-      adminBtn.onclick = toggleAdminPanel;
-      headerButtons.appendChild(adminBtn);
+      // Add admin button if admin
+      if (nickname === 'Wixxy') {
+        const adminBtn = document.createElement('button');
+        adminBtn.innerHTML = '🔧';
+        adminBtn.title = 'Admin Panel';
+        adminBtn.onclick = toggleAdminPanel;
+        headerButtons.appendChild(adminBtn);
+      }
+    } else {
+      // Mobile dropdown setup
+      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      const mobileDropdown = document.getElementById('mobile-header-dropdown');
+      const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+      const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.style.display = 'block';
+        mobileMenuBtn.onclick = () => {
+          mobileDropdown.classList.toggle('show');
+        };
+      }
+
+      if (mobileSettingsBtn) {
+        mobileSettingsBtn.onclick = () => {
+          mobileDropdown.classList.remove('show');
+          window.showSettings();
+        };
+      }
+
+      if (nickname === 'Wixxy' && mobileAdminBtn) {
+        mobileAdminBtn.style.display = 'block';
+        mobileAdminBtn.onclick = () => {
+          mobileDropdown.classList.remove('show');
+          toggleAdminPanel();
+        };
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.header-buttons')) {
+          mobileDropdown.classList.remove('show');
+        }
+      });
     }
   }
 
