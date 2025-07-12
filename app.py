@@ -858,8 +858,7 @@ def admin_ban_user():
     if 'users' not in banned_data:
         banned_data['users'] = []
 
-```python
-    banned_data['users'] = [
+banned_data['users'] = [
         b for b in banned_data['users']
         if b.get('username') != username and b.get('ip') != user_ip
     ]
