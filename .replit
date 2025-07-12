@@ -1,5 +1,5 @@
 run = "python app.py"
-modules = ["nodejs-20", "python-3.12", "web"]
+modules = ["python-3.12", "nodejs-20", "web"]
 
 [[ports]]
 localPort = 5000
