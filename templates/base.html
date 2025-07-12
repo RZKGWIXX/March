@@ -61,8 +61,8 @@
       </header>
 
       <div class="user-info">
-        <div id="connection-status" class="connection-status connecting">🟡 Connecting...</div>
         Logged in as: <strong>{{ nickname }}</strong>
+        <div id="connection-status" class="connection-status connecting">🟡 Connecting...</div>
       </div>
 
       <div class="search">
@@ -107,12 +107,12 @@
           
           <!-- Mobile three dots menu on the right -->
           <div class="mobile-only" style="position: relative;">
-            <button id="mobile-home-btn" class="mobile-home-button" title="Home" style="display: none;">🏠</button>
             <button id="mobile-chat-options" title="Chat Options" style="display: none;">⋯</button>
             <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
               <div id="mobile-view-profile" class="mobile-dropdown-item">👤 View Profile</div>
-              <div id="mobile-private-options" class="mobile-dropdown-item">⚙️ Private Chat Options</div>
-              <div id="mobile-leave-group" class="mobile-dropdown-item">🚪 Leave Group</div>
+              <div id="mobile-block-user" class="mobile-dropdown-item">🚫 Block User</div>
+              <div id="mobile-clear-history" class="mobile-dropdown-item">🗑️ Clear History</div>
+              <div id="mobile-delete-chat" class="mobile-dropdown-item">❌ Delete Chat</div>
             </div>
           </div>
         </div>

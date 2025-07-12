@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup mobile chat options and home button
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-    const mobileHomeBtn = document.getElementById('mobile-home-btn');
+    const homeBtnMobile = document.getElementById('home-btn-mobile');
 
     if (mobileChatOptions) {
       mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
@@ -397,9 +397,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setupMobileChatDropdown(room);
     }
 
-    if (mobileHomeBtn) {
-      mobileHomeBtn.style.display = room !== 'general' ? 'block' : 'none';
-      mobileHomeBtn.onclick = () => {
+    if (homeBtnMobile) {
+      homeBtnMobile.style.display = room !== 'general' ? 'block' : 'none';
+      homeBtnMobile.onclick = () => {
         sidebar.classList.add('open');
       };
     }
@@ -749,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel forward-modal';
     const isMobile = window.innerWidth <= 768;
-
+    
     modal.innerHTML = `
       <div class="admin-content forward-content">
         <div class="modal-header">
@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const isMobile = window.innerWidth <= 768;
-
+          
           roomsList.innerHTML = filteredRooms.map(room => {
             let displayName, roomType, emoji;
 
@@ -1772,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     document.body.appendChild(modal);
-    loadStats();    // Load stats immediately
+    loadStats(); // Load stats immediately
   };
 
   // Create group as admin
@@ -2661,6 +2661,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       mobileChatDropdown.classList.toggle('show');
     };
+
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.chat-controls')) {

@@ -2043,18 +2043,19 @@ body {
     flex: 1;
   }
 
-/* Center status below title on mobile */
-    .user-status,
-    .room-stats {
-      order: 0;
-      margin: 0;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      text-align: center;
-      display: block;
-      width: 100%;
-    }
+  /* Move status between nickname and controls */
+  .user-status,
+  .room-stats {
+    order: 0;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
 
   .chat-controls {
     gap: 0.75rem;
