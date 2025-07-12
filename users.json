@@ -1,14 +1,5 @@
 {
   "placeholder": "data",
-  "ca7db24c6e6db36c1290c37fb3e5a0fc": {
-    "ip": "172.31.128.142",
-    "nickname": "Wixxy",
-    "password": "Oplik140910",
-    "timestamp": 1752226389,
-    "date": "2025-07-11 09:33:09",
-    "bio": "Developer",
-    "avatar": "/static/avatars/Wixxy.jpg"
-  },
   "402e7384e436bacfe28a75afb1fb866f": {
     "ip": "172.31.128.115",
     "nickname": "Testmamka",
@@ -23,5 +14,12 @@
     "timestamp": 1752259661,
     "date": "2025-07-11 18:47:41",
     "bio": "Gxsjbv"
+  },
+  "846c101be478dc8e88304a98733f3191": {
+    "ip": "172.31.128.64",
+    "nickname": "Test",
+    "password": "Op",
+    "timestamp": 1752351371,
+    "date": "2025-07-12 20:16:11"
   }
 }

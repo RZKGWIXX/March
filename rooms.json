@@ -10,42 +10,35 @@
   },
   "Vanilla": {
     "members": [
-      "Wixxy",
       "Orest",
       "Kostya464"
     ],
-    "admins": [
-      "Wixxy"
-    ],
+    "admins": [],
     "type": "group"
   },
   "private_Testmamka_Wixxy": {
     "members": [
-      "Testmamka",
-      "Wixxy"
+      "Testmamka"
     ],
-    "admins": [
-      "Wixxy"
-    ],
+    "admins": [],
     "type": "private"
   },
   "private_Kostya464_Wixxy": {
     "members": [
-      "Kostya464",
-      "Wixxy"
+      "Kostya464"
     ],
     "admins": [
       "Kostya464"
     ],
     "type": "private"
   },
-  "test": {
+  "private_Test_Wixxy": {
     "members": [
-      "Wixxy"
+      "Test"
     ],
     "admins": [
-      "Wixxy"
+      "Test"
     ],
-    "type": "group"
+    "type": "private"
   }
 }
