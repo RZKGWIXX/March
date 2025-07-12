@@ -386,10 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
     
-    // Always show settings button
+    // Show settings button only in general chat
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
-      settingsBtn.style.display = 'block';
+      settingsBtn.style.display = room === 'general' ? 'block' : 'none';
     }
 
     // Setup mobile chat options and home button
@@ -2601,12 +2601,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupMobileChatDropdown(room) {
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
+    const mobileHome = document.getElementById('mobile-home');
     const mobileViewProfile = document.getElementById('mobile-view-profile');
     const mobileClearHistory = document.getElementById('mobile-clear-history');
     const mobileDeleteChat = document.getElementById('mobile-delete-chat');
     const mobileBlockUser = document.getElementById('mobile-block-user');
 
     if (!mobileChatOptions || !mobileChatDropdown) return;
+
+    // Always show home button
+    if (mobileHome) {
+      mobileHome.style.display = 'block';
+      mobileHome.onclick = () => {
+        mobileChatDropdown.classList.remove('show');
+        sidebar.classList.add('open');
+      };
+    }
 
     // Show/hide options based on room type
     if (room.startsWith('private_')) {
