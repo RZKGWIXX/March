@@ -1,3 +1,4 @@
+javascript
 document.addEventListener('DOMContentLoaded', () => {
   // Check if we're on the login page - if so, don't initialize chat functionality
   if (!nickname || nickname.trim() === '') return;
@@ -375,15 +376,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector(`[data-room="${room}"]`);
     if (activeItem) activeItem.classList.add('active');
 
-    // Update controls - hide all buttons for general chat
+    // Update controls based on room type
+    const generalOnlyElements = document.querySelectorAll('.general-only');
+    const roomOnlyElements = document.querySelectorAll('.room-only');
+
+    if (room === 'general') {
+      generalOnlyElements.forEach(el => el.style.display = 'block');
+      roomOnlyElements.forEach(el => el.style.display = 'none');
+    } else {
+      generalOnlyElements.forEach(el => el.style.display = 'none');
+      roomOnlyElements.forEach(el => el.style.display = 'block');
+    }
+
     if (deleteRoomBtn) {
       deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
       if (room !== 'general') {
         deleteRoomBtn.onclick = showRoomContextMenu;
       }
-    }
-    if (blockUserBtn) {
-      blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
 
     // Setup mobile chat options and home button
@@ -843,7 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
               if (room.startsWith('private_')) {
                 const users = room.replace('private_', '').split('_');
                 const otherUser = users.find(u => u !== nickname) || users[0];
-                return otherUser.toLowerCase().includes(query);
+                return otherUser.```javascript
+toLowerCase().includes(query);
               }
               return room.toLowerCase().includes(query);
             });
@@ -2648,6 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mobileDeleteChat) {
         mobileDeleteChat.style.display = 'block';
+```javascript
         mobileDeleteChat.textContent = '🚪 Leave Group';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');

@@ -456,6 +456,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .user-info-avatar {
@@ -655,6 +656,14 @@ body {
 
 .mobile-only {
   display: none;
+}
+
+.room-only {
+  display: none;
+}
+
+.general-only {
+  display: block;
 }
 
 /* Mobile Chat Options Dropdown */
@@ -958,13 +967,13 @@ body {
 
 /* Connection Status */
 .connection-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
   font-weight: 600;
   transition: var(--transition);
-  margin-bottom: 0.5rem;
-  text-align: center;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .connection-status.connected {
@@ -2085,25 +2094,26 @@ body {
 
   /* Mobile Admin Panel */
   .admin-content {
-    width: 95%;
-    max-height: 90vh;
-    border-radius: 15px;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
     overflow: hidden;
     background: var(--surface-dark);
-    border: 2px solid var(--accent-green);
+    border: none;
+    margin: 0;
   }
 
   .admin-layout {
     flex-direction: column;
-    max-height: calc(90vh - 120px);
+    height: calc(100vh - 80px);
   }
 
   .admin-sidebar {
     width: 100%;
-    max-height: 200px;
+    max-height: 40vh;
     overflow-y: auto;
     border-right: none;
-    border-bottom: 2px solid var(--accent-green);
+    border-bottom: 1px solid var(--surface-lighter);
     background: var(--surface-lighter);
     padding: 1rem;
   }
@@ -2740,6 +2750,7 @@ body[data-theme="dark"] .admin-content {
       justify-content: space-between;
       position: relative;
       gap: 1rem;
+      min-height: 4rem;
     }
 
     .chat-title {
@@ -2750,6 +2761,7 @@ body[data-theme="dark"] .admin-content {
       align-items: center;
       gap: 0.25rem;
       order: 2;
+      position: relative;
     }
 
     .chat-title h2 {
