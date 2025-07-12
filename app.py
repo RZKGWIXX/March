@@ -341,44 +341,6 @@ def get_user_list():
     return list(users)
 
 
-def get_user_display_info(username):
-    """Get user display information for messages (handles banned/deleted users)"""
-    # Check if user exists
-    if username in get_user_list():
-        # Check if user is banned
-        banned_data = load_json('banned')
-        current_time = int(time.time())
-        
-        for ban in banned_data.get('users', []):
-            if ban.get('username') == username:
-                if ban.get('until_timestamp', 0) == -1 or ban.get('until_timestamp', 0) > current_time:
-                    return {
-                        'nickname': 'Banned account',
-                        'avatar': '/static/default-avatar.svg',
-                        'is_banned': True,
-                        'original_nickname': username
-                    }
-        
-        # User exists and not banned - return normal info
-        users_data = load_json('users')
-        for user_info in users_data.values():
-            if isinstance(user_info, dict) and user_info.get('nickname') == username:
-                return {
-                    'nickname': username,
-                    'avatar': user_info.get('avatar', '/static/default-avatar.svg'),
-                    'is_banned': False,
-                    'original_nickname': username
-                }
-    
-    # User doesn't exist (deleted account)
-    return {
-        'nickname': 'Deleted account',
-        'avatar': '/static/default-avatar.svg',
-        'is_deleted': True,
-        'original_nickname': username
-    }
-
-
 def save_user(ip, nickname, password):
     """Save user to JSONBin users storage"""
     try:
@@ -445,6 +407,42 @@ def is_user_banned(nickname, ip=None):
                 return True, ban
 
     return False, None
+
+
+def get_user_display_info(nickname):
+    """Get display name and avatar for user based on their status"""
+    # Check if user is banned
+    is_banned, _ = is_user_banned(nickname)
+    if is_banned:
+        return {
+            'display_name': 'Banned Account',
+            'avatar': '/static/default-avatar.png',
+            'is_banned': True
+        }
+    
+    # Check if user account exists
+    if not check_account_exists(nickname):
+        return {
+            'display_name': 'Deleted Account',
+            'avatar': '/static/default-avatar.png',
+            'is_deleted': True
+        }
+    
+    # Get normal user data
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
+            return {
+                'display_name': nickname,
+                'avatar': user_info.get('avatar', '/static/default-avatar.png'),
+                'is_normal': True
+            }
+    
+    return {
+        'display_name': nickname,
+        'avatar': '/static/default-avatar.png',
+        'is_normal': True
+    }
 
 
 def is_user_blocked(from_user, to_user):
@@ -901,16 +899,11 @@ def admin_ban_user():
         if b.get('username') != username and b.get('ip') != user_ip
     ]
 
-    # Store original user data for restoration
-    users_data = load_json('users')
-    original_data = None
+    # Store original user data before banning
+    original_avatar = None
     for user_info in users_data.values():
         if isinstance(user_info, dict) and user_info.get('nickname') == username:
-            original_data = {
-                'nickname': user_info.get('nickname'),
-                'avatar': user_info.get('avatar', '/static/default-avatar.svg'),
-                'bio': user_info.get('bio', '')
-            }
+            original_avatar = user_info.get('avatar', '/static/default-avatar.png')
             break
 
     banned_data['users'].append({
@@ -921,8 +914,15 @@ def admin_ban_user():
         'until_timestamp': until_timestamp,
         'banned_at': int(time.time()),
         'banned_by': session['nickname'],
-        'original_data': original_data
+        'original_avatar': original_avatar
     })
+
+    # Change banned user's avatar to default
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == username:
+            user_info['avatar'] = '/static/default-avatar.png'
+            break
+    save_json('users', users_data)
 
     save_json('banned', banned_data)
 
@@ -965,34 +965,35 @@ def unban_user():
 
     banned_data = load_json('banned')
     
-    # Find banned user to restore original data
-    banned_user = None
+    # Find and restore original avatar before removing ban
+    original_avatar = None
     for ban in banned_data.get('users', []):
         if ban.get('username') == username:
-            banned_user = ban
+            original_avatar = ban.get('original_avatar')
             break
     
-    # Remove from banned list
+    # Restore original avatar if user still exists
+    if original_avatar:
+        users_data = load_json('users')
+        for user_info in users_data.values():
+            if isinstance(user_info, dict) and user_info.get('nickname') == username:
+                user_info['avatar'] = original_avatar
+                break
+        save_json('users', users_data)
+    
+    # Remove ban
     banned_data['users'] = [
         b for b in banned_data.get('users', [])
         if b.get('username') != username
     ]
     save_json('banned', banned_data)
-    
-    # Restore original user data if available
-    if banned_user and banned_user.get('original_data'):
-        users_data = load_json('users')
-        for user_info in users_data.values():
-            if isinstance(user_info, dict) and user_info.get('nickname') == username:
-                original = banned_user['original_data']
-                user_info['avatar'] = original.get('avatar', '/static/default-avatar.svg')
-                user_info['bio'] = original.get('bio', '')
-                break
-        save_json('users', users_data)
 
-    socketio.emit('user_unbanned', {
-        'username': username
-    })
+    # Broadcast avatar restoration
+    if original_avatar:
+        socketio.emit('avatar_updated', {
+            'user': username,
+            'avatar_url': original_avatar
+        })
 
     return jsonify(success=True)
 
@@ -1209,58 +1210,9 @@ def get_room_stats(room):
     return jsonify({'online_count': online_count, 'total_count': total_count})
 
 
-@app.route('/get_user_avatar/<username>')
-@login_required
-def get_user_avatar(username):
-    """Get user's avatar URL"""
-    try:
-        # Check if user is banned or deleted
-        display_info = get_user_display_info(username)
-        
-        if display_info.get('is_banned') or display_info.get('is_deleted'):
-            return jsonify({'avatar': '/static/default-avatar.svg'})
-        
-        # Check for custom avatar file
-        avatar_path = f'static/avatars/{username}.jpg'
-        if os.path.exists(avatar_path):
-            return jsonify({'avatar': f'/static/avatars/{username}.jpg'})
-        
-        # Check for other avatar extensions
-        for ext in ['png', 'gif', 'jpeg']:
-            avatar_path = f'static/avatars/{username}.{ext}'
-            if os.path.exists(avatar_path):
-                return jsonify({'avatar': f'/static/avatars/{username}.{ext}'})
-        
-        # Return default avatar
-        return jsonify({'avatar': '/static/default-avatar.svg'})
-        
-    except Exception as e:
-        print(f"Error getting user avatar: {e}")
-        return jsonify({'avatar': '/static/default-avatar.svg'})
-
-
 @app.route('/get_user_profile/<username>')
 @login_required
 def get_user_profile(username):
-    display_info = get_user_display_info(username)
-    
-    if display_info.get('is_banned'):
-        return jsonify({
-            'bio': 'User banned',
-            'joined': '',
-            'nickname': 'Banned account',
-            'is_banned': True,
-            'original_nickname': username
-        })
-    elif display_info.get('is_deleted'):
-        return jsonify({
-            'bio': 'User deleted account',
-            'joined': '',
-            'nickname': 'Deleted account',
-            'is_deleted': True,
-            'original_nickname': username
-        })
-    
     users_data = load_json('users')
     for user_info in users_data.values():
         if isinstance(user_info, dict) and user_info.get('nickname') == username:
@@ -1799,6 +1751,14 @@ def upload_avatar():
 def get_user_avatar(username):
     display_info = get_user_display_info(username)
     return jsonify({'avatar': display_info['avatar']})
+
+
+@app.route('/get_user_display_info/<username>')
+@login_required
+def get_user_display_info_endpoint(username):
+    """Get display information including name and avatar for user"""
+    display_info = get_user_display_info(username)
+    return jsonify(display_info)
 
 
 @app.route('/update_profile', methods=['POST'])

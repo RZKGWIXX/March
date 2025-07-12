@@ -54,17 +54,5 @@
       "forwarded": true,
       "original_sender": "Wixxy"
     }
-  ],
-  "private_Test_Wixxy": [
-    {
-      "nick": "Test",
-      "text": "Hello",
-      "timestamp": 1752351488
-    },
-    {
-      "nick": "Test",
-      "text": "Test",
-      "timestamp": 1752351504
-    }
   ]
 }
