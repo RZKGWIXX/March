@@ -2620,11 +2620,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileDeleteChat = document.getElementById('mobile-delete-chat');
     const mobileBlockUser = document.getElementById('mobile-block-user');
 
-    if (!mobileChatOptions || !mobileChatDropdown) return;
+    if (!mobileChatOptions || !mobileChatDropdown) {
+      console.error('Mobile chat dropdown elements not found');
+      return;
+    }
 
     // Always show home button
     if (mobileHome) {
-      mobileHome.style.display = 'block';
+      mobileHome.style.display = 'flex';
       mobileHome.onclick = () => {
         mobileChatDropdown.classList.remove('show');
         sidebar.classList.add('open');
@@ -2637,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const otherUser = users.find(u => u !== nickname) || users[0];
 
       if (mobileViewProfile) {
-        mobileViewProfile.style.display = 'block';
+        mobileViewProfile.style.display = 'flex';
         mobileViewProfile.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           showUserProfile(otherUser);
@@ -2645,8 +2648,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (mobileClearHistory) {
-        mobileClearHistory.style.display = 'block';
-        mobileClearHistory.textContent = '🗑️ Clear History';
+        mobileClearHistory.style.display = 'flex';
+        mobileClearHistory.innerHTML = '<span>🗑️</span> Clear History';
         mobileClearHistory.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           clearPrivateHistory();
@@ -2654,8 +2657,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (mobileDeleteChat) {
-        mobileDeleteChat.style.display = 'block';
-        mobileDeleteChat.textContent = '❌ Delete Chat';
+        mobileDeleteChat.style.display = 'flex';
+        mobileDeleteChat.innerHTML = '<span>❌</span> Delete Chat';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           deleteCurrentRoom();
@@ -2663,7 +2666,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (mobileBlockUser) {
-        mobileBlockUser.style.display = 'block';
+        mobileBlockUser.style.display = 'flex';
         mobileBlockUser.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           blockCurrentUser();
@@ -2676,8 +2679,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mobileClearHistory) mobileClearHistory.style.display = 'none';
 
       if (mobileDeleteChat) {
-        mobileDeleteChat.style.display = 'block';
-        mobileDeleteChat.textContent = '🚪 Leave Group';
+        mobileDeleteChat.style.display = 'flex';
+        mobileDeleteChat.innerHTML = '<span>🚪</span> Leave Group';
         mobileDeleteChat.onclick = () => {
           mobileChatDropdown.classList.remove('show');
           leaveCurrentGroup();
@@ -2687,7 +2690,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Toggle dropdown
     mobileChatOptions.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      console.log('Mobile chat options clicked');
       mobileChatDropdown.classList.toggle('show');
     };
 
@@ -2697,6 +2702,10 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileChatDropdown.classList.remove('show');
       }
     });
+
+    // Ensure the mobile options button is working
+    mobileChatOptions.style.pointerEvents = 'auto';
+    mobileChatOptions.style.cursor = 'pointer';
   }
 
   // Setup header buttons
