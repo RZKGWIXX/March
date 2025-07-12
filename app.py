@@ -855,7 +855,7 @@ def admin_ban_user():
                               time.localtime(until_timestamp))
 
     banned_data = load_json('banned')
-    if 'users' not in<previous_generation>banned_data:
+    if 'users' not in banned_data:
         banned_data['users'] = []
 
     banned_data['users'] = [
