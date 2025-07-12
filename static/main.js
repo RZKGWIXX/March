@@ -454,21 +454,41 @@ document.addEventListener('DOMContentLoaded', () => {
       let avatarHtml = '';
       if (!isOwnMessage) {
         avatarHtml = `<img src="/static/default-avatar.svg" alt="${nick}" class="message-avatar" onclick="showUserProfile('${nick}')" onerror="this.src='/static/default-avatar.svg'">`;
-        // Load actual avatar
-        fetch(`/get_user_avatar/${nick}`)
-          .then(r => r.json())
-          .then(data => {
-            const avatar = div.querySelector('.message-avatar');
-            if (avatar && data.avatar && data.avatar !== '/static/default-avatar.png') {
-              avatar.src = data.avatar + '?t=' + Date.now();
+        // Load actual avatar and user display info
+        Promise.all([
+          fetch(`/get_user_avatar/${nick}`).then(r => r.json()),
+          fetch(`/get_user_profile/${nick}`).then(r => r.json())
+        ]).then(([avatarData, profileData]) => {
+          const avatar = div.querySelector('.message-avatar');
+          const author = div.querySelector('.message-author');
+          
+          if (avatar) {
+            avatar.src = avatarData.avatar + '?t=' + Date.now();
+          }
+          
+          if (author) {
+            if (profileData.is_banned) {
+              author.textContent = 'Banned account';
+              author.style.color = '#e74c3c';
+              author.title = `Originally: ${profileData.original_nickname} (banned)`;
+            } else if (profileData.is_deleted) {
+              author.textContent = 'Deleted account';
+              author.style.color = '#95a5a6';
+              author.title = `Originally: ${profileData.original_nickname} (deleted)`;
             }
-          })
-          .catch(() => {
-            const avatar = div.querySelector('.message-avatar');
-            if (avatar) {
-              avatar.src = '/static/default-avatar.svg';
-            }
-          });
+          }
+        }).catch(() => {
+          const avatar = div.querySelector('.message-avatar');
+          const author = div.querySelector('.message-author');
+          if (avatar) {
+            avatar.src = '/static/default-avatar.svg';
+          }
+          if (author) {
+            author.textContent = 'Deleted account';
+            author.style.color = '#95a5a6';
+            author.title = `Originally: ${nick} (deleted)`;
+          }
+        });
       }
 
       // Check if message is a file URL
@@ -508,6 +528,31 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `;
+
+      // Load user display info to show correct name and avatar
+      fetch(`/get_user_profile/${nick}`)
+        .then(r => r.json())
+        .then(data => {
+          const author = div.querySelector('.message-author');
+          if (data.is_banned && author) {
+            author.textContent = 'Banned account';
+            author.style.color = '#e74c3c';
+            author.title = `Originally: ${data.original_nickname} (banned)`;
+          } else if (data.is_deleted && author) {
+            author.textContent = 'Deleted account';
+            author.style.color = '#95a5a6';
+            author.title = `Originally: ${data.original_nickname} (deleted)`;
+          }
+        })
+        .catch(() => {
+          // If user doesn't exist, show as deleted
+          const author = div.querySelector('.message-author');
+          if (author) {
+            author.textContent = 'Deleted account';
+            author.style.color = '#95a5a6';
+            author.title = `Originally: ${nick} (deleted)`;
+          }
+        });
 
       // Add click handler for username and avatar
       const usernameEl = div.querySelector('.message-author');
@@ -1729,7 +1774,15 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         window.location.href = '/';
       }, 3000);
+    } else {
+      // Refresh user display in messages
+      loadMessages(currentRoom);
     }
+  });
+
+  socket.on('user_unbanned', (data) => {
+    // Refresh user display in messages
+    loadMessages(currentRoom);
   });
 
   socket.on('message_deleted', (data) => {
