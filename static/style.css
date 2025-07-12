@@ -1318,6 +1318,18 @@ body {
   border-bottom-left-radius: 6px;
 }
 
+.mobile-device .shared-image,
+.mobile-device .shared-video {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.mobile-device .video-container {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 .mobile-device .message-status {
   position: absolute;
   bottom: 4px;
@@ -1784,28 +1796,61 @@ body[data-theme="dark"] .admin-content {
     margin: 0 1rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-light);
+    box-sizing: border-box;
+  }
+
+  #group-panel input {
+    width: 100%;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    border: 1px solid var(--surface-accent);
+    border-radius: var(--border-radius);
+    background: var(--surface-accent);
+    color: var(--text-primary);
+    box-sizing: border-box;
+  }
+
+  #group-panel .group-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  #group-panel button {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #create-group-confirm {
+    background: var(--accent-green);
+    color: black;
+  }
+
+  #create-group-cancel {
+    background: var(--red-disconnected);
+    color: white;
   }
 
   @media (max-width: 768px) {
     #group-panel {
       margin: 0 0.5rem;
       padding: 0.75rem;
-      position: relative;
-      left: 0;
-      right: 0;
+      width: calc(100% - 1rem);
+      box-sizing: border-box;
     }
 
     #group-panel input {
       font-size: 16px;
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid var(--surface-accent);
-      border-radius: var(--border-radius);
-      background: var(--surface-accent);
-      color: var(--text-primary);
+      margin: 0.5rem 0;
+      box-sizing: border-box;
     }
 
-    #group-panel div {
+    #group-panel .group-buttons {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -1815,20 +1860,7 @@ body[data-theme="dark"] .admin-content {
       width: 100%;
       margin: 0;
       padding: 0.75rem;
-      border: none;
-      border-radius: var(--border-radius);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    #create-group-confirm {
-      background: var(--accent-green);
-      color: black;
-    }
-
-    #create-group-cancel {
-      background: var(--red-disconnected);
-      color: white;
+      box-sizing: border-box;
     }
   }
 
