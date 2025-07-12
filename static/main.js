@@ -1325,21 +1325,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Mobile swipe functionality
-  let swipeStartX = 0;
-  let swipeCurrentX = 0;
+  let mobileSwipeStartX = 0;
+  let mobileSwipeCurrentX = 0;
   let isSwiping = false;
 
   // Swipe to show sidebar on mobile
   function handleTouchStart(e) {
     if (window.innerWidth > 768) return; // Only on mobile
-    swipeStartX = e.touches[0].clientX;
+    mobileSwipeStartX = e.touches[0].clientX;
     isSwiping = false;
   }
 
   function handleTouchMove(e) {
     if (window.innerWidth > 768) return;
-    swipeCurrentX = e.touches[0].clientX;
-    const deltaX = swipeCurrentX - swipeStartX;
+    mobileSwipeCurrentX = e.touches[0].clientX;
+    const deltaX = mobileSwipeCurrentX - mobileSwipeStartX;
 
     if (Math.abs(deltaX) > 10) {
       isSwiping = true;
@@ -1349,7 +1349,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleTouchEnd(e) {
     if (window.innerWidth > 768 || !isSwiping) return;
 
-    const deltaX = swipeCurrentX - swipeStartX;
+    const deltaX = mobileSwipeCurrentX - mobileSwipeStartX;
     const swipeThreshold = 50; // Reduced threshold for easier swiping
 
     // Swipe right - show sidebar (chat list)
@@ -1378,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Click handler for room title (both mobile and desktop)
+  const currentRoomEl = document.getElementById('current-room');
   if (currentRoomEl) {
     currentRoomEl.addEventListener('click', () => {
       if (currentRoom.startsWith('private_')) {
@@ -1388,20 +1389,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showGroupMembers();
       }
     });
-  }
-
-  // Add menu toggle button for mobile if not exists
-  if (!menuToggle && window.innerWidth <= 768) {
-    const chatHeader = document.querySelector('.chat-header');
-    if (chatHeader) {
-      const menuBtn = document.createElement('button');
-      menuBtn.id = 'menu-toggle';
-      menuBtn.innerHTML = '☰';
-      menuBtn.onclick = () => {
-        sidebar.classList.toggle('open');
-      };
-      chatHeader.insertBefore(menuBtn, chatHeader.firstChild);
-    }
   }
 
   // Socket event handlers
@@ -2871,22 +2858,22 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('get_online_users');
   }, 1000);
 
-  // Add swipe gesture for mobile status
-  let headerStartX = 0;
-  let headerStartY = 0;
+  // Mobile header swipe for settings (using different variable names)
+  let headerSwipeStartX = 0;
+  let headerSwipeStartY = 0;
   const chatHeader = document.querySelector('.chat-header');
 
   if (chatHeader && window.innerWidth <= 768) {
     chatHeader.addEventListener('touchstart', (e) => {
-      headerStartX = e.touches[0].clientX;
-      headerStartY = e.touches[0].clientY;
+      headerSwipeStartX = e.touches[0].clientX;
+      headerSwipeStartY = e.touches[0].clientY;
     });
 
     chatHeader.addEventListener('touchend', (e) => {
       const endX = e.changedTouches[0].clientX;
       const endY = e.changedTouches[0].clientY;
-      const diffX = headerStartX - endX;
-      const diffY = Math.abs(headerStartY - endY);
+      const diffX = headerSwipeStartX - endX;
+      const diffY = Math.abs(headerSwipeStartY - endY);
 
       // Swipe left to show settings
       if (diffX > 50 && diffY < 100) {

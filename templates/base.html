@@ -85,34 +85,36 @@
 
     <div class="chat-window">
       <div class="chat-header">
-          <div class="chat-title-section">
-            <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
-            <div class="chat-info">
-              <div class="chat-title-row">
-                <h2 id="chat-title"># general 🌍</h2>
-                <div id="user-status" class="user-status"></div>
-              </div>
-              <div id="chat-subtitle">Public Chat</div>
-            </div>
-          </div>
-          <div class="chat-controls">
-            <button onclick="toggleAdminPanel()" id="admin-btn" title="Admin Panel" style="display: none;">🔧</button>
-            <button onclick="showSettings()" id="settings-btn" title="Settings">⚙️</button>
-            <button onclick="showRoomContextMenu()" id="delete-room-btn" title="Room Options" class="desktop-only" style="display: none;">⚙️</button>
-            <button onclick="blockCurrentUser()" id="block-user-btn" title="Block User" class="desktop-only" style="display: none;">🚫</button>
+        <!-- Mobile menu button (hamburger) on the left -->
+        <button id="menu-toggle" class="mobile-only" title="Open menu">☰</button>
+        
+        <!-- Chat title and status in center -->
+        <div class="chat-title">
+          <h2 id="current-room"># general</h2>
+          <span id="room-type">Public Chat</span>
+        </div>
+        
+        <!-- Controls on the right -->
+        <div class="chat-controls">
+          <!-- Desktop controls -->
+          <button onclick="toggleAdminPanel()" id="admin-btn" title="Admin Panel" class="desktop-only" style="display: none;">🔧</button>
+          <button onclick="showSettings()" id="settings-btn" title="Settings" class="desktop-only">⚙️</button>
+          <button onclick="showRoomContextMenu()" id="delete-room-btn" title="Room Options" class="desktop-only" style="display: none;">⚙️</button>
+          <button onclick="blockCurrentUser()" id="block-user-btn" title="Block User" class="desktop-only" style="display: none;">🚫</button>
 
-            <!-- Mobile chat options - three dots on the right -->
-            <div class="mobile-only" style="position: relative;">
-              <button id="mobile-chat-options" title="Chat Options">⋯</button>
-              <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
-                <div id="mobile-view-profile" class="mobile-dropdown-item">👤 View Profile</div>
-                <div id="mobile-block-user" class="mobile-dropdown-item">🚫 Block User</div>
-                <div id="mobile-clear-history" class="mobile-dropdown-item">🗑️ Clear History</div>
-                <div id="mobile-delete-chat" class="mobile-dropdown-item">❌ Delete Chat</div>
-              </div>
+          <!-- Mobile three dots menu on the right -->
+          <div class="mobile-only" style="position: relative;">
+            <button id="mobile-chat-options" title="Chat Options">⋯</button>
+            <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
+              <div id="mobile-view-profile" class="mobile-dropdown-item">👤 View Profile</div>
+              <div id="mobile-block-user" class="mobile-dropdown-item">🚫 Block User</div>
+              <div id="mobile-clear-history" class="mobile-dropdown-item">🗑️ Clear History</div>
+              <div id="mobile-delete-chat" class="mobile-dropdown-item">❌ Delete Chat</div>
+              <div class="mobile-dropdown-item" onclick="showSettings()">⚙️ Settings</div>
             </div>
           </div>
         </div>
+      </div>
 
       <div id="messages" class="messages"></div>
 
