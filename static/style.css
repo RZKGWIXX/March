@@ -706,6 +706,35 @@ body {
   max-width: 500px;
   width: 90%;
   max-height: 80vh;
+  background: var(--surface-dark) !important;
+  border: 1px solid var(--surface-lighter);
+}
+
+@media (max-width: 768px) {
+  .forward-content {
+    width: 95%;
+    max-width: 95vw;
+    max-height: 90vh;
+    margin: 0;
+  }
+
+  .forward-rooms {
+    max-height: 200px !important;
+    overflow-y: auto;
+  }
+
+  .forward-room-item {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--surface-lighter) !important;
+    border: 1px solid var(--surface-accent);
+  }
+
+  .forward-btn {
+    padding: 0.75rem 1.5rem;
+    min-width: 80px;
+    font-size: 1rem;
+  }
 }
 
 .forward-preview {
@@ -2674,6 +2703,7 @@ body[data-theme="dark"] .admin-content {
       flex-direction: column;
       align-items: center;
       gap: 0.25rem;
+      order: 2;
     }
 
     .chat-title h2 {
@@ -2686,15 +2716,14 @@ body[data-theme="dark"] .admin-content {
       display: none !important;
     }
 
-    /* Status positioned between nickname and controls on mobile */
+    /* Status positioned in center below title */
     .user-status,
     .room-stats {
       font-size: 0.75rem;
       color: var(--text-secondary);
       white-space: nowrap;
       margin: 0;
-      position: static;
-      transform: none;
+      text-align: center;
     }
 
     #menu-toggle {
@@ -2704,27 +2733,45 @@ body[data-theme="dark"] .admin-content {
       padding: 0.5rem;
       flex-shrink: 0;
       order: 1;
+      background: var(--surface-lighter);
+      border: none;
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    #menu-toggle:hover {
+      background: var(--accent-green);
+      color: black;
     }
 
     .chat-controls {
       order: 3;
       flex-shrink: 0;
+      position: relative;
     }
 
-    .chat-title {
-      order: 2;
-    }
-
-    /* Ensure mobile chat options are visible */
-    .mobile-only {
-      display: block !important;
-    }
-
+    /* Three dots menu on the right */
     .chat-controls .mobile-only {
       min-width: 44px;
       min-height: 44px;
       padding: 0.75rem;
       font-size: 1.2rem;
+      background: var(--surface-lighter);
+      border: none;
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .chat-controls .mobile-only:hover {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    /* Ensure mobile chat options are visible */
+    .mobile-only {
+      display: block !important;
     }
   }
 

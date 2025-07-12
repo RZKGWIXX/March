@@ -745,7 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="admin-content forward-content">
         <div class="modal-header">
           <h2>📤 Forward Message</h2>
-          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
 
         <div class="forward-preview">
@@ -1326,21 +1325,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Mobile swipe functionality
-  let startX = 0;
-  let currentX = 0;
+  let swipeStartX = 0;
+  let swipeCurrentX = 0;
   let isSwiping = false;
 
   // Swipe to show sidebar on mobile
   function handleTouchStart(e) {
     if (window.innerWidth > 768) return; // Only on mobile
-    startX = e.touches[0].clientX;
+    swipeStartX = e.touches[0].clientX;
     isSwiping = false;
   }
 
   function handleTouchMove(e) {
     if (window.innerWidth > 768) return;
-    currentX = e.touches[0].clientX;
-    const deltaX = currentX - startX;
+    swipeCurrentX = e.touches[0].clientX;
+    const deltaX = swipeCurrentX - swipeStartX;
 
     if (Math.abs(deltaX) > 10) {
       isSwiping = true;
@@ -1350,7 +1349,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleTouchEnd(e) {
     if (window.innerWidth > 768 || !isSwiping) return;
 
-    const deltaX = currentX - startX;
+    const deltaX = swipeCurrentX - swipeStartX;
     const swipeThreshold = 50; // Reduced threshold for easier swiping
 
     // Swipe right - show sidebar (chat list)
@@ -1389,6 +1388,20 @@ document.addEventListener('DOMContentLoaded', () => {
         showGroupMembers();
       }
     });
+  }
+
+  // Add menu toggle button for mobile if not exists
+  if (!menuToggle && window.innerWidth <= 768) {
+    const chatHeader = document.querySelector('.chat-header');
+    if (chatHeader) {
+      const menuBtn = document.createElement('button');
+      menuBtn.id = 'menu-toggle';
+      menuBtn.innerHTML = '☰';
+      menuBtn.onclick = () => {
+        sidebar.classList.toggle('open');
+      };
+      chatHeader.insertBefore(menuBtn, chatHeader.firstChild);
+    }
   }
 
   // Socket event handlers
@@ -1704,7 +1717,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="admin-content admin-main">
         <div class="modal-header">
           <h2>🔧 Admin Panel</h2>
-          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
 
         <div class="admin-layout">
@@ -2215,7 +2227,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="admin-content changelog-content">
         <div class="modal-header">
           <h2>📋 OrbitMess Changelog</h2>
-          <button class="close-button" onclick="this.closest('.admin-panel').remove()">✕</button>
         </div>
         <div class="changelog-scroll">
           <div class="changelog-item">
