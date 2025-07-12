@@ -456,14 +456,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // Get user avatar
       let avatarHtml = '';
       if (!isOwnMessage) {
-        avatarHtml = `<img src="/static/default-avatar.png" alt="${nick}" class="message-avatar" onclick="showUserProfile('${nick}')" onerror="this.src='/static/default-avatar.png'">`;
+        avatarHtml = `<img src="/static/default-avatar.svg" alt="${nick}" class="message-avatar" onclick="showUserProfile('${nick}')" onerror="this.src='/static/default-avatar.svg'">`;
         // Load actual avatar
         fetch(`/get_user_avatar/${nick}`)
           .then(r => r.json())
           .then(data => {
             const avatar = div.querySelector('.message-avatar');
-            if (avatar && data.avatar) {
-              avatar.src = data.avatar;
+            if (avatar && data.avatar && data.avatar !== '/static/default-avatar.png') {
+              avatar.src = data.avatar + '?t=' + Date.now();
+            }
+          })
+          .catch(() => {
+            const avatar = div.querySelector('.message-avatar');
+            if (avatar) {
+              avatar.src = '/static/default-avatar.svg';
             }
           });
       }
@@ -569,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="admin-content user-profile ${isMobile ? 'mobile-profile' : ''}">
         <div class="profile-header">
           <button class="close-profile-btn" onclick="this.closest('.admin-panel').remove()">×</button>
-          <img src="/static/default-avatar.png" alt="${username}" class="profile-avatar" id="profile-avatar">
+          <img src="/static/default-avatar.svg" alt="${username}" class="profile-avatar" id="profile-avatar">
           <div class="profile-info">
             <h2>${username}</h2>
             <p class="profile-status" id="profile-status">Loading...</p>
@@ -611,8 +617,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const bio = document.getElementById('profile-bio');
       const lastSeen = document.getElementById('profile-last-seen');
 
-      if (avatar && avatarData.avatar) {
-        avatar.src = avatarData.avatar;
+      if (avatar) {
+        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png') {
+          avatar.src = avatarData.avatar + '?t=' + Date.now();
+        } else {
+          avatar.src = '/static/default-avatar.svg';
+        }
       }
 
       if (status) {
@@ -1478,11 +1488,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(r => r.json())
       .then(data => {
         if (data.avatar && data.avatar !== '/static/default-avatar.png') {
-          imgElement.src = data.avatar;
+          imgElement.src = data.avatar + '?t=' + Date.now(); // Force refresh
+        } else {
+          imgElement.src = '/static/default-avatar.svg'; // Use SVG default
         }
       })
       .catch(() => {
-        imgElement.src = '/static/default-avatar.png';
+        imgElement.src = '/static/default-avatar.svg';
       });
   };
 
@@ -2217,7 +2229,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3>👤 Edit Profile</h3>
           <div class="profile-section">
             <div class="avatar-section">
-              <img src="/static/default-avatar.png" alt="Your avatar" class="settings-avatar" id="settings-avatar">
+              <img src="/static/default-avatar.svg" alt="Your avatar" class="settings-avatar" id="settings-avatar">
               <button class="admin-btn" onclick="document.getElementById('avatar-input').click()">Change Avatar</button>
               <input type="file" id="avatar-input" accept="image/*" style="display: none;">
             </div>
@@ -2274,7 +2286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png') {
           avatar.src = avatarData.avatar + '?t=' + Date.now(); // Force refresh
         } else {
-          avatar.src = '/static/default-avatar.png';
+          avatar.src = '/static/default-avatar.svg';
         }
       }
 
@@ -2663,6 +2675,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Listen for avatar updates
+  socket.on('avatar_updated', (data) => {
+    if (data.user && data.avatar_url) {
+      // Update all avatars for this user in messages
+      document.querySelectorAll(`.message-avatar[alt="${data.user}"]`).forEach(img => {
+        img.src = data.avatar_url + '?t=' + Date.now();
+      });
+      
+      // Update avatar in user info if it's current user
+      if (data.user === nickname) {
+        const userAvatar = document.querySelector('.user-info-avatar');
+        if (userAvatar) {
+          userAvatar.src = data.avatar_url + '?t=' + Date.now();
+        }
+      }
+      
+      // Update avatar in settings if open
+      const settingsAvatar = document.getElementById('settings-avatar');
+      if (settingsAvatar && data.user === nickname) {
+        settingsAvatar.src = data.avatar_url + '?t=' + Date.now();
+      }
+      
+      // Update avatar in member lists
+      document.querySelectorAll(`img[alt="${data.user}"]`).forEach(img => {
+        if (img.classList.contains('member-avatar') || img.classList.contains('profile-avatar')) {
+          img.src = data.avatar_url + '?t=' + Date.now();
+        }
+      });
+    }
+  });
+
+  // Listen for profile updates
+  socket.on('profile_updated', (data) => {
+    if (data.user && data.bio !== undefined) {
+      // Update bio in open profile modals
+      const profileBio = document.getElementById('profile-bio');
+      if (profileBio && data.user !== nickname) {
+        profileBio.textContent = data.bio || 'No bio available';
+      }
+    }
+  });
+
   // Listen for online users list updates
   socket.on('online_users_update', (data) => {
     onlineUsers = new Set(data.users || []);
@@ -2834,10 +2888,10 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         const userAvatar = document.createElement('img');
         userAvatar.className = 'user-info-avatar';
-        userAvatar.src = data.avatar && data.avatar !== '/static/default-avatar.png' ? data.avatar : '/static/default-avatar.png';
+        userAvatar.src = data.avatar && data.avatar !== '/static/default-avatar.png' ? data.avatar + '?t=' + Date.now() : '/static/default-avatar.svg';
         userAvatar.alt = nickname;
         userAvatar.onerror = () => {
-          userAvatar.src = '/static/default-avatar.png';
+          userAvatar.src = '/static/default-avatar.svg';
         };
 
         userInfo.insertBefore(userAvatar, userInfo.firstChild);
@@ -2846,7 +2900,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to load user avatar:', err);
         const userAvatar = document.createElement('img');
         userAvatar.className = 'user-info-avatar';
-        userAvatar.src = '/static/default-avatar.png';
+        userAvatar.src = '/static/default-avatar.svg';
         userAvatar.alt = nickname;
         userInfo.insertBefore(userAvatar, userInfo.firstChild);
       });

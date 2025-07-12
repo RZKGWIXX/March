@@ -2214,7 +2214,6 @@ body {
     height: 100dvh; /* Dynamic viewport height for mobile */
     overflow: hidden;
     display: flex;
-    flexCSS modification: Adjusting send button size in message form.
 ```css
 -direction: column;
   }
@@ -2833,31 +2832,53 @@ body[data-theme="dark"] .admin-content {
   }
 
 /* Avatar Styles */
+.settings-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-lighter);
+  margin-bottom: 1rem;
+  object-fit: cover;
+}
+
+.user-info-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+  border: 2px solid var(--surface-lighter);
+}
+
 .message-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   margin-right: 8px;
-  cursor: pointer;
   object-fit: cover;
-  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.settings-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  margin-bottom: 1rem;
-  object-fit: cover;
-  border: 3px solid var(--accent);
+.message-avatar:hover {
+  transform: scale(1.1);
+  border: 2px solid var(--accent-green);
 }
 
 .profile-avatar {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 1rem;
+  border: 3px solid var(--surface-lighter);
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;
 }
 
 .message-wrapper {
@@ -3286,8 +3307,7 @@ body[data-theme="dark"] .admin-content {
     border-top: 1px solid var(--surface-lighter);
   }
 
-  .profile-action-btn {
-    flex: none;
+  .profile-action-btn {    flex: none;
     width: 100%;
     padding: 1rem;
     font-size: 1.1rem;
