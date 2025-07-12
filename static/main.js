@@ -741,6 +741,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const modal = document.createElement('div');
     modal.className = 'admin-panel forward-modal';
+    const isMobile = window.innerWidth <= 768;
+    
     modal.innerHTML = `
       <div class="admin-content forward-content">
         <div class="modal-header">
@@ -751,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="preview-label">Message to forward:</div>
           <div class="preview-message">
             <span class="preview-sender">${originalSender}</span>
-            <div class="preview-text">${message.text}</div>
+            <div class="preview-text">${message.text.length > 100 ? message.text.substring(0, 100) + '...' : message.text}</div>
           </div>
         </div>
 
@@ -759,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <input type="text" id="forward-search" placeholder="Search rooms..." />
         </div>
 
-        <div class="forward-rooms" id="forward-rooms-list">
+        <div class="forward-rooms" id="forward-rooms-list" style="${isMobile ? 'min-height: 250px; max-height: none;' : ''}">
           <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
             Loading rooms...
           </div>
@@ -786,29 +788,34 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
+          const isMobile = window.innerWidth <= 768;
+          
           roomsList.innerHTML = filteredRooms.map(room => {
-            let displayName, roomType;
+            let displayName, roomType, emoji;
 
             if (room === 'general') {
               displayName = '# general';
               roomType = 'Public Chat';
+              emoji = '🌍';
             } else if (room.startsWith('private_')) {
               const users = room.replace('private_', '').split('_');
               const otherUser = users.find(u => u !== nickname) || users[0];
               displayName = `@ ${otherUser}`;
               roomType = 'Private Chat';
+              emoji = '🔐';
             } else {
               displayName = `# ${room}`;
               roomType = 'Group Chat';
+              emoji = '👥';
             }
 
             return `
-              <div class="forward-room-item" data-room="${room}">
-                <div class="forward-room-info">
-                  <div class="forward-room-name">${displayName}</div>
-                  <div class="forward-room-type">${roomType}</div>
+              <div class="forward-room-item" data-room="${room}" style="${isMobile ? 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 0.75rem; background: var(--surface-lighter); border-radius: var(--border-radius); border: 1px solid var(--surface-accent);' : ''}">
+                <div class="forward-room-info" style="${isMobile ? 'flex: 1;' : ''}">
+                  <div class="forward-room-name" style="${isMobile ? 'font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;' : ''}">${emoji} ${displayName}</div>
+                  <div class="forward-room-type" style="${isMobile ? 'font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;' : ''}">${roomType}</div>
                 </div>
-                <button class="forward-btn" onclick="forwardMessageToRoom('${room}', '${messageIndex}', '${originalSender}')">
+                <button class="forward-btn" onclick="forwardMessageToRoom('${room}', '${messageIndex}', '${originalSender}')" style="${isMobile ? 'padding: 0.75rem 1rem; background: var(--accent-green); color: black; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; min-width: 80px;' : ''}">
                   Forward
                 </button>
               </div>

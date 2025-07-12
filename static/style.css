@@ -708,6 +708,8 @@ body {
   max-height: 80vh;
   background: var(--surface-dark) !important;
   border: 1px solid var(--surface-lighter);
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
@@ -716,11 +718,28 @@ body {
     max-width: 95vw;
     max-height: 90vh;
     margin: 0;
+    height: 90vh;
+  }
+
+  .forward-preview {
+    padding: 1rem;
+    background: var(--surface-lighter);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+  }
+
+  .forward-search {
+    margin-bottom: 1rem;
+    flex-shrink: 0;
   }
 
   .forward-rooms {
-    max-height: 200px !important;
+    max-height: none !important;
+    flex: 1;
     overflow-y: auto;
+    margin-bottom: 1rem;
+    min-height: 200px;
   }
 
   .forward-room-item {
@@ -728,12 +747,20 @@ body {
     margin-bottom: 0.75rem;
     background: var(--surface-lighter) !important;
     border: 1px solid var(--surface-accent);
+    border-radius: var(--border-radius);
   }
 
   .forward-btn {
     padding: 0.75rem 1.5rem;
     min-width: 80px;
     font-size: 1rem;
+  }
+
+  .modal-footer {
+    flex-shrink: 0;
+    padding: 1rem 1.5rem;
+    background: var(--surface-lighter);
+    border-top: 1px solid var(--surface-accent);
   }
 }
 
