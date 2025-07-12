@@ -405,22 +405,14 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarSettingsBtn.style.display = 'flex';
     }
 
-    // Setup mobile chat options and home button
+    // Setup mobile chat options
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-    const homeBtnMobile = document.getElementById('home-btn-mobile');
 
     if (mobileChatOptions) {
-      mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
+      mobileChatOptions.style.display = room !== 'general' ? 'block' : 'block'; // Always show for all chats
       // Setup mobile chat dropdown
       setupMobileChatDropdown(room);
-    }
-
-    if (homeBtnMobile) {
-      homeBtnMobile.style.display = room !== 'general' ? 'block' : 'none';
-      homeBtnMobile.onclick = () => {
-        sidebar.classList.add('open');
-      };
     }
 
     // Close mobile menu
@@ -2619,15 +2611,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileClearHistory = document.getElementById('mobile-clear-history');
     const mobileDeleteChat = document.getElementById('mobile-delete-chat');
     const mobileBlockUser = document.getElementById('mobile-block-user');
+    const mobileUnblockUser = document.getElementById('mobile-unblock-user');
 
     if (!mobileChatOptions || !mobileChatDropdown) {
       console.error('Mobile chat dropdown elements not found');
       return;
     }
 
-    // Always show home button
+    // Always show home button for non-general chats
     if (mobileHome) {
-      mobileHome.style.display = 'flex';
+      mobileHome.style.display = room !== 'general' ? 'flex' : 'none';
       mobileHome.onclick = () => {
         mobileChatDropdown.classList.remove('show');
         sidebar.classList.add('open');
@@ -2672,10 +2665,27 @@ document.addEventListener('DOMContentLoaded', () => {
           blockCurrentUser();
         };
       }
+
+      if (mobileUnblockUser) {
+        mobileUnblockUser.style.display = 'flex';
+        mobileUnblockUser.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          unblockCurrentUser();
+        };
+      }
+    } else if (room === 'general') {
+      // General chat - only show settings
+      if (mobileViewProfile) mobileViewProfile.style.display = 'none';
+      if (mobileBlockUser) mobileBlockUser.style.display = 'none';
+      if (mobileUnblockUser) mobileUnblockUser.style.display = 'none';
+      if (mobileClearHistory) mobileClearHistory.style.display = 'none';
+      if (mobileDeleteChat) mobileDeleteChat.style.display = 'none';
+      if (mobileHome) mobileHome.style.display = 'none';
     } else {
       // Group chat
       if (mobileViewProfile) mobileViewProfile.style.display = 'none';
       if (mobileBlockUser) mobileBlockUser.style.display = 'none';
+      if (mobileUnblockUser) mobileUnblockUser.style.display = 'none';
       if (mobileClearHistory) mobileClearHistory.style.display = 'none';
 
       if (mobileDeleteChat) {
