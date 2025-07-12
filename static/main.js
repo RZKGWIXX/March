@@ -48,6 +48,7 @@ function initializeChat() {
     // Load initial data
     loadRooms();
     loadMessages(currentRoom);
+    loadUserAvatar();
 }
 
 function initializeDesktopInterface() {
@@ -908,7 +909,8 @@ function updateChatListStatus() {
 function updateUsersList() {
     // Placeholder
 }
-const userInfo = document.querySelector('.user-info');
+function loadUserAvatar() {
+    const userInfo = document.querySelector('.user-info');
     if (userInfo) {
         // Load user avatar
         fetch(`/get_user_avatar/${nickname}`)
@@ -933,6 +935,8 @@ const userInfo = document.querySelector('.user-info');
                 userInfo.insertBefore(userAvatar, userInfo.firstChild);
             });
     }
-     function uploadFile(file) {
-        // Placeholder
-    }
+}
+
+function uploadFile(file) {
+    // Placeholder for file upload functionality
+}
