@@ -1411,19 +1411,78 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success) {
           const modal = document.createElement('div');
           modal.className = 'admin-panel';
+          const isMobile = window.innerWidth <= 768;
+          
           modal.innerHTML = `
-            <div class="admin-content">
-              <h2>👥 Group Members</h2>
-              ${data.members.map(member => `
-                <div class="user-item">
-                  <span>${member} ${data.admins.includes(member) ? '👑' : ''}</span>
-                </div>
-              `).join('')}
-              <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+            <div class="admin-content ${isMobile ? 'mobile-members' : ''}">
+              <div class="modal-header">
+                <h2>👥 Group Members (${data.members.length})</h2>
+              </div>
+              <div class="members-list">
+                ${data.members.map(member => `
+                  <div class="member-item" onclick="showMemberProfile('${member}')">
+                    <img src="/static/default-avatar.png" alt="${member}" class="member-avatar" 
+                         onerror="this.src='/static/default-avatar.png'" 
+                         onload="loadMemberAvatar('${member}', this)">
+                    <div class="member-info">
+                      <span class="member-name">${member} ${data.admins.includes(member) ? '👑' : ''}</span>
+                      <span class="member-status" id="member-status-${member}">Loading...</span>
+                    </div>
+                    <span class="member-arrow">→</span>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="modal-footer">
+                <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+              </div>
             </div>
           `;
           document.body.appendChild(modal);
+
+          // Load member statuses
+          data.members.forEach(member => {
+            fetch(`/user_status/${member}`)
+              .then(r => r.json())
+              .then(statusData => {
+                const statusEl = document.getElementById(`member-status-${member}`);
+                if (statusEl) {
+                  if (statusData.status === 'online') {
+                    statusEl.innerHTML = '🟢 У мережі';
+                    statusEl.className = 'member-status online';
+                  } else {
+                    statusEl.innerHTML = '⚪ Офлайн';
+                    statusEl.className = 'member-status offline';
+                  }
+                }
+              });
+          });
         }
+      });
+  };
+
+  // Show member profile from group members
+  window.showMemberProfile = function(username) {
+    if (username === nickname) return;
+    
+    // Close members modal first
+    const membersModal = document.querySelector('.admin-panel');
+    if (membersModal) membersModal.remove();
+    
+    // Show user profile
+    showUserProfile(username);
+  };
+
+  // Load member avatar
+  window.loadMemberAvatar = function(username, imgElement) {
+    fetch(`/get_user_avatar/${username}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.avatar && data.avatar !== '/static/default-avatar.png') {
+          imgElement.src = data.avatar;
+        }
+      })
+      .catch(() => {
+        imgElement.src = '/static/default-avatar.png';
       });
   };
 
@@ -1553,6 +1612,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showGroupMembers();
       }
     });
+    
+    // Add visual hint that title is clickable
+    currentRoomEl.style.cursor = 'pointer';
+    currentRoomEl.title = currentRoom.startsWith('private_') ? 'Click to view profile' : 
+                          currentRoom !== 'general' ? 'Click to view members' : '';
   }
 
   // Socket event handlers
@@ -2102,7 +2166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const isSmallScreen = window.innerWidth <= 768;
 
   // Determine if we should use mobile interface
-  const useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
+  let useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
 
   // Apply mobile-specific styles and behaviors
   if (useMobileInterface) {
