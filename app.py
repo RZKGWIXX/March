@@ -1658,6 +1658,12 @@ def upload_avatar():
 
         save_json('users', users_data)
 
+        # Broadcast avatar update to all users
+        socketio.emit('avatar_updated', {
+            'user': session['nickname'],
+            'avatar_url': avatar_url
+        }, broadcast=True)
+
         return jsonify(success=True, avatar_url=avatar_url)
 
     except Exception as e:
@@ -1689,6 +1695,13 @@ def update_profile():
             break
 
     save_json('users', users_data)
+    
+    # Broadcast bio update to all users
+    socketio.emit('profile_updated', {
+        'user': session['nickname'],
+        'bio': bio
+    }, broadcast=True)
+    
     return jsonify(success=True)
 
 
@@ -1716,11 +1729,16 @@ def on_join(data):
     online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
     user_sessions[request.sid] = nickname
 
+    # Broadcast to all users about status change
     socketio.emit('user_activity_update', {
         'user': nickname,
         'room': room,
         'action': 'joined'
-    })
+    }, broadcast=True)
+
+    # Send updated online users list
+    online_users_list = list(online_users.keys())
+    socketio.emit('online_users_update', {'users': online_users_list}, broadcast=True)
 
     socketio.emit('user_count_update', room=room)
 
@@ -1737,6 +1755,18 @@ def on_disconnect():
         if nickname in online_users:
             import time
             online_users[nickname]['last_seen'] = int(time.time())
+            
+            # Broadcast user disconnect
+            socketio.emit('user_activity_update', {
+                'user': nickname,
+                'action': 'offline'
+            }, broadcast=True)
+            
+            # Send updated online users list
+            online_users_list = [user for user, data in online_users.items() 
+                               if int(time.time()) - data['last_seen'] < 300]
+            socketio.emit('online_users_update', {'users': online_users_list}, broadcast=True)
+            
         del user_sessions[request.sid]
 
 

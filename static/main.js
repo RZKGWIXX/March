@@ -2166,7 +2166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const isSmallScreen = window.innerWidth <= 768;
 
   // Determine if we should use mobile interface
-  let useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
+  const useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
 
   // Apply mobile-specific styles and behaviors
   if (useMobileInterface) {
@@ -2258,6 +2258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     document.body.appendChild(modal);
+
+    // Setup avatar upload functionality
+    setupAvatarUpload();
 
     // Load current user data
     Promise.all([
@@ -2479,15 +2482,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(modal);
   };
 
-  // Avatar upload functionality
-  if (document.getElementById('avatar-input')) {
-    document.getElementById('avatar-input').onchange = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        uploadAvatar(file);
-        e.target.value = '';
-      }
-    };
+  // Avatar upload functionality - setup on settings panel open
+  function setupAvatarUpload() {
+    const avatarInput = document.getElementById('avatar-input');
+    if (avatarInput && !avatarInput.hasAttribute('data-setup')) {
+      avatarInput.setAttribute('data-setup', 'true');
+      avatarInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          uploadAvatar(file);
+          e.target.value = '';
+        }
+      };
+    }
   }
 
   function uploadAvatar(file) {
@@ -2625,9 +2632,45 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       updateRoomStats(currentRoom);
     }
+    
+    // Update chat list statuses in real-time
+    updateChatListStatus();
   });
 
-  // Real-time updates every 30 seconds
+  // Listen for real-time user activity updates
+  socket.on('user_activity_update', (data) => {
+    if (data.user && data.user !== nickname) {
+      // Update online users tracking
+      if (data.action === 'joined' || data.action === 'online') {
+        onlineUsers.add(data.user);
+      } else if (data.action === 'left' || data.action === 'offline' || data.action === 'logout' || data.action === 'account_deleted') {
+        onlineUsers.delete(data.user);
+      }
+      
+      // Update chat list immediately
+      updateChatListStatus();
+      
+      // Update current room status if relevant
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        if (data.user === otherUser) {
+          updateUserStatus(otherUser);
+        }
+      } else {
+        updateRoomStats(currentRoom);
+      }
+    }
+  });
+
+  // Listen for online users list updates
+  socket.on('online_users_update', (data) => {
+    onlineUsers = new Set(data.users || []);
+    updateChatListStatus();
+    updateUsersList();
+  });
+
+  // Real-time updates every 10 seconds for better responsiveness
   setInterval(() => {
     if (currentRoom.startsWith('private_')) {
       const users = currentRoom.replace('private_', '').split('_');
@@ -2636,7 +2679,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       updateRoomStats(currentRoom);
     }
-  }, 30000);
+    
+    // Update chat list statuses
+    updateChatListStatus();
+  }, 10000);
+
+  // Even more frequent updates for online status (every 5 seconds)
+  setInterval(() => {
+    updateChatListStatus();
+  }, 5000);
 
   // Real-time admin stats updates
   if (nickname === 'Wixxy') {
@@ -3037,17 +3088,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.chat-item').forEach(item => {
       const room = item.getAttribute('data-room');
       const chatStatus = item.querySelector('.chat-status');
-      if (chatStatus) {
-        if (room && room.startsWith('private_')) {
+      if (chatStatus && room) {
+        if (room.startsWith('private_')) {
           const users = room.replace('private_', '').split('_');
           const otherUser = users.find(u => u !== nickname) || users[0];
-          if (onlineUsers.has(otherUser)) {
-            chatStatus.textContent = '🟢 online';
-            chatStatus.style.color = 'green';
-          } else {
-            chatStatus.textContent = '🔴 offline';
-            chatStatus.style.color = 'red';
-          }
+          
+          // Real-time status update
+          fetch(`/user_status/${otherUser}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data.status === 'online') {
+                chatStatus.innerHTML = '🟢 У мережі';
+                chatStatus.className = 'chat-status online';
+              } else if (data.last_seen) {
+                const lastSeen = new Date(data.last_seen * 1000);
+                const now = new Date();
+                const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+                const diffDays = Math.floor(diffHours / 24);
+
+                if (diffDays >= 3) {
+                  chatStatus.innerHTML = `⚪ Був ${lastSeen.toLocaleDateString('uk-UA')}`;
+                } else if (diffDays >= 1) {
+                  chatStatus.innerHTML = `⚪ Був ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
+                } else {
+                  chatStatus.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+                }
+                chatStatus.className = 'chat-status offline';
+              } else {
+                chatStatus.innerHTML = '⚪ Був давно';
+                chatStatus.className = 'chat-status offline';
+              }
+            })
+            .catch(() => {
+              chatStatus.innerHTML = '⚪ Офлайн';
+              chatStatus.className = 'chat-status offline';
+            });
+        } else if (room !== 'general') {
+          // Update group chat stats in real-time
+          fetch(`/room_stats/${room}`)
+            .then(r => r.json())
+            .then(data => {
+              chatStatus.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
+              chatStatus.className = 'chat-status';
+            })
+            .catch(() => {
+              chatStatus.innerHTML = '👥 Статус невідомий';
+              chatStatus.className = 'chat-status';
+            });
         }
       }
     });
