@@ -584,16 +584,22 @@ body {
   border-bottom: 1px solid var(--surface-lighter); 
   display: flex; 
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   background: var(--surface-dark);
   box-shadow: var(--shadow-light);
-  flex-wrap: wrap;
   gap: 1rem;
+}
+
+.chat-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .chat-title h2 {
   font-size: 1.3rem;
-  margin-bottom: 0.25rem;
+  margin: 0;
   color: var(--text-primary);
 }
 
@@ -610,11 +616,10 @@ body {
 
 .user-status,
 .room-stats {
-  width: 100%;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  order: 3;
+  margin-left: 1rem;
+  white-space: nowrap;
 }
 
 .status-indicator {
@@ -2655,23 +2660,20 @@ body[data-theme="dark"] .admin-content {
   @media (max-width: 768px) {
     .chat-header {
       padding: 1rem;
-      align-items: center;
       display: flex;
+      align-items: center;
       justify-content: space-between;
       position: relative;
-    }
-
-    .chat-title-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex: 1;
+      gap: 1rem;
     }
 
     .chat-title {
       flex: 1;
       text-align: center;
-      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
     }
 
     .chat-title h2 {
@@ -2684,31 +2686,45 @@ body[data-theme="dark"] .admin-content {
       display: none !important;
     }
 
-    /* Status positioned between title and controls */
+    /* Status positioned between nickname and controls on mobile */
     .user-status,
     .room-stats {
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin: 0.25rem 0 0 0;
       font-size: 0.75rem;
       color: var(--text-secondary);
       white-space: nowrap;
+      margin: 0;
+      position: static;
+      transform: none;
     }
 
     #menu-toggle {
-      min-width: 40px;
-      min-height: 40px;
+      min-width: 44px;
+      min-height: 44px;
       font-size: 1.2rem;
       padding: 0.5rem;
-      position: absolute;
-      left: 0;
+      flex-shrink: 0;
+      order: 1;
     }
 
     .chat-controls {
-      position: absolute;
-      right: 0;
+      order: 3;
+      flex-shrink: 0;
+    }
+
+    .chat-title {
+      order: 2;
+    }
+
+    /* Ensure mobile chat options are visible */
+    .mobile-only {
+      display: block !important;
+    }
+
+    .chat-controls .mobile-only {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0.75rem;
+      font-size: 1.2rem;
     }
   }
 

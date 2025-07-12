@@ -1330,7 +1330,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentX = 0;
   let isSwiping = false;
 
-  // Swipe to show members panel on mobile
+  // Swipe to show sidebar on mobile
   function handleTouchStart(e) {
     if (window.innerWidth > 768) return; // Only on mobile
     startX = e.touches[0].clientX;
@@ -1353,8 +1353,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const deltaX = currentX - startX;
     const swipeThreshold = 50; // Reduced threshold for easier swiping
 
+    // Swipe right - show sidebar (chat list)
+    if (deltaX > swipeThreshold) {
+      sidebar.classList.add('open');
+    }
     // Swipe left - show profile/members
-    if (deltaX < -swipeThreshold) {
+    else if (deltaX < -swipeThreshold) {
       if (currentRoom.startsWith('private_')) {
         const users = currentRoom.replace('private_', '').split('_');
         const otherUser = users.find(u => u !== nickname) || users[0];
@@ -2005,6 +2009,15 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
+        ${nickname === 'Wixxy' ? `
+        <div class="settings-section">
+          <h3>🔧 Admin Panel</h3>
+          <div class="profile-section">
+            <button class="admin-btn" onclick="this.closest('.admin-panel').remove(); toggleAdminPanel()">🛠️ Open Admin Panel</button>
+          </div>
+        </div>
+        ` : ''}
+
         <div class="settings-section">
           <h3>🚨 Account Actions</h3>
           <div class="profile-section">
@@ -2636,9 +2649,9 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsBtn.onclick = window.showSettings;
   }
 
-  if (adminBtn && nickname === 'Wixxy') {
-    adminBtn.style.display = 'block';
-    adminBtn.onclick = toggleAdminPanel;
+  // Hide admin button since it's now in settings
+  if (adminBtn) {
+    adminBtn.style.display = 'none';
   }
 
   // Add create group button
