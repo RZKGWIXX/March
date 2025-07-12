@@ -1377,6 +1377,22 @@ document.addEventListener('DOMContentLoaded', () => {
     isSwiping = false;
   }
 
+  // Define missing functions
+  function loadChatHistory() {
+    // Load chat history - implementation placeholder
+    console.log('Loading chat history...');
+  }
+
+  function updateConnectionStatus(status) {
+    const statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+      statusEl.className = `connection-status ${status}`;
+      statusEl.textContent = status === 'connected' ? '🟢 Connected' : 
+                            status === 'connecting' ? '🟡 Connecting...' : 
+                            '🔴 Disconnected';
+    }
+  }
+
   // Add touch event listeners to chat area
   if (messagesDiv) {
     messagesDiv.addEventListener('touchstart', handleTouchStart, {passive: true});
@@ -1385,7 +1401,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Click handler for room title (both mobile and desktop)
-  const currentRoomEl = document.getElementById('current-room');
   if (currentRoomEl) {
     currentRoomEl.addEventListener('click', () => {
       if (currentRoom.startsWith('private_')) {
@@ -2782,27 +2797,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Connection status functions
-  function updateConnectionStatus(status) {
-    const statusEl = document.getElementById('connection-status');
-    if (statusEl) {
-      statusEl.className = `connection-status ${status}`;
-      statusEl.textContent = status === 'connected' ? '🟢 Connected' : 
-                            status === 'connecting' ? '🟡 Connecting...' : 
-                            '🔴 Disconnected';
-    }
-  }
-
   function updateUsersList() {
     // Update users list - placeholder for future implementation
   }
 
   function loadChatList() {
     // Load chat list - placeholder for future implementation  
-  }
-
-  function loadChatHistory() {
-    // Load chat history - placeholder for future implementation
   }
 
   socket.on('connect', function() {
@@ -2865,27 +2865,29 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('get_online_users');
   }, 1000);
 
-  // Mobile header swipe for settings (using different variable names)
-  let headerSwipeStartX = 0;
-  let headerSwipeStartY = 0;
-  const chatHeader = document.querySelector('.chat-header');
+  // Mobile header swipe for settings
+  if (window.innerWidth <= 768) {
+    const chatHeaderEl = document.querySelector('.chat-header');
+    if (chatHeaderEl) {
+      let headerSwipeStartX = 0;
+      let headerSwipeStartY = 0;
 
-  if (chatHeader && window.innerWidth <= 768) {
-    chatHeader.addEventListener('touchstart', (e) => {
-      headerSwipeStartX = e.touches[0].clientX;
-      headerSwipeStartY = e.touches[0].clientY;
-    });
+      chatHeaderEl.addEventListener('touchstart', (e) => {
+        headerSwipeStartX = e.touches[0].clientX;
+        headerSwipeStartY = e.touches[0].clientY;
+      });
 
-    chatHeader.addEventListener('touchend', (e) => {
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-      const diffX = headerSwipeStartX - endX;
-      const diffY = Math.abs(headerSwipeStartY - endY);
+      chatHeaderEl.addEventListener('touchend', (e) => {
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const diffX = headerSwipeStartX - endX;
+        const diffY = Math.abs(headerSwipeStartY - endY);
 
-      // Swipe left to show settings
-      if (diffX > 50 && diffY < 100) {
-        window.showSettings();
-      }
-    });
+        // Swipe left to show settings
+        if (diffX > 50 && diffY < 100) {
+          window.showSettings();
+        }
+      });
+    }
   }
 });
