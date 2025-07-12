@@ -39,6 +39,13 @@
       "nick": "Wixxy",
       "text": "і",
       "timestamp": 1752266495
+    },
+    {
+      "nick": "Wixxy",
+      "text": "/static/uploads/57f95a66ae024d6d9bb193cdf0163c30.mp4",
+      "timestamp": 1752305076,
+      "type": "media",
+      "file_type": "video"
     }
   ]
 }
