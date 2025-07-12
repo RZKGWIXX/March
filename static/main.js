@@ -2445,6 +2445,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="changelog-scroll">
           <div class="changelog-item">
+            <div class="changelog-date">Version 1.4 - 12.07.25</div>
+            <div class="changelog-title">Mobile & UX Improvements</div>
+            <ul class="changelog-changes">
+              <li class="added">Мобільна оптимізація для телефонів</li>
+              <li class="added">Перегляд учасників групи при натисканні на назву</li>
+              <li class="added">Профілі користувачів при натисканні на нікнейм</li>
+              <li class="improved">Зменшена кнопка "Надіслати"</li>
+              <li class="fixed">Виправлені помилки з JavaScript</li>
+            </ul>
+          </div>
+          <div class="changelog-item">
             <div class="changelog-date">Version 1.3 - 11.07.25</div>
             <div class="changelog-title">Style & UX Update</div>
             <ul class="changelog-changes">
