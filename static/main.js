@@ -238,7 +238,12 @@ function switchRoom(room) {
 
 function loadMessages(room) {
     fetch(`/messages/${room}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(messages => {
             displayMessages(messages);
         })
@@ -340,12 +345,24 @@ function showSettings() {
 
     // Get current user avatar
     fetch(`/get_user_avatar/${nickname}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            document.getElementById('settings-avatar').src = data.avatar || '/static/default-avatar.svg';
+            const avatarElement = document.getElementById('settings-avatar');
+            if (avatarElement) {
+                avatarElement.src = data.avatar || '/static/default-avatar.svg';
+            }
         })
         .catch(error => {
             console.error('Failed to get user avatar:', error);
+            const avatarElement = document.getElementById('settings-avatar');
+            if (avatarElement) {
+                avatarElement.src = '/static/default-avatar.svg';
+            }
         });
 
     modal.innerHTML = `
@@ -394,9 +411,17 @@ function showSettings() {
 
     // Load current bio
     fetch(`/get_user_profile/${nickname}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            document.getElementById('bio-input').value = data.bio || '';
+            const bioInput = document.getElementById('bio-input');
+            if (bioInput) {
+                bioInput.value = data.bio || '';
+            }
         })
         .catch(error => {
             console.error('Failed to get user profile:', error);
@@ -912,9 +937,20 @@ function updateUsersList() {
 function loadUserAvatar() {
     const userInfo = document.querySelector('.user-info');
     if (userInfo) {
+        // Check if avatar already exists
+        const existingAvatar = userInfo.querySelector('.user-info-avatar');
+        if (existingAvatar) {
+            return;
+        }
+
         // Load user avatar
         fetch(`/get_user_avatar/${nickname}`)
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error(`HTTP error! status: ${r.status}`);
+                }
+                return r.json();
+            })
             .then(data => {
                 const userAvatar = document.createElement('img');
                 userAvatar.className = 'user-info-avatar';

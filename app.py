@@ -1209,6 +1209,36 @@ def get_room_stats(room):
     return jsonify({'online_count': online_count, 'total_count': total_count})
 
 
+@app.route('/get_user_avatar/<username>')
+@login_required
+def get_user_avatar(username):
+    """Get user's avatar URL"""
+    try:
+        # Check if user is banned or deleted
+        display_info = get_user_display_info(username)
+        
+        if display_info.get('is_banned') or display_info.get('is_deleted'):
+            return jsonify({'avatar': '/static/default-avatar.svg'})
+        
+        # Check for custom avatar file
+        avatar_path = f'static/avatars/{username}.jpg'
+        if os.path.exists(avatar_path):
+            return jsonify({'avatar': f'/static/avatars/{username}.jpg'})
+        
+        # Check for other avatar extensions
+        for ext in ['png', 'gif', 'jpeg']:
+            avatar_path = f'static/avatars/{username}.{ext}'
+            if os.path.exists(avatar_path):
+                return jsonify({'avatar': f'/static/avatars/{username}.{ext}'})
+        
+        # Return default avatar
+        return jsonify({'avatar': '/static/default-avatar.svg'})
+        
+    except Exception as e:
+        print(f"Error getting user avatar: {e}")
+        return jsonify({'avatar': '/static/default-avatar.svg'})
+
+
 @app.route('/get_user_profile/<username>')
 @login_required
 def get_user_profile(username):
