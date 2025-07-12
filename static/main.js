@@ -375,15 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItem = document.querySelector(`[data-room="${room}"]`);
     if (activeItem) activeItem.classList.add('active');
 
-    // Update controls - hide all buttons for general chat
+    // Update controls - hide all buttons for general chat since we have mobile dropdown
     if (deleteRoomBtn) {
-      deleteRoomBtn.style.display = room === 'general' ? 'none' : 'block';
-      if (room !== 'general') {
-        deleteRoomBtn.onclick = showRoomContextMenu;
-      }
+      deleteRoomBtn.style.display = 'none'; // Always hide since we have mobile dropdown
     }
     if (blockUserBtn) {
-      blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
+      blockUserBtn.style.display = 'none'; // Always hide since we have mobile dropdown
     }
     
     // Show settings button only in general chat - both in header and sidebar

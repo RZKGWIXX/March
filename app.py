@@ -855,7 +855,7 @@ def admin_ban_user():
                               time.localtime(until_timestamp))
 
     banned_data = load_json('banned')
-    if 'users' not in banned_data:
+    if 'users' not in<previous_generation>banned_data:
         banned_data['users'] = []
 
     banned_data['users'] = [
@@ -1662,7 +1662,7 @@ def upload_avatar():
         socketio.emit('avatar_updated', {
             'user': session['nickname'],
             'avatar_url': avatar_url
-        }, broadcast=True)
+        })
 
         return jsonify(success=True, avatar_url=avatar_url)
 
@@ -1695,13 +1695,13 @@ def update_profile():
             break
 
     save_json('users', users_data)
-    
+
     # Broadcast bio update to all users
     socketio.emit('profile_updated', {
         'user': session['nickname'],
         'bio': bio
-    }, broadcast=True)
-    
+    })
+
     return jsonify(success=True)
 
 
@@ -1755,18 +1755,18 @@ def on_disconnect():
         if nickname in online_users:
             import time
             online_users[nickname]['last_seen'] = int(time.time())
-            
+
             # Broadcast user disconnect
             socketio.emit('user_activity_update', {
                 'user': nickname,
                 'action': 'offline'
             }, broadcast=True)
-            
+
             # Send updated online users list
             online_users_list = [user for user, data in online_users.items() 
                                if int(time.time()) - data['last_seen'] < 300]
             socketio.emit('online_users_update', {'users': online_users_list}, broadcast=True)
-            
+
         del user_sessions[request.sid]
 
 
