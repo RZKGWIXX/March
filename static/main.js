@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let userList = [];
   let filteredUsers = [];
   let searchTimeout;
+  let useMobileInterface = window.innerWidth <= 768;
 
   // Theme management
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -410,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
 
     if (mobileChatOptions) {
-      mobileChatOptions.style.display = room !== 'general' ? 'block' : 'block'; // Always show for all chats
+      mobileChatOptions.style.display = 'block'; // Always show for all chats
       // Setup mobile chat dropdown
       setupMobileChatDropdown(room);
     }
@@ -956,6 +957,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Helper function to check if user is admin
+  function checkIfAdmin(room) {
+    return fetch(`/room_admin_check/${room}`)
+      .then(r => r.json())
+      .then(data => data.isAdmin)
+      .catch(() => false);
+  }
+
+  // Toggle theme function
+  function toggleTheme() {
+    const body = document.body;
+    const currentTheme = body.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    body.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon();
+  }
+
+  // Show admin panel function
+  function showAdminPanel() {
+    // Implementation would be added here
+    console.log('Show admin panel');
+  }
+
+  // Show group members function
+  function showGroupMembers() {
+    // Implementation would be added here
+    console.log('Show group members');
+  }
+
   // Event listeners
   if (chatList) {
     chatList.onclick = (e) => {
@@ -1016,6 +1047,100 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show room context menu instead of immediate delete
       showRoomContextMenu();
     };
+  }
+
+  // Setup mobile chat dropdown
+  function setupMobileChatDropdown(room) {
+    const mobileChatOptions = document.getElementById('mobile-chat-options');
+    const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
+    
+    if (!mobileChatOptions || !mobileChatDropdown) return;
+
+    // Clear existing dropdown
+    mobileChatDropdown.innerHTML = '';
+    
+    let dropdownHTML = '';
+    
+    // General options for all chats
+    if (room === 'general') {
+      dropdownHTML += `
+        <div class="mobile-dropdown-item" onclick="showAdminPanel()">
+          <span>⚙️</span>
+          Settings
+        </div>
+        <div class="mobile-dropdown-item" onclick="toggleTheme()">
+          <span>🌙</span>
+          Theme
+        </div>
+      `;
+    } else if (room.startsWith('private_')) {
+      // Private chat options
+      dropdownHTML += `
+        <div class="mobile-dropdown-item" onclick="deleteCurrentRoom()">
+          <span>🗑️</span>
+          Delete Chat
+        </div>
+        <div class="mobile-dropdown-item" onclick="blockCurrentUser()">
+          <span>🚫</span>
+          Block User
+        </div>
+        <div class="mobile-dropdown-item" onclick="unblockCurrentUser()">
+          <span>✅</span>
+          Unblock User
+        </div>
+        <div class="mobile-dropdown-item" onclick="clearPrivateHistory()">
+          <span>🧹</span>
+          Clear History
+        </div>
+      `;
+    } else {
+      // Group chat options
+      dropdownHTML += `
+        <div class="mobile-dropdown-item" onclick="showGroupMembers()">
+          <span>👥</span>
+          View Members
+        </div>
+        <div class="mobile-dropdown-item" onclick="leaveCurrentGroup()">
+          <span>🚪</span>
+          Leave Group
+        </div>
+      `;
+      
+      // Add admin options if user is admin
+      checkIfAdmin(room).then(isAdmin => {
+        if (isAdmin || nickname === 'Wixxy') {
+          mobileChatDropdown.innerHTML += `
+            <div class="mobile-dropdown-item" onclick="showAddUserDialog()">
+              <span>➕</span>
+              Add User
+            </div>
+            <div class="mobile-dropdown-item" onclick="showKickUserDialog()">
+              <span>👢</span>
+              Kick User
+            </div>
+            <div class="mobile-dropdown-item" onclick="deleteCurrentRoom()">
+              <span>🗑️</span>
+              Delete Group
+            </div>
+          `;
+        }
+      });
+    }
+    
+    mobileChatDropdown.innerHTML = dropdownHTML;
+    
+    // Add click handler to toggle dropdown
+    mobileChatOptions.onclick = function(e) {
+      e.stopPropagation();
+      mobileChatDropdown.classList.toggle('show');
+    };
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!mobileChatDropdown.contains(e.target) && !mobileChatOptions.contains(e.target)) {
+        mobileChatDropdown.classList.remove('show');
+      }
+    });
   }
 
   // Show room context menu

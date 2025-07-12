@@ -732,6 +732,24 @@ body {
   text-align: center;
 }
 
+/* Private Chat Options in Mobile Dropdown */
+.mobile-private-options {
+  border-top: 2px solid var(--surface-lighter);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.mobile-private-options .mobile-dropdown-item {
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+.mobile-private-options .mobile-dropdown-item:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 1rem;
+}
+
 /* Forward Modal Styles */
 .forward-modal {
   z-index: 10003;
@@ -1112,6 +1130,36 @@ body {
 @media (max-width: 768px) {
   .connection-status {
     display: none !important;
+  }
+
+  /* Hide home button on mobile */
+  .header-buttons button[onclick*="home"],
+  .header-buttons button[title*="Home"],
+  .header-buttons button:contains("🏠") {
+    display: none !important;
+  }
+
+  /* Make three dots button visible and properly sized */
+  .mobile-only {
+    display: block !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    font-size: 1.2rem !important;
+    padding: 0.75rem !important;
+    border-radius: 12px;
+    background: var(--surface-lighter);
+    color: var(--text-primary);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-only:hover {
+    background: var(--accent-green);
+    color: black;
   }
 }
 
@@ -2185,38 +2233,45 @@ body {
     top: 0;
     z-index: 100;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    min-height: 70px;
   }
 
   .chat-title-wrapper {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
     flex: 1;
+    flex-direction: column;
   }
 
   .chat-title h2 {
     font-size: 1.2rem;
-    margin-bottom: 0.1rem;
+    margin: 0;
+    line-height: 1.2;
   }
 
   .chat-title {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  /* Move status between nickname and controls */
+  /* Move status under nickname on mobile */
   .user-status,
   .room-stats {
-    order: 0;
+    order: 1;
     margin: 0;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
     white-space: nowrap;
+    display: block;
+    position: static;
+    transform: none;
+    text-align: left;
+    margin-top: 0.2rem;
   }
 
   .chat-controls {

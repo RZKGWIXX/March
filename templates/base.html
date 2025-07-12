@@ -1819,20 +1819,20 @@ body {
 }
 
 /* Scrollbar Styling */
-::-webkit-scrollbar {
+:::-webkit-scrollbar {
   width: 6px;
 }
 
-::-webkit-scrollbar-track {
+:::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+:::-webkit-scrollbar-thumb {
   background: var(--accent-green);
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+:::-webkit-scrollbar-thumb:hover {
   background: var(--accent-green-dark);
 }
 
@@ -2315,7 +2315,7 @@ body {
     font-size: 1.4rem;
     font-weight: 700;
     margin: 0;
-}
+  }
 
   .modal-footer {
     padding: 1rem 1.5rem;
@@ -3413,3 +3413,12 @@ body[data-theme="dark"] .members-panel {
   align-items: center;
   margin-bottom: 1.5rem;
 }
+          <div class="chat-controls">
+            <button id="block-user-btn" title="Block User" style="display: none;">🚫</button>
+            <button id="delete-room-btn" title="Delete Room" style="display: none;">🗑️</button>
+            <button id="settings-btn" class="general-only" title="Settings" onclick="window.showAdminPanel && showAdminPanel()" style="display: none;">⚙️</button>
+            <button id="mobile-chat-options" class="mobile-only" title="Options" style="position: relative;">
+              ⋮
+              <div id="mobile-chat-dropdown" class="mobile-chat-dropdown"></div>
+            </button>
+          </div>
