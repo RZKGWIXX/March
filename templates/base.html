@@ -99,17 +99,14 @@
         <!-- Controls on the right -->
         <div class="chat-controls">
           <!-- Settings button (visible in general chat) -->
-          <button onclick="showSettings()" id="settings-btn" title="Settings" class="general-only" style="display: none;">⚙️</button>
+          <button onclick="showSettings()" id="settings-btn" title="Settings" class="general-only" style="display: flex;">⚙️</button>
           
-          <!-- Desktop controls -->
+          <!-- Desktop controls (hidden on mobile) -->
           <button onclick="toggleAdminPanel()" id="admin-btn" title="Admin Panel" class="desktop-only" style="display: none;">🔧</button>
           <button onclick="showRoomContextMenu()" id="delete-room-btn" title="Room Options" class="desktop-only" style="display: none;">⚙️</button>
           <button onclick="blockCurrentUser()" id="block-user-btn" title="Block User" class="desktop-only" style="display: none;">🚫</button>
 
-          <!-- Mobile controls -->
-          <button id="home-btn-mobile" class="mobile-only home-btn-mobile" title="Home" style="display: none;">🏠</button>
-          
-          <!-- Mobile three dots menu on the right -->
+          <!-- Mobile three dots menu -->
           <div class="mobile-only" style="position: relative;">
             <button id="mobile-chat-options" title="Chat Options" style="display: none;">⋯</button>
             <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">

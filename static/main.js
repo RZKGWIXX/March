@@ -386,16 +386,23 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
     
-    // Show settings button only in general chat
-    const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) {
+    // Show settings button only in general chat - both in header and sidebar
+    const headerSettingsBtn = document.querySelector('.chat-controls #settings-btn');
+    const sidebarSettingsBtn = document.querySelector('.header-buttons #settings-btn');
+    
+    if (headerSettingsBtn) {
       if (room === 'general') {
-        settingsBtn.style.display = 'flex';
-        settingsBtn.classList.add('general-only');
+        headerSettingsBtn.style.display = 'flex';
+        headerSettingsBtn.classList.add('general-only');
       } else {
-        settingsBtn.style.display = 'none';
-        settingsBtn.classList.remove('general-only');
+        headerSettingsBtn.style.display = 'none';
+        headerSettingsBtn.classList.remove('general-only');
       }
+    }
+    
+    // Sidebar settings button should always be visible
+    if (sidebarSettingsBtn) {
+      sidebarSettingsBtn.style.display = 'flex';
     }
 
     // Setup mobile chat options and home button

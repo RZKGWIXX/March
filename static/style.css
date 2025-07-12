@@ -671,7 +671,7 @@ body {
 /* Mobile Chat Options Dropdown */
 .mobile-chat-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 5px);
   right: 0;
   background: var(--surface-dark);
   border: 1px solid var(--surface-lighter);
@@ -2831,23 +2831,42 @@ body[data-theme="dark"] .admin-content {
   @media (max-width: 768px) {
     .chat-header {
       padding: 0.75rem;
-      display: flex;
+      display: grid;
+      grid-template-columns: 50px 1fr 100px;
       align-items: center;
-      justify-content: space-between;
-      position: relative;
       gap: 0.5rem;
       min-height: 60px;
       box-sizing: border-box;
     }
 
+    #menu-toggle {
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      padding: 0;
+      background: var(--surface-lighter);
+      border: none;
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      grid-column: 1;
+    }
+
+    #menu-toggle:hover {
+      background: var(--accent-green);
+      color: black;
+    }
+
     .chat-title {
-      flex: 1;
+      grid-column: 2;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.2rem;
-      order: 2;
       min-width: 0;
       overflow: hidden;
     }
@@ -2859,11 +2878,7 @@ body[data-theme="dark"] .admin-content {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 150px;
-    }
-
-    #room-type {
-      display: none !important;
+      max-width: 180px;
     }
 
     /* Status positioned in center below title */
@@ -2880,47 +2895,21 @@ body[data-theme="dark"] .admin-content {
       gap: 0.2rem;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 120px;
-    }
-
-    #menu-toggle {
-      min-width: 40px;
-      min-height: 40px;
-      width: 40px;
-      height: 40px;
-      font-size: 1.1rem;
-      padding: 0;
-      flex-shrink: 0;
-      order: 1;
-      background: var(--surface-lighter);
-      border: none;
-      border-radius: 8px;
-      color: var(--text-primary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #menu-toggle:hover {
-      background: var(--accent-green);
-      color: black;
+      max-width: 150px;
     }
 
     .chat-controls {
-      order: 3;
-      flex-shrink: 0;
-      position: relative;
+      grid-column: 3;
       display: flex;
       gap: 0.5rem;
+      justify-content: flex-end;
+      align-items: center;
     }
 
-    /* Settings button in general chat */
+    /* Settings button - always visible in general chat */
     .chat-controls .general-only {
-      min-width: 40px;
-      min-height: 40px;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       font-size: 1.1rem;
       background: var(--surface-lighter);
@@ -2928,10 +2917,9 @@ body[data-theme="dark"] .admin-content {
       border-radius: 8px;
       color: var(--text-primary);
       cursor: pointer;
-      display: flex;
+      display: flex !important;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
     }
 
     .chat-controls .general-only:hover {
@@ -2939,36 +2927,10 @@ body[data-theme="dark"] .admin-content {
       color: black;
     }
 
-    /* Home button for non-general chats */
-    .home-btn-mobile {
-      min-width: 40px;
-      min-height: 40px;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      font-size: 1.1rem;
-      background: var(--surface-lighter);
-      border: none;
-      border-radius: 8px;
-      color: var(--text-primary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .home-btn-mobile:hover {
-      background: var(--accent-green);
-      color: black;
-    }
-
-    /* Three dots menu on the right */
+    /* Three dots menu */
     .chat-controls .mobile-only {
-      min-width: 40px;
-      min-height: 40px;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       font-size: 1.2rem;
       background: var(--surface-lighter);
@@ -2979,7 +2941,6 @@ body[data-theme="dark"] .admin-content {
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
     }
 
     .chat-controls .mobile-only:hover {
@@ -2987,9 +2948,25 @@ body[data-theme="dark"] .admin-content {
       color: black;
     }
 
-    /* Ensure mobile chat options are visible */
-    .mobile-only {
-      display: block !important;
+    /* Home button for non-general chats */
+    .home-btn-mobile {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      font-size: 1.1rem;
+      background: var(--surface-lighter);
+      border: none;
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .home-btn-mobile:hover {
+      background: var(--accent-green);
+      color: black;
     }
   }
 
