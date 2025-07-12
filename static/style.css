@@ -3504,8 +3504,8 @@ body[data-theme="dark"] .members-panel {
 
 .message-form button[type="submit"] {
   padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: white;
+  background: var(--accent-green);
+  color: black;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -3514,4 +3514,9 @@ body[data-theme="dark"] .members-panel {
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: 80px;
+}
+
+.message-form button[type="submit"]:hover {
+  background: var(--accent-green-dark);
+  transform: scale(1.05);
 }

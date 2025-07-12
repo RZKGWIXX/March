@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let userList = [];
   let filteredUsers = [];
   let searchTimeout;
-  let useMobileInterface = window.innerWidth <= 768;
 
   // Theme management
   const savedTheme = localStorage.getItem('theme') || 'light';
