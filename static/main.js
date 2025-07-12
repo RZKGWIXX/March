@@ -364,17 +364,15 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
     }
 
-    // Show clear history button for private chats on mobile
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
-    if (clearHistoryBtn) {
-      clearHistoryBtn.style.display = room.startsWith('private_') ? 'block' : 'none';
-    }
-
-    // Show mobile chat options for all non-general rooms
+    // Setup mobile chat options
     const mobileChatOptions = document.getElementById('mobile-chat-options');
-    if (mobileChatOptions) {
-      mobileChatOptions.style.display = (room !== 'general' && window.innerWidth <= 768) ? 'block' : 'none';
-      mobileChatOptions.onclick = showRoomContextMenu;
+    const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
+    
+    if (mobileChatOptions && useMobileInterface) {
+      mobileChatOptions.style.display = room !== 'general' ? 'block' : 'none';
+      
+      // Setup mobile chat dropdown
+      setupMobileChatDropdown(room);
     }
 
     // Close mobile menu
@@ -1407,13 +1405,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Handle window resize
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) {
+    const isNowMobile = window.innerWidth <= 768;
+    
+    if (!isNowMobile) {
       sidebar.classList.remove('open');
-      // Hide mobile dropdown
+      // Hide mobile dropdowns
       const mobileDropdown = document.getElementById('mobile-header-dropdown');
+      const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
       if (mobileDropdown) {
         mobileDropdown.classList.remove('show');
       }
+      if (mobileChatDropdown) {
+        mobileChatDropdown.classList.remove('show');
+      }
+    }
+    
+    // Update mobile chat options visibility
+    const mobileChatOptions = document.getElementById('mobile-chat-options');
+    if (mobileChatOptions && currentRoom !== 'general') {
+      mobileChatOptions.style.display = (useMobileInterface || isNowMobile) ? 'block' : 'none';
     }
   });
 
@@ -1744,23 +1754,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Detect mobile device
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const isTablet = /iPad|Android/i.test(navigator.userAgent) && window.innerWidth > 768;
+  // Enhanced mobile device detection
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileDevice = /iphone|ipad|ipod|android|blackberry|mini|windows\sce|palm/i.test(userAgent);
+  const isTabletDevice = /ipad|android/i.test(userAgent) && window.innerWidth > 768;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isSmallScreen = window.innerWidth <= 768;
+  
+  // Determine if we should use mobile interface
+  const useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
   
   // Apply mobile-specific styles and behaviors
-  if (isMobile && !isTablet) {
+  if (useMobileInterface) {
     document.body.classList.add('mobile-device');
+    console.log('Mobile interface activated');
     
     // Mobile-specific optimizations
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
     }
     
     // Optimize touch interactions
     document.addEventListener('touchstart', function() {}, {passive: true});
     document.addEventListener('touchmove', function() {}, {passive: true});
+  } else {
+    console.log('Desktop interface activated');
   }
 
   // Settings panel
@@ -2359,11 +2378,88 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  // Setup mobile chat dropdown
+  function setupMobileChatDropdown(room) {
+    const mobileChatOptions = document.getElementById('mobile-chat-options');
+    const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
+    const mobileViewProfile = document.getElementById('mobile-view-profile');
+    const mobileClearHistory = document.getElementById('mobile-clear-history');
+    const mobileDeleteChat = document.getElementById('mobile-delete-chat');
+    const mobileBlockUser = document.getElementById('mobile-block-user');
+
+    if (!mobileChatOptions || !mobileChatDropdown) return;
+
+    // Show/hide options based on room type
+    if (room.startsWith('private_')) {
+      const users = room.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      
+      if (mobileViewProfile) {
+        mobileViewProfile.style.display = 'block';
+        mobileViewProfile.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          showUserProfile(otherUser);
+        };
+      }
+      
+      if (mobileClearHistory) {
+        mobileClearHistory.style.display = 'block';
+        mobileClearHistory.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          clearPrivateHistory();
+        };
+      }
+      
+      if (mobileDeleteChat) {
+        mobileDeleteChat.style.display = 'block';
+        mobileDeleteChat.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          deleteCurrentRoom();
+        };
+      }
+      
+      if (mobileBlockUser) {
+        mobileBlockUser.style.display = 'block';
+        mobileBlockUser.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          blockCurrentUser();
+        };
+      }
+    } else {
+      // Group chat
+      if (mobileViewProfile) mobileViewProfile.style.display = 'none';
+      if (mobileBlockUser) mobileBlockUser.style.display = 'none';
+      if (mobileClearHistory) mobileClearHistory.style.display = 'none';
+      
+      if (mobileDeleteChat) {
+        mobileDeleteChat.style.display = 'block';
+        mobileDeleteChat.textContent = '🚪 Покинути групу';
+        mobileDeleteChat.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          leaveCurrentGroup();
+        };
+      }
+    }
+
+    // Toggle dropdown
+    mobileChatOptions.onclick = (e) => {
+      e.stopPropagation();
+      mobileChatDropdown.classList.toggle('show');
+    };
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.chat-controls')) {
+        mobileChatDropdown.classList.remove('show');
+      }
+    });
+  }
+
   // Add settings button to header
   const headerButtons = document.querySelector('.header-buttons');
   if (headerButtons) {
     // Desktop buttons
-    if (window.innerWidth > 768) {
+    if (!useMobileInterface) {
       const settingsBtn = document.createElement('button');
       settingsBtn.innerHTML = '⚙️';
       settingsBtn.title = 'Settings';
@@ -2387,7 +2483,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mobileMenuBtn) {
         mobileMenuBtn.style.display = 'block';
-        mobileMenuBtn.onclick = () => {
+        mobileMenuBtn.onclick = (e) => {
+          e.stopPropagation();
           mobileDropdown.classList.toggle('show');
         };
       }
