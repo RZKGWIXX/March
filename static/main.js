@@ -2828,21 +2828,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1000);
 
   // Add swipe gesture for mobile status
-  let startX = 0;
-  let startY = 0;
+  let headerStartX = 0;
+  let headerStartY = 0;
   const chatHeader = document.querySelector('.chat-header');
 
   if (chatHeader && window.innerWidth <= 768) {
     chatHeader.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
+      headerStartX = e.touches[0].clientX;
+      headerStartY = e.touches[0].clientY;
     });
 
     chatHeader.addEventListener('touchend', (e) => {
       const endX = e.changedTouches[0].clientX;
       const endY = e.changedTouches[0].clientY;
-      const diffX = startX - endX;
-      const diffY = Math.abs(startY - endY);
+      const diffX = headerStartX - endX;
+      const diffY = Math.abs(headerStartY - endY);
 
       // Swipe left to show settings
       if (diffX > 50 && diffY < 100) {
