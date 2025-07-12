@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="message-wrapper">
           ${avatarHtml}
           <div class="message-content">
-            <span class="message-author" onclick="showUserProfile('${nick}')">${nick}</span>
+            <span class="message-author clickable-username" onclick="showUserProfile('${nick}')" title="View ${nick}'s profile">${nick}</span>
             <span class="message-text">${messageContent}</span>
             ${statusHtml}
           </div>
@@ -498,10 +498,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (username === nickname) return; // Don't show own profile
 
     const modal = document.createElement('div');
-    modal.className = 'admin-panel';
+    modal.className = 'admin-panel user-profile-modal';
+    const isMobile = window.innerWidth <= 768;
+    
     modal.innerHTML = `
-      <div class="admin-content user-profile">
+      <div class="admin-content user-profile ${isMobile ? 'mobile-profile' : ''}">
         <div class="profile-header">
+          <button class="close-profile-btn" onclick="this.closest('.admin-panel').remove()">×</button>
           <img src="/static/default-avatar.png" alt="${username}" class="profile-avatar" id="profile-avatar">
           <div class="profile-info">
             <h2>${username}</h2>
@@ -510,17 +513,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="profile-details">
           <div class="profile-section">
-            <h3>Info</h3>
+            <h3>📄 Info</h3>
             <p id="profile-bio">Loading bio...</p>
           </div>
           <div class="profile-section">
-            <h3>Last seen</h3>
+            <h3>🕒 Last seen</h3>
             <p id="profile-last-seen">Loading...</p>
           </div>
         </div>
         <div class="profile-actions">
-          <button class="admin-btn" onclick="startPrivateChat('${username}')">💬 Message</button>
-          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
+          <button class="profile-action-btn message-btn" onclick="startPrivateChat('${username}')">
+            <span class="btn-icon">💬</span>
+            <span class="btn-text">Message</span>
+          </button>
+          <button class="profile-action-btn close-btn" onclick="this.closest('.admin-panel').remove()">
+            <span class="btn-icon">✕</span>
+            <span class="btn-text">Close</span>
+          </button>
         </div>
       </div>
     `;

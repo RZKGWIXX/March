@@ -1057,6 +1057,7 @@ body {
     height: 100%;
     z-index: 1000;
     transition: var(--transition);
+    border-radius: 0;
   } 
 
   .sidebar.open {
@@ -1073,14 +1074,35 @@ body {
 
   .message {
     max-width: 85%;
-    font-size: 0.9rem;
-    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    padding: 1rem 1.2rem;
+    border-radius: 18px;
   }
 
   .context-menu {
     left: 20px !important;
     right: 20px !important;
     width: auto !important;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--surface-lighter);
+  }
+
+  .context-item {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    margin: 0.25rem;
+  }
+
+  .context-item:hover {
+    background: var(--accent-green);
+    color: black;
+    transform: scale(1.02);
   }
 }
 
@@ -1250,17 +1272,21 @@ body {
 }
 
 .mobile-device .shared-video {
-  max-width: calc(100vw - 40px) !important;
-  max-height: 200px !important;
+  max-width: calc(100vw - 80px) !important;
+  max-height: 250px !important;
   width: auto !important;
   height: auto !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .mobile-device .shared-image {
-  max-width: calc(100vw - 40px) !important;
-  max-height: 200px !important;
+  max-width: calc(100vw - 80px) !important;
+  max-height: 250px !important;
   width: auto !important;
   height: auto !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .mobile-device .message-text {
@@ -1270,22 +1296,26 @@ body {
 }
 
 .mobile-device .message {
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  border-radius: 18px;
   position: relative;
+  max-width: 90%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .mobile-device .message.own {
   background: var(--accent-green);
   color: black;
-  margin-left: 15%;
+  margin-left: 10%;
+  border-bottom-right-radius: 6px;
 }
 
 .mobile-device .message:not(.own) {
   background: var(--surface-dark);
   border: 1px solid var(--surface-lighter);
-  margin-right: 15%;
+  margin-right: 10%;
+  border-bottom-left-radius: 6px;
 }
 
 .mobile-device .message-status {
@@ -1428,6 +1458,34 @@ body {
     position: sticky;
     top: 0;
     z-index: 10;
+    background: var(--surface-dark);
+    border-bottom: 2px solid var(--accent-green);
+  }
+
+  .chat-header {
+    padding: 1rem;
+    background: var(--surface-dark);
+    border-bottom: 1px solid var(--surface-lighter);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .chat-title h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .chat-controls {
+    gap: 0.75rem;
+  }
+
+  .chat-controls button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
   /* Mobile keyboard adjustments */
@@ -1448,6 +1506,8 @@ body {
   .admin-content {
     width: 95%;
     max-height: 90vh;
+    border-radius: 15px;
+    overflow: hidden;
   }
 
   .admin-layout {
@@ -1456,7 +1516,7 @@ body {
 
   .admin-sidebar {
     width: 100%;
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
     border-right: none;
     border-bottom: 1px solid var(--surface-accent);
@@ -1464,19 +1524,29 @@ body {
 
   .admin-section {
     margin-bottom: 1rem;
-    padding: 0.75rem;
+    padding: 1rem;
+    border-radius: 10px;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .modal-header {
-    padding: 1rem;
+    padding: 1.2rem;
+    background: var(--accent-green);
+    color: black;
+  }
+
+  .modal-header h2 {
+    color: black;
+    font-size: 1.3rem;
   }
 
   .modal-footer {
     padding: 1rem;
+    background: var(--surface-lighter);
   }
 
   .changelog-scroll {
@@ -1485,6 +1555,18 @@ body {
 
   .admin-main-content {
     padding: 1rem;
+  }
+
+  .admin-btn {
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 10px;
+    margin: 0.5rem 0;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
 }
 
@@ -1824,60 +1906,263 @@ body[data-theme="dark"] .admin-content {
 }
 
 /* User Profile Modal */
+.user-profile-modal {
+  z-index: 10002;
+  backdrop-filter: blur(8px);
+}
+
 .user-profile {
   max-width: 400px;
   width: 90%;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+.mobile-profile {
+  max-width: 95vw;
+  max-height: 90vh;
+  margin: 0;
 }
 
 .profile-header {
   display: flex;
   align-items: center;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 1.5rem 1.5rem 1rem;
+  background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dark) 100%);
+  color: black;
+  position: relative;
+}
+
+.close-profile-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: rgba(0,0,0,0.2);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.close-profile-btn:hover {
+  background: rgba(0,0,0,0.4);
+  transform: scale(1.1);
+}
+
+.profile-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+  border: 3px solid rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .profile-info h2 {
   margin: 0 0 0.5rem 0;
-  color: var(--accent);
+  color: black;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .profile-status {
   font-size: 0.9rem;
   margin: 0;
+  opacity: 0.8;
+  font-weight: 600;
 }
 
 .profile-status.online {
-  color: var(--online-color);
+  color: #006400;
 }
 
 .profile-status.offline {
-  color: var(--offline-color);
+  color: #555;
 }
 
 .profile-details {
   margin-bottom: 1.5rem;
+  padding: 0 1.5rem;
 }
 
 .profile-section {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  background: var(--surface-lighter);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent-green);
 }
 
 .profile-section h3 {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.6rem 0;
   font-size: 1rem;
-  color: var(--accent);
+  color: var(--accent-green);
+  font-weight: 600;
 }
 
 .profile-section p {
   margin: 0;
   line-height: 1.4;
+  color: var(--text-primary);
 }
 
 .profile-actions {
   display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 1rem 1.5rem 1.5rem;
+  background: var(--surface-lighter);
+}
+
+.profile-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  justify-content: flex-end;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.message-btn {
+  background: var(--accent-green);
+  color: black;
+}
+
+.message-btn:hover {
+  background: var(--accent-green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.close-btn {
+  background: var(--surface-dark);
+  color: var(--text-primary);
+}
+
+.close-btn:hover {
+  background: var(--text-muted);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+.btn-text {
+  font-size: 1rem;
+}
+
+/* Clickable username styles */
+.clickable-username {
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.clickable-username:hover {
+  color: var(--accent-green) !important;
+  text-decoration: underline;
+  transform: scale(1.02);
+}
+
+.clickable-username:active {
+  transform: scale(0.98);
+}
+
+/* Mobile specific profile styles */
+@media (max-width: 768px) {
+  .user-profile-modal {
+    padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .mobile-profile {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .profile-header {
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+    padding-top: 2rem;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 0 1rem 0;
+  }
+
+  .profile-info h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .profile-details {
+    padding: 1rem;
+    flex: 1;
+  }
+
+  .profile-section {
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+
+  .profile-section h3 {
+    font-size: 1.1rem;
+  }
+
+  .profile-actions {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: sticky;
+    bottom: 0;
+    background: var(--surface-dark);
+    border-top: 1px solid var(--surface-lighter);
+  }
+
+  .profile-action-btn {
+    flex: none;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    min-height: 50px;
+  }
+
+  .close-profile-btn {
+    top: 15px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
+  }
 }
 
 /* Chat list improvements */
