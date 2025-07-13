@@ -2903,24 +2903,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // File upload functionality
-  const fileUploadBtn = document.getElementById('file-upload-btn');
-  const fileInput = document.getElementById('file-input');
-
-  if (fileUploadBtn && fileInput) {
-    fileUploadBtn.onclick = () => {
-      fileInput.click();
-    };
-
-    fileInput.onchange = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        uploadFile(file);
-        // Reset file input
-        e.target.value = '';
-      }
-    };
-  }
+  // File upload functionality handled elsewhere in the code
 
   // Upload file function
   function uploadFile(file) {
