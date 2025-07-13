@@ -2317,8 +2317,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const isSmallScreen = window.innerWidth <= 768;
 
-  // Determine if we should use mobile interface
-  const useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
+  // Update the existing useMobileInterface variable instead of redeclaring it
+  useMobileInterface = (isMobileDevice && !isTabletDevice) || (isTouchDevice && isSmallScreen);
 
   // Apply mobile-specific styles and behaviors
   if (useMobileInterface) {
