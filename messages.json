@@ -9,13 +9,6 @@
       "nick": "Wixxy",
       "text": "/static/uploads/37edeeba5bcd4952aa3dfa7513654655.jpg",
       "timestamp": 1752256956
-    },
-    {
-      "nick": "Wixxy",
-      "text": "/static/uploads/3fa458fe8ebd4926b468a121239cb087.png",
-      "timestamp": 1752395542,
-      "type": "media",
-      "file_type": "image"
     }
   ],
   "private_Testmamka_Wixxy": [],
@@ -60,6 +53,13 @@
       "timestamp": 1752333192,
       "forwarded": true,
       "original_sender": "Wixxy"
+    },
+    {
+      "nick": "Wixxy",
+      "text": "/static/uploads/04cea9e25cea4b24a0a31e43aaa44060.png",
+      "timestamp": 1752396461,
+      "type": "media",
+      "file_type": "image"
     }
   ]
 }
