@@ -1813,8 +1813,7 @@ def on_message(data):
 
     import time
     current_time = int(time.time())
-    online_users```python
-[nickname] = {'last_seen': current_time, 'room': room}
+    online_users[nickname] = {'last_seen': current_time, 'room': room}
 
     spam_ok, spam_error = check_spam_protection(nickname, message)
     if not spam_ok:
