@@ -1553,10 +1553,15 @@ def upload_file():
     if file.filename == '':
         return jsonify(success=False, error='No file selected')
 
-    if len(file.read()) > 5 * 1024 * 1024:
-        return jsonify(success=False, error='File too large (max 5MB)')
-
-    file.seek(0)
+    # Check file size before reading
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Reset to beginning
+    
+    # Different size limits for different file types
+    max_size = 50 * 1024 * 1024  # 50MB for all files (increased limit)
+    if file_size > max_size:
+        return jsonify(success=False, error='File too large (max 50MB)')
 
     allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'}
     file_ext = os.path.splitext(file.filename)[1].lower()
@@ -1575,44 +1580,55 @@ def upload_file():
         file.save(filepath)
 
         file_url = f"/static/uploads/{filename}"
-
         nickname = session['nickname']
 
         import time
+        timestamp = int(time.time())
+        
+        # Determine file type
+        is_video = file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv']
+        file_type = 'video' if is_video else 'image'
+
+        # Save to database
         messages_data = load_json('messages')
         if room not in messages_data:
             messages_data[room] = []
 
-        messages_data[room].append({
+        message_data = {
             'nick': nickname,
             'text': file_url,
-            'timestamp': int(time.time()),
+            'timestamp': timestamp,
             'type': 'media',
-            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'] else 'image'
-        })
+            'file_type': file_type
+        }
 
+        messages_data[room].append(message_data)
         save_json('messages', messages_data)
 
-        # Broadcast to all users in room except sender
+        # Broadcast to all users in room in real-time
         socketio.emit('new_message', {
             'room': room,
             'nickname': nickname,
             'message': file_url,
-            'timestamp': int(time.time()),
+            'timestamp': timestamp,
             'type': 'media',
-            'file_type': 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'] else 'image'
-        }, room=room, include_self=False)
-
-        # Also emit old format for compatibility
-        socketio.emit('message', {
-            'room': room,
-            'message': f"{nickname}: {file_url}",
-            'type': 'media'
+            'file_type': file_type
         }, room=room)
 
-        return jsonify(success=True, url=file_url)
+        # Also emit to sender for immediate feedback
+        socketio.emit('message_sent', {
+            'room': room,
+            'nickname': nickname,
+            'message': file_url,
+            'timestamp': timestamp,
+            'type': 'media',
+            'file_type': file_type
+        })
+
+        return jsonify(success=True, url=file_url, type=file_type)
 
     except Exception as e:
+        print(f"Upload error: {e}")
         return jsonify(success=False, error=f'Upload failed: {str(e)}')
 
 

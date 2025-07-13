@@ -477,15 +477,15 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Handle forwarded messages
       if (text.startsWith('📤 Forwarded from ')) {
-        const forwardedMatch = text.match(/📤 Forwarded from (.+?):\n(.*)/s);
+        const forwardedMatch = text.match(/📤 Forwarded from (.+?):\s*(.*)/s);
         if (forwardedMatch) {
           const originalSender = forwardedMatch[1];
-          const originalMessage = forwardedMatch[2];
+          const originalMessage = forwardedMatch[2].trim();
           
           // Check if forwarded content is media
           let forwardedContent = originalMessage;
           if (originalMessage.startsWith('/static/uploads/')) {
-            const isVideo = originalMessage.includes('.mp4') || originalMessage.includes('.mov') || originalMessage.includes('.avi') || originalMessage.includes('.webm');
+            const isVideo = originalMessage.includes('.mp4') || originalMessage.includes('.mov') || originalMessage.includes('.avi') || originalMessage.includes('.webm') || originalMessage.includes('.mkv') || originalMessage.includes('.flv') || originalMessage.includes('.wmv');
             if (isVideo) {
               const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
               forwardedContent = `
@@ -514,19 +514,19 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         }
       } else if (text.startsWith('/static/uploads/')) {
-        const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm');
+        const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm') || text.includes('.mkv') || text.includes('.flv') || text.includes('.wmv');
         if (isVideo) {
           const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           messageContent = `
             <div class="video-container">
-              <video id="${videoId}" src="${text}" controls class="shared-video" preload="metadata">
+              <video id="${videoId}" src="${text}" controls class="shared-video" preload="metadata" style="max-width: 100%; height: auto;">
                 Your browser does not support the video tag.
               </video>
               <button class="video-reset-btn" onclick="resetVideo('${videoId}')" title="Скинути відео">🔄</button>
             </div>
           `;
         } else {
-          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="cursor: pointer; margin-top: 4px;">`;
+          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="cursor: pointer; margin-top: 4px; max-width: 100%; height: auto;">`;
         }
       } else {
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
@@ -1752,6 +1752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const otherUser = users.find(u => u !== nickname) || users[0];
         showUserProfile(otherUser);
       } else if (currentRoom !== 'general') {
+        // Always show group members when clicking on group name
         showGroupMembers();
       }
     });
@@ -1818,25 +1819,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Don't show our own messages again
-    if (data.nickname === nickname) {
-      return;
-    }
-
-    addMessage(data.nickname, data.message, false);
+    // Show all messages in real-time, including our own for immediate feedback
+    addMessage(data.nickname, data.message, data.nickname === nickname);
 
     // Update cache immediately
     if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
     messageHistory[currentRoom].push({
       nick: data.nickname, 
       text: data.message, 
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
+      type: data.type,
+      file_type: data.file_type
     });
     localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
-    // Show notification for media files
-    if (data.message.startsWith('/static/uploads/')) {
-      const isVideo = data.message.includes('.mp4') || data.message.includes('.mov') || data.message.includes('.avi') || data.message.includes('.webm');
+    // Show notification for media files (but not for our own messages)
+    if (data.nickname !== nickname && data.message.startsWith('/static/uploads/')) {
+      const isVideo = data.file_type === 'video' || data.message.includes('.mp4') || data.message.includes('.mov') || data.message.includes('.avi') || data.message.includes('.webm');
       const mediaType = isVideo ? 'відео' : 'зображення';
 
       if (document.hidden) {
@@ -2916,12 +2915,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Different size limits for different file types
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for video, 5MB for images
-    const sizeText = isVideo ? '50MB' : '5MB';
+    // Unified size limit for all files
+    const maxSize = 50 * 1024 * 1024; // 50MB for all files
 
     if (file.size > maxSize) {
-      showNotification(`❌ File too large (max ${sizeText})`, 'error');
+      showNotification(`❌ File too large (max 50MB)`, 'error');
       return;
     }
 
@@ -2940,7 +2938,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.success) {
         showNotification(`✅ ${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded successfully`, 'success');
-        // File URL will be sent as message automatically
+        // The file will appear in real-time via socket events
       } else {
         showNotification('❌ ' + (data.error || 'Upload failed'), 'error');
       }
@@ -3110,7 +3108,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mobileHome) mobileHome.style.display = 'none';
     } else {
       // Group chat
-      if (mobileViewProfile) mobileViewProfile.style.display = 'none';
+      if (mobileViewProfile) {
+        mobileViewProfile.style.display = 'flex';
+        mobileViewProfile.innerHTML = '<span>👥</span> View Members';
+        mobileViewProfile.onclick = () => {
+          mobileChatDropdown.classList.remove('show');
+          showGroupMembers();
+        };
+      }
       if (mobileBlockUser) mobileBlockUser.style.display = 'none';
       if (mobileUnblockUser) mobileUnblockUser.style.display = 'none';
       if (mobileClearHistory) mobileClearHistory.style.display = 'none';
@@ -3123,6 +3128,32 @@ document.addEventListener('DOMContentLoaded', () => {
           leaveCurrentGroup();
         };
       }
+      
+      // Check if user is admin for additional options
+      checkIfAdmin(room).then(isAdmin => {
+        if (isAdmin || nickname === 'Wixxy') {
+          // Add admin options to dropdown
+          if (!document.getElementById('mobile-admin-options')) {
+            const adminOptions = document.createElement('div');
+            adminOptions.id = 'mobile-admin-options';
+            adminOptions.innerHTML = `
+              <div class="mobile-dropdown-item" onclick="showAddUserDialog(); document.getElementById('mobile-chat-dropdown').classList.remove('show');">
+                <span>➕</span>
+                Add User
+              </div>
+              <div class="mobile-dropdown-item" onclick="showKickUserDialog(); document.getElementById('mobile-chat-dropdown').classList.remove('show');">
+                <span>👢</span>
+                Kick User
+              </div>
+              <div class="mobile-dropdown-item" onclick="deleteCurrentRoom(); document.getElementById('mobile-chat-dropdown').classList.remove('show');">
+                <span>🗑️</span>
+                Delete Group
+              </div>
+            `;
+            mobileChatDropdown.appendChild(adminOptions);
+          }
+        }
+      });
     }
 
     // Toggle dropdown
