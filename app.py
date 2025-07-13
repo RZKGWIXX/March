@@ -1807,7 +1807,7 @@ def on_message(data):
                 (ban_info.get('until_timestamp', 0) - current_time) / 3600)
             if remaining_hours < 1:
                 remaining_minutes = int(
-                    (ban_info.time.time()) - current_time) / 60)
+                    (ban_info.get('until_timestamp', 0) - current_time) / 60)
                 duration_text = f"for {remaining_minutes} more minutes"
             elif remaining_hours < 24:
                 duration_text = f"for {remaining_hours} more hours"
