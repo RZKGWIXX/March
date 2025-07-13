@@ -312,6 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         console.log('Rooms loaded successfully');
+        
+        // Add click handlers for group names after rooms are loaded
+        addGroupClickHandlers();
       })
       .catch(err => {
         console.error('Failed to load rooms:', err);
@@ -1509,10 +1512,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  window.showGroupMembers = function() {
-    fetch(`/get_room_info/${currentRoom}`)
+  window.showGroupMembers = function(roomName = null) {
+    const targetRoom = roomName || currentRoom;
+    
+    if (targetRoom === 'general') {
+      showNotification('❌ General chat doesn\'t have a member list', 'error');
+      return;
+    }
+    
+    if (targetRoom.startsWith('private_')) {
+      showNotification('❌ This is a private chat, not a group', 'error');
+      return;
+    }
+
+    console.log('Loading members for room:', targetRoom);
+    
+    fetch(`/get_room_info/${targetRoom}`)
       .then(r => r.json())
       .then(data => {
+        console.log('Room info received:', data);
         if (data.success) {
           const modal = document.createElement('div');
           modal.className = 'admin-panel';
@@ -1521,13 +1539,13 @@ document.addEventListener('DOMContentLoaded', () => {
           modal.innerHTML = `
             <div class="admin-content ${isMobile ? 'mobile-members' : ''}">
               <div class="modal-header">
-                <h2>👥 Group Members (${data.members.length})</h2>
+                <h2>👥 ${targetRoom} Members (${data.members.length})</h2>
               </div>
               <div class="members-list">
                 ${data.members.map(member => `
                   <div class="member-item" onclick="showMemberProfile('${member}')">
-                    <img src="/static/default-avatar.png" alt="${member}" class="member-avatar" 
-                         onerror="this.src='/static/default-avatar.png'" 
+                    <img src="/static/default-avatar.svg" alt="${member}" class="member-avatar" 
+                         onerror="this.src='/static/default-avatar.svg'" 
                          onload="loadMemberAvatar('${member}', this)">
                     <div class="member-info">
                       <span class="member-name">${member} ${data.admins.includes(member) ? '👑' : ''}</span>
@@ -1559,9 +1577,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.className = 'member-status offline';
                   }
                 }
+              })
+              .catch(() => {
+                const statusEl = document.getElementById(`member-status-${member}`);
+                if (statusEl) {
+                  statusEl.innerHTML = '⚪ Невідомо';
+                  statusEl.className = 'member-status offline';
+                }
               });
           });
+        } else {
+          showNotification('❌ Failed to load group members: ' + (data.error || 'Unknown error'), 'error');
         }
+      })
+      .catch(err => {
+        console.error('Failed to load group members:', err);
+        showNotification('❌ Error loading group members', 'error');
       });
   };
 
@@ -1753,6 +1784,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showUserProfile(otherUser);
       } else if (currentRoom !== 'general') {
         // Always show group members when clicking on group name
+        console.log('Clicking on group name:', currentRoom);
         showGroupMembers();
       }
     });
@@ -1761,6 +1793,28 @@ document.addEventListener('DOMContentLoaded', () => {
     currentRoomEl.style.cursor = 'pointer';
     currentRoomEl.title = currentRoom.startsWith('private_') ? 'Click to view profile' : 
                           currentRoom !== 'general' ? 'Click to view members' : '';
+  }
+
+  // Also add click handler to chat list items for groups
+  function addGroupClickHandlers() {
+    document.querySelectorAll('.chat-item').forEach(item => {
+      const room = item.getAttribute('data-room');
+      if (room && room !== 'general' && !room.startsWith('private_')) {
+        const chatName = item.querySelector('.chat-name');
+        if (chatName) {
+          chatName.style.cursor = 'pointer';
+          chatName.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent room join
+            console.log('Clicking on group in list:', room);
+            // Temporarily set currentRoom for the members view
+            const previousRoom = currentRoom;
+            currentRoom = room;
+            showGroupMembers();
+            currentRoom = previousRoom; // Restore current room
+          });
+        }
+      }
+    });
   }
 
   // Socket event handlers
