@@ -1750,7 +1750,7 @@ def on_join(data):
         'user': nickname,
         'room': room,
         'action': 'joined'
-    }, broadcast=True)
+    })
 
     # Send updated online users list
     online_users_list = list(online_users.keys())
@@ -1776,7 +1776,7 @@ def on_disconnect():
             socketio.emit('user_activity_update', {
                 'user': nickname,
                 'action': 'offline'
-            }, broadcast=True)
+            })
 
             # Send updated online users list
             online_users_list = [user for user, data in online_users.items() 

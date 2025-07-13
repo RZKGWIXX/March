@@ -383,11 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (blockUserBtn) {
       blockUserBtn.style.display = 'none'; // Always hide since we have mobile dropdown
     }
-    
+
     // Show settings button only in general chat - both in header and sidebar
     const headerSettingsBtn = document.querySelector('.chat-controls #settings-btn');
     const sidebarSettingsBtn = document.querySelector('.header-buttons #settings-btn');
-    
+
     if (headerSettingsBtn) {
       if (room === 'general') {
         headerSettingsBtn.style.display = 'flex';
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         headerSettingsBtn.classList.remove('general-only');
       }
     }
-    
+
     // Sidebar settings button should always be visible
     if (sidebarSettingsBtn) {
       sidebarSettingsBtn.style.display = 'flex';
@@ -474,14 +474,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Check if message is a file URL or forwarded message
       let messageContent = text;
-      
+
       // Handle forwarded messages
       if (text.startsWith('📤 Forwarded from ')) {
         const forwardedMatch = text.match(/📤 Forwarded from (.+?):\s*(.*)/s);
         if (forwardedMatch) {
           const originalSender = forwardedMatch[1];
           const originalMessage = forwardedMatch[2].trim();
-          
+
           // Check if forwarded content is media
           let forwardedContent = originalMessage;
           if (originalMessage.startsWith('/static/uploads/')) {
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             forwardedContent = originalMessage.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
           }
-          
+
           messageContent = `
             <div class="forwarded-message">
               <div class="forwarded-header">
@@ -807,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel forward-modal';
     const isMobile = window.innerWidth <= 768;
-    
+
     modal.innerHTML = `
       <div class="admin-content forward-content">
         <div class="modal-header">
@@ -853,8 +853,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          const isMobile = window.innerWidth <= 768;
-          
+          const isMobile = window.innerWidth<= 768;
+
           roomsList.innerHTML = filteredRooms.map(room => {
             let displayName, roomType, emoji;
 
@@ -1157,14 +1157,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupMobileChatDropdown(room) {
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-    
+
     if (!mobileChatOptions || !mobileChatDropdown) return;
 
     // Clear existing dropdown
     mobileChatDropdown.innerHTML = '';
-    
+
     let dropdownHTML = '';
-    
+
     // General options for all chats
     if (room === 'general') {
       dropdownHTML += `
@@ -1209,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
           Leave Group
         </div>
       `;
-      
+
       // Add admin options if user is admin
       checkIfAdmin(room).then(isAdmin => {
         if (isAdmin || nickname === 'Wixxy') {
@@ -1230,15 +1230,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-    
+
     mobileChatDropdown.innerHTML = dropdownHTML;
-    
+
     // Add click handler to toggle dropdown
     mobileChatOptions.onclick = function(e) {
       e.stopPropagation();
       mobileChatDropdown.classList.toggle('show');
     };
-    
+
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
       if (!mobileChatDropdown.contains(e.target) && !mobileChatOptions.contains(e.target)) {
@@ -1517,7 +1517,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const modal = document.createElement('div');
           modal.className = 'admin-panel';
           const isMobile = window.innerWidth <= 768;
-          
+
           modal.innerHTML = `
             <div class="admin-content ${isMobile ? 'mobile-members' : ''}">
               <div class="modal-header">
@@ -1568,11 +1568,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Show member profile from group members
   window.showMemberProfile = function(username) {
     if (username === nickname) return;
-    
+
     // Close members modal first
     const membersModal = document.querySelector('.admin-panel');
     if (membersModal) membersModal.remove();
-    
+
     // Show user profile
     showUserProfile(username);
   };
@@ -1704,7 +1704,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update user status in private chats
   function updateUserStatus(username) {
     if (!currentRoom.startsWith('private_')) return;
-    
+
     fetch(`/user_status/${username}`)
       .then(r => r.json())
       .then(data => {
@@ -1725,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update room stats for group chats
   function updateRoomStats(room) {
     if (room === 'general' || room.startsWith('private_')) return;
-    
+
     fetch(`/room_stats/${room}`)
       .then(r => r.json())
       .then(data => {
@@ -1756,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showGroupMembers();
       }
     });
-    
+
     // Add visual hint that title is clickable
     currentRoomEl.style.cursor = 'pointer';
     currentRoomEl.title = currentRoom.startsWith('private_') ? 'Click to view profile' : 
@@ -2672,8 +2672,7 @@ document.addEventListener('DOMContentLoaded', () => {
           settingsAvatar.src = data.avatar_url + '?t=' + Date.now();
         }
       } else {
-        showNotification('❌ ' + (data.error || 'Avatar upload failed'), 'error');
-      }
+        showNotification('❌ ' + (data.error || 'Avatar upload failed'), 'error');        }
     })
     .catch(err => {
       console.error('Avatar upload failed:', err);
@@ -2783,7 +2782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       updateRoomStats(currentRoom);
     }
-    
+
     // Update chat list statuses in real-time
     updateChatListStatus();
   });
@@ -2797,10 +2796,10 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (data.action === 'left' || data.action === 'offline' || data.action === 'logout' || data.action === 'account_deleted') {
         onlineUsers.delete(data.user);
       }
-      
+
       // Update chat list immediately
       updateChatListStatus();
-      
+
       // Update current room status if relevant
       if (currentRoom.startsWith('private_')) {
         const users = currentRoom.replace('private_', '').split('_');
@@ -2821,7 +2820,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll(`.message-avatar[alt="${data.user}"]`).forEach(img => {
         img.src = data.avatar_url + '?t=' + Date.now();
       });
-      
+
       // Update avatar in user info if it's current user
       if (data.user === nickname) {
         const userAvatar = document.querySelector('.user-info-avatar');
@@ -2829,13 +2828,13 @@ document.addEventListener('DOMContentLoaded', () => {
           userAvatar.src = data.avatar_url + '?t=' + Date.now();
         }
       }
-      
+
       // Update avatar in settings if open
       const settingsAvatar = document.getElementById('settings-avatar');
       if (settingsAvatar && data.user === nickname) {
         settingsAvatar.src = data.avatar_url + '?t=' + Date.now();
       }
-      
+
       // Update avatar in member lists
       document.querySelectorAll(`img[alt="${data.user}"]`).forEach(img => {
         if (img.classList.contains('member-avatar') || img.classList.contains('profile-avatar')) {
@@ -2872,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       updateRoomStats(currentRoom);
     }
-    
+
     // Update chat list statuses
     updateChatListStatus();
   }, 10000);
@@ -3128,7 +3127,7 @@ document.addEventListener('DOMContentLoaded', () => {
           leaveCurrentGroup();
         };
       }
-      
+
       // Check if user is admin for additional options
       checkIfAdmin(room).then(isAdmin => {
         if (isAdmin || nickname === 'Wixxy') {
@@ -3300,7 +3299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (room.startsWith('private_')) {
           const users = room.replace('private_', '').split('_');
           const otherUser = users.find(u => u !== nickname) || users[0];
-          
+
           // Real-time status update
           fetch(`/user_status/${otherUser}`)
             .then(r => r.json())
