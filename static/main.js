@@ -312,9 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         console.log('Rooms loaded successfully');
-        
-        // Add click handlers for group names after rooms are loaded
-        addGroupClickHandlers();
       })
       .catch(err => {
         console.error('Failed to load rooms:', err);
@@ -333,6 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentRoomEl) {
         currentRoomEl.textContent = `@ ${otherUser}`;
         currentRoomEl.setAttribute('data-room', room);
+        currentRoomEl.style.cursor = 'pointer';
+        currentRoomEl.title = 'Натисніть для перегляду профілю';
       }
       if (roomTypeEl) {
         // Move status between nickname and controls on mobile
@@ -362,6 +361,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentRoomEl) {
         currentRoomEl.textContent = `# ${room}`;
         currentRoomEl.setAttribute('data-room', room);
+        if (room !== 'general') {
+          currentRoomEl.style.cursor = 'pointer';
+          currentRoomEl.title = 'Натисніть для перегляду учасників';
+        } else {
+          currentRoomEl.style.cursor = 'default';
+          currentRoomEl.title = '';
+        }
       }
       if (roomTypeEl) {
         if (useMobileInterface) {
@@ -1515,15 +1521,21 @@ document.addEventListener('DOMContentLoaded', () => {
   window.showGroupMembers = function(roomName = null) {
     const targetRoom = roomName || currentRoom;
     
+    console.log('showGroupMembers called with room:', targetRoom);
+    
     if (targetRoom === 'general') {
-      showNotification('❌ General chat doesn\'t have a member list', 'error');
+      showNotification('❌ Загальний чат не має списку учасників', 'error');
       return;
     }
     
     if (targetRoom.startsWith('private_')) {
-      showNotification('❌ This is a private chat, not a group', 'error');
+      showNotification('❌ Це приватний чат, а не група', 'error');
       return;
     }
+
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
 
     console.log('Loading members for room:', targetRoom);
     
@@ -1777,44 +1789,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Click handler for room title (both mobile and desktop)
   if (currentRoomEl) {
-    currentRoomEl.addEventListener('click', () => {
+    // Remove any existing click handlers first
+    currentRoomEl.replaceWith(currentRoomEl.cloneNode(true));
+    const newCurrentRoomEl = document.getElementById('current-room');
+    
+    newCurrentRoomEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('Room title clicked:', currentRoom);
+      
       if (currentRoom.startsWith('private_')) {
         const users = currentRoom.replace('private_', '').split('_');
         const otherUser = users.find(u => u !== nickname) || users[0];
+        console.log('Showing profile for:', otherUser);
         showUserProfile(otherUser);
       } else if (currentRoom !== 'general') {
-        // Always show group members when clicking on group name
-        console.log('Clicking on group name:', currentRoom);
-        showGroupMembers();
+        console.log('Showing group members for:', currentRoom);
+        showGroupMembers(currentRoom);
       }
     });
 
     // Add visual hint that title is clickable
-    currentRoomEl.style.cursor = 'pointer';
-    currentRoomEl.title = currentRoom.startsWith('private_') ? 'Click to view profile' : 
-                          currentRoom !== 'general' ? 'Click to view members' : '';
+    newCurrentRoomEl.style.cursor = 'pointer';
+    newCurrentRoomEl.style.userSelect = 'none';
+    newCurrentRoomEl.title = currentRoom.startsWith('private_') ? 'Натисніть для перегляду профілю' : 
+                              currentRoom !== 'general' ? 'Натисніть для перегляду учасників' : '';
   }
 
-  // Also add click handler to chat list items for groups
+  // Simple function placeholder - removed duplicate handlers
   function addGroupClickHandlers() {
-    document.querySelectorAll('.chat-item').forEach(item => {
-      const room = item.getAttribute('data-room');
-      if (room && room !== 'general' && !room.startsWith('private_')) {
-        const chatName = item.querySelector('.chat-name');
-        if (chatName) {
-          chatName.style.cursor = 'pointer';
-          chatName.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent room join
-            console.log('Clicking on group in list:', room);
-            // Temporarily set currentRoom for the members view
-            const previousRoom = currentRoom;
-            currentRoom = room;
-            showGroupMembers();
-            currentRoom = previousRoom; // Restore current room
-          });
-        }
-      }
-    });
+    // Group click handlers are now handled by the main room title click
+    console.log('Group click handlers setup completed');
   }
 
   // Socket event handlers
