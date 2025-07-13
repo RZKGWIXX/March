@@ -330,8 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentRoomEl) {
         currentRoomEl.textContent = `@ ${otherUser}`;
         currentRoomEl.setAttribute('data-room', room);
-        currentRoomEl.style.cursor = 'pointer';
-        currentRoomEl.title = 'Натисніть для перегляду профілю';
       }
       if (roomTypeEl) {
         // Move status between nickname and controls on mobile
@@ -361,13 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentRoomEl) {
         currentRoomEl.textContent = `# ${room}`;
         currentRoomEl.setAttribute('data-room', room);
-        if (room !== 'general') {
-          currentRoomEl.style.cursor = 'pointer';
-          currentRoomEl.title = 'Натисніть для перегляду учасників';
-        } else {
-          currentRoomEl.style.cursor = 'default';
-          currentRoomEl.title = '';
-        }
       }
       if (roomTypeEl) {
         if (useMobileInterface) {
@@ -430,8 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load messages
     loadMessages(room);
 
-    // Join socket room with correct room name
-    socket.emit('join', {room: room, nickname: nickname});
+    // Join socket room
+    socket.emit('join', {room, nickname});
   }
 
   function loadMessages(room) {
@@ -1074,8 +1065,8 @@ document.addEventListener('DOMContentLoaded', () => {
       messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
-      // Send message with correct room parameter
-      socket.emit('message', {room: currentRoom, nickname: nickname, message: message});
+      // Send message with room parameter
+      socket.emit('message', {room: currentRoom, nickname, message});
       messageInput.value = '';
       lastMessageTime = now;
     };
@@ -1518,31 +1509,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  window.showGroupMembers = function(roomName = null) {
-    const targetRoom = roomName || currentRoom;
-    
-    console.log('showGroupMembers called with room:', targetRoom);
-    
-    if (targetRoom === 'general') {
-      showNotification('❌ Загальний чат не має списку учасників', 'error');
-      return;
-    }
-    
-    if (targetRoom.startsWith('private_')) {
-      showNotification('❌ Це приватний чат, а не група', 'error');
-      return;
-    }
-
-    // Close any existing modals first
-    const existingModals = document.querySelectorAll('.admin-panel');
-    existingModals.forEach(modal => modal.remove());
-
-    console.log('Loading members for room:', targetRoom);
-    
-    fetch(`/get_room_info/${targetRoom}`)
+  window.showGroupMembers = function() {
+    fetch(`/get_room_info/${currentRoom}`)
       .then(r => r.json())
       .then(data => {
-        console.log('Room info received:', data);
         if (data.success) {
           const modal = document.createElement('div');
           modal.className = 'admin-panel';
@@ -1551,13 +1521,13 @@ document.addEventListener('DOMContentLoaded', () => {
           modal.innerHTML = `
             <div class="admin-content ${isMobile ? 'mobile-members' : ''}">
               <div class="modal-header">
-                <h2>👥 ${targetRoom} Members (${data.members.length})</h2>
+                <h2>👥 Group Members (${data.members.length})</h2>
               </div>
               <div class="members-list">
                 ${data.members.map(member => `
                   <div class="member-item" onclick="showMemberProfile('${member}')">
-                    <img src="/static/default-avatar.svg" alt="${member}" class="member-avatar" 
-                         onerror="this.src='/static/default-avatar.svg'" 
+                    <img src="/static/default-avatar.png" alt="${member}" class="member-avatar" 
+                         onerror="this.src='/static/default-avatar.png'" 
                          onload="loadMemberAvatar('${member}', this)">
                     <div class="member-info">
                       <span class="member-name">${member} ${data.admins.includes(member) ? '👑' : ''}</span>
@@ -1589,22 +1559,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.className = 'member-status offline';
                   }
                 }
-              })
-              .catch(() => {
-                const statusEl = document.getElementById(`member-status-${member}`);
-                if (statusEl) {
-                  statusEl.innerHTML = '⚪ Невідомо';
-                  statusEl.className = 'member-status offline';
-                }
               });
           });
-        } else {
-          showNotification('❌ Failed to load group members: ' + (data.error || 'Unknown error'), 'error');
         }
-      })
-      .catch(err => {
-        console.error('Failed to load group members:', err);
-        showNotification('❌ Error loading group members', 'error');
       });
   };
 
@@ -1787,12 +1744,29 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.addEventListener('touchend', handleTouchEnd, {passive: true});
   }
 
-  // Remove problematic click handlers - they cause issues with room display
+  // Click handler for room title (both mobile and desktop)
+  if (currentRoomEl) {
+    currentRoomEl.addEventListener('click', () => {
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
+        const otherUser = users.find(u => u !== nickname) || users[0];
+        showUserProfile(otherUser);
+      } else if (currentRoom !== 'general') {
+        // Always show group members when clicking on group name
+        showGroupMembers();
+      }
+    });
+
+    // Add visual hint that title is clickable
+    currentRoomEl.style.cursor = 'pointer';
+    currentRoomEl.title = currentRoom.startsWith('private_') ? 'Click to view profile' : 
+                          currentRoom !== 'general' ? 'Click to view members' : '';
+  }
 
   // Socket event handlers
   socket.on('message', (data) => {
     // Parse room and message from data
-    const msgRoom = data.room || currentRoom;
+    const msgRoom = data.room || 'general';
     let msg = data.message || data;
 
     // Only show message if it's for the current room
@@ -1818,17 +1792,17 @@ document.addEventListener('DOMContentLoaded', () => {
       addMessage(nick, text, false);
 
       // Update cache immediately
-      if (!messageHistory[msgRoom]) messageHistory[msgRoom] = [];
-      messageHistory[msgRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
+      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
+      messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
       // Update user activity status in real-time
-      if (msgRoom.startsWith('private_')) {
-        const users = msgRoom.replace('private_', '').split('_');
+      if (currentRoom.startsWith('private_')) {
+        const users = currentRoom.replace('private_', '').split('_');
         const otherUser = users.find(u => u !== nickname) || users[0];
         updateUserStatus(otherUser);
       } else {
-        updateRoomStats(msgRoom);
+        updateRoomStats(currentRoom);
       }
 
       // Show notification and sound for others' messages
@@ -3384,7 +3358,7 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', function() {
     console.log('Connected to server');
     updateConnectionStatus('connected');
-    socket.emit('join', { room: currentRoom, nickname: nickname });
+    socket.emit('join_room', { room: currentRoom });
   });
 
   socket.on('disconnect', function() {
