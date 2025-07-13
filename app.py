@@ -1738,7 +1738,7 @@ def on_join(data):
 
     # Send updated online users list
     online_users_list = list(online_users.keys())
-    socketio.emit('online_users_update', {'users': online_users_list}, broadcast=True)
+    socketio.emit('online_users_update', {'users': online_users_list})
 
     socketio.emit('user_count_update', room=room)
 
@@ -1765,7 +1765,7 @@ def on_disconnect():
             # Send updated online users list
             online_users_list = [user for user, data in online_users.items() 
                                if int(time.time()) - data['last_seen'] < 300]
-            socketio.emit('online_users_update', {'users': online_users_list}, broadcast=True)
+            socketio.emit('online_users_update', {'users': online_users_list})
 
         del user_sessions[request.sid]
 
@@ -1807,7 +1807,7 @@ def on_message(data):
                 (ban_info.get('until_timestamp', 0) - current_time) / 3600)
             if remaining_hours < 1:
                 remaining_minutes = int(
-                    (ban_info.get('until_timestamp', 0) - current_time) / 60)
+                    (ban_info.time.time()) - current_time) / 60)
                 duration_text = f"for {remaining_minutes} more minutes"
             elif remaining_hours < 24:
                 duration_text = f"for {remaining_hours} more hours"

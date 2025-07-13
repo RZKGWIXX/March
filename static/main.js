@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let userList = [];
   let filteredUsers = [];
   let searchTimeout;
+  let useMobileInterface = window.innerWidth <= 768;
 
   // Theme management
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -471,9 +472,48 @@ document.addEventListener('DOMContentLoaded', () => {
           });
       }
 
-      // Check if message is a file URL
+      // Check if message is a file URL or forwarded message
       let messageContent = text;
-      if (text.startsWith('/static/uploads/')) {
+      
+      // Handle forwarded messages
+      if (text.startsWith('📤 Forwarded from ')) {
+        const forwardedMatch = text.match(/📤 Forwarded from (.+?):\n(.*)/s);
+        if (forwardedMatch) {
+          const originalSender = forwardedMatch[1];
+          const originalMessage = forwardedMatch[2];
+          
+          // Check if forwarded content is media
+          let forwardedContent = originalMessage;
+          if (originalMessage.startsWith('/static/uploads/')) {
+            const isVideo = originalMessage.includes('.mp4') || originalMessage.includes('.mov') || originalMessage.includes('.avi') || originalMessage.includes('.webm');
+            if (isVideo) {
+              const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              forwardedContent = `
+                <div class="video-container">
+                  <video id="${videoId}" src="${originalMessage}" controls class="shared-video" preload="metadata">
+                    Your browser does not support the video tag.
+                  </video>
+                  <button class="video-reset-btn" onclick="resetVideo('${videoId}')" title="Скинути відео">🔄</button>
+                </div>
+              `;
+            } else {
+              forwardedContent = `<img src="${originalMessage}" alt="Forwarded image" class="shared-image" onclick="window.open('${originalMessage}', '_blank')" style="cursor: pointer;">`;
+            }
+          } else {
+            forwardedContent = originalMessage.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+          }
+          
+          messageContent = `
+            <div class="forwarded-message">
+              <div class="forwarded-header">
+                <span class="forwarded-icon">📤</span>
+                <span>Переслано від <span class="forwarded-from" onclick="showUserProfile('${originalSender}')">${originalSender}</span></span>
+              </div>
+              <div class="forwarded-content">${forwardedContent}</div>
+            </div>
+          `;
+        }
+      } else if (text.startsWith('/static/uploads/')) {
         const isVideo = text.includes('.mp4') || text.includes('.mov') || text.includes('.avi') || text.includes('.webm');
         if (isVideo) {
           const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1034,6 +1074,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (newChatBtn) {
     newChatBtn.onclick = createPrivateChat;
+  }
+
+  // File upload functionality
+  const fileUploadBtn = document.getElementById('file-upload-btn');
+  const fileInput = document.getElementById('file-input');
+
+  if (fileUploadBtn && fileInput) {
+    fileUploadBtn.onclick = () => {
+      fileInput.click();
+    };
+
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        showNotification('❌ File too large (max 5MB)', 'error');
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/mov', 'video/avi', 'video/webm'];
+      if (!allowedTypes.includes(file.type)) {
+        showNotification('❌ Invalid file type', 'error');
+        return;
+      }
+
+      // Create FormData and upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('room', currentRoom);
+
+      // Show uploading notification
+      showNotification('📤 Uploading...', 'info');
+
+      fetch('/upload_file', {
+        method: 'POST',
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ File uploaded successfully', 'success');
+          // The file will be shown in real-time via socket events
+        } else {
+          showNotification('❌ ' + (data.error || 'Upload failed'), 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Upload failed:', err);
+        showNotification('❌ Upload failed', 'error');
+      })
+      .finally(() => {
+        // Reset file input
+        fileInput.value = '';
+      });
+    };
   }
 
   if (userSearch) {
@@ -1603,6 +1701,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Update user status in private chats
+  function updateUserStatus(username) {
+    if (!currentRoom.startsWith('private_')) return;
+    
+    fetch(`/user_status/${username}`)
+      .then(r => r.json())
+      .then(data => {
+        const statusEl = document.getElementById(`status-${username}`);
+        if (statusEl) {
+          if (data.status === 'online') {
+            statusEl.innerHTML = '🟢 У мережі';
+            statusEl.className = 'chat-status online';
+          } else if (data.last_seen) {
+            const lastSeen = new Date(data.last_seen * 1000);
+            statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+            statusEl.className = 'chat-status offline';
+          }
+        }
+      });
+  }
+
+  // Update room stats for group chats
+  function updateRoomStats(room) {
+    if (room === 'general' || room.startsWith('private_')) return;
+    
+    fetch(`/room_stats/${room}`)
+      .then(r => r.json())
+      .then(data => {
+        const statusEl = document.getElementById(`status-${room}`);
+        if (statusEl) {
+          statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
+          statusEl.className = 'chat-status';
+        }
+      });
+  }
+
   // Add touch event listeners to chat area
   if (messagesDiv) {
     messagesDiv.addEventListener('touchstart', handleTouchStart, {passive: true});
@@ -1816,6 +1950,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Ignore audio errors
     }
   }
+
+  // Reset video function
+  window.resetVideo = function(videoId) {
+    const video = document.getElementById(videoId);
+    if (video) {
+      video.currentTime = 0;
+      video.pause();
+    }
+  };
 
   // Handle window resize
   window.addEventListener('resize', () => {
