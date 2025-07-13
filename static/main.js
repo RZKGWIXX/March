@@ -430,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load messages
     loadMessages(room);
 
-    // Join socket room
-    socket.emit('join', {room, nickname});
+    // Join socket room with correct room name
+    socket.emit('join', {room: room, nickname: nickname});
   }
 
   function loadMessages(room) {
@@ -1074,8 +1074,8 @@ document.addEventListener('DOMContentLoaded', () => {
       messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
-      // Send message with room parameter
-      socket.emit('message', {room: currentRoom, nickname, message});
+      // Send message with correct room parameter
+      socket.emit('message', {room: currentRoom, nickname: nickname, message: message});
       messageInput.value = '';
       lastMessageTime = now;
     };
@@ -1787,46 +1787,12 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.addEventListener('touchend', handleTouchEnd, {passive: true});
   }
 
-  // Click handler for room title (both mobile and desktop)
-  if (currentRoomEl) {
-    // Remove any existing click handlers first
-    currentRoomEl.replaceWith(currentRoomEl.cloneNode(true));
-    const newCurrentRoomEl = document.getElementById('current-room');
-    
-    newCurrentRoomEl.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      console.log('Room title clicked:', currentRoom);
-      
-      if (currentRoom.startsWith('private_')) {
-        const users = currentRoom.replace('private_', '').split('_');
-        const otherUser = users.find(u => u !== nickname) || users[0];
-        console.log('Showing profile for:', otherUser);
-        showUserProfile(otherUser);
-      } else if (currentRoom !== 'general') {
-        console.log('Showing group members for:', currentRoom);
-        showGroupMembers(currentRoom);
-      }
-    });
-
-    // Add visual hint that title is clickable
-    newCurrentRoomEl.style.cursor = 'pointer';
-    newCurrentRoomEl.style.userSelect = 'none';
-    newCurrentRoomEl.title = currentRoom.startsWith('private_') ? 'Натисніть для перегляду профілю' : 
-                              currentRoom !== 'general' ? 'Натисніть для перегляду учасників' : '';
-  }
-
-  // Simple function placeholder - removed duplicate handlers
-  function addGroupClickHandlers() {
-    // Group click handlers are now handled by the main room title click
-    console.log('Group click handlers setup completed');
-  }
+  // Remove problematic click handlers - they cause issues with room display
 
   // Socket event handlers
   socket.on('message', (data) => {
     // Parse room and message from data
-    const msgRoom = data.room || 'general';
+    const msgRoom = data.room || currentRoom;
     let msg = data.message || data;
 
     // Only show message if it's for the current room
@@ -1852,17 +1818,17 @@ document.addEventListener('DOMContentLoaded', () => {
       addMessage(nick, text, false);
 
       // Update cache immediately
-      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-      messageHistory[currentRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
+      if (!messageHistory[msgRoom]) messageHistory[msgRoom] = [];
+      messageHistory[msgRoom].push({nick, text, timestamp: Math.floor(Date.now() / 1000)});
       localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
 
       // Update user activity status in real-time
-      if (currentRoom.startsWith('private_')) {
-        const users = currentRoom.replace('private_', '').split('_');
+      if (msgRoom.startsWith('private_')) {
+        const users = msgRoom.replace('private_', '').split('_');
         const otherUser = users.find(u => u !== nickname) || users[0];
         updateUserStatus(otherUser);
       } else {
-        updateRoomStats(currentRoom);
+        updateRoomStats(msgRoom);
       }
 
       // Show notification and sound for others' messages
@@ -3418,7 +3384,7 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', function() {
     console.log('Connected to server');
     updateConnectionStatus('connected');
-    socket.emit('join_room', { room: currentRoom });
+    socket.emit('join', { room: currentRoom, nickname: nickname });
   });
 
   socket.on('disconnect', function() {

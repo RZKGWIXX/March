@@ -1557,7 +1557,7 @@ def upload_file():
     file.seek(0, 2)  # Seek to end
     file_size = file.tell()
     file.seek(0)  # Reset to beginning
-    
+
     # Different size limits for different file types
     max_size = 50 * 1024 * 1024  # 50MB for all files (increased limit)
     if file_size > max_size:
@@ -1584,7 +1584,7 @@ def upload_file():
 
         import time
         timestamp = int(time.time())
-        
+
         # Determine file type
         is_video = file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv']
         file_type = 'video' if is_video else 'image'
@@ -1723,41 +1723,47 @@ def update_profile():
 
 @socketio.on('join')
 def on_join(data):
-    room = data['room']
-    nickname = data['nickname']
+    room = data.get('room', 'general')
+    nickname = data.get('nickname', session.get('nickname'))
 
-    if room == 'general':
-        banned, _ = is_user_banned(nickname)
-        if banned:
-            emit('error', {'message': 'You are banned from this chat'})
-            return
+    if not nickname:
+        return
 
-    if room != 'general':
-        rooms_data = load_json('rooms')
-        if room not in rooms_data or nickname not in rooms_data[room].get(
-                'members', []):
-            emit('error', {'message': 'Access denied'})
-            return
+    # Get previous room
+    previous_room = session.get('current_room')
 
+    # Leave previous room if different
+    if previous_room and previous_room != room:
+        leave_room(previous_room)
+        if previous_room in user_rooms:
+            user_rooms[previous_room].discard(nickname)
+        emit('user_left', {'nickname': nickname}, room=previous_room)
+
+    # Join new room
     join_room(room)
+    session['current_room'] = room
+    session['rooms'] = [room]
 
-    import time
-    online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
-    user_sessions[request.sid] = nickname
+    # Track user in room
+    if room not in user_rooms:
+        user_rooms[room] = set()
+    user_rooms[room].add(nickname)
 
-    # Broadcast to all users about status change
-    socketio.emit('user_activity_update', {
-        'user': nickname,
-        'room': room,
-        'action': 'joined'
-    })
+    # Update user status
+    if nickname in users:
+        users[nickname]['status'] = 'online'
+        users[nickname]['current_room'] = room
+        users[nickname]['last_seen'] = int(time.time())
+        save_users()
 
-    # Send updated online users list
-    online_users_list = list(online_users.keys())
-    socketio.emit('online_users_update', {'users': online_users_list})
+    # Notify others in the room only if this is a new join
+    if previous_room != room:
+        emit('user_joined', {'nickname': nickname}, room=room, include_self=False)
 
-    socketio.emit('user_count_update', room=room)
-
+    # Send current online users in room to the joining user
+    if room in user_rooms:
+        online_users_in_room = list(user_rooms[room])
+        emit('online_users', {'users': online_users_in_room}, room=request.sid)
 
 @socketio.on('leave')
 def on_leave(data):
@@ -1807,7 +1813,8 @@ def on_message(data):
 
     import time
     current_time = int(time.time())
-    online_users[nickname] = {'last_seen': current_time, 'room': room}
+    online_users```python
+[nickname] = {'last_seen': current_time, 'room': room}
 
     spam_ok, spam_error = check_spam_protection(nickname, message)
     if not spam_ok:
