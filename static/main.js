@@ -50,15 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateThemeIcon();
 
-  // Theme toggle
+  // Theme toggle - opens settings instead
   if (themeToggle) {
     themeToggle.onclick = () => {
-      const body = document.body;
-      const currentTheme = body.getAttribute('data-theme') || 'dark';
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      body.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      updateThemeIcon();
+      showSettings();
     };
   } else {
     // If no theme toggle button, still apply saved theme
@@ -549,49 +544,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayStories(stories) {
-    // Remove existing stories container
-    const existingContainer = document.querySelector('.stories-container');
-    if (existingContainer) {
-      existingContainer.remove();
+    // Update sidebar stories
+    const sidebarStories = document.getElementById('sidebar-stories');
+    if (sidebarStories) {
+      sidebarStories.innerHTML = '';
+      
+      if (Object.keys(stories).length > 0) {
+        Object.entries(stories).forEach(([username, userStories]) => {
+          const storyItem = document.createElement('div');
+          storyItem.className = 'sidebar-story-item';
+          
+          const remainingCount = Math.max(0, userStories.length - 3);
+          
+          storyItem.innerHTML = `
+            <img src="/static/default-avatar.svg" alt="${username}" class="sidebar-story-avatar" data-username="${username}">
+            <div class="sidebar-story-username">${username}</div>
+            ${remainingCount > 0 ? `<div class="sidebar-story-count">+${remainingCount}</div>` : ''}
+          `;
+          
+          // Load user avatar
+          fetch(`/get_user_avatar/${username}`)
+            .then(r => r.json())
+            .then(data => {
+              const avatar = storyItem.querySelector('.sidebar-story-avatar');
+              if (data.avatar && data.avatar !== '/static/default-avatar.png') {
+                avatar.src = data.avatar + '?t=' + Date.now();
+              }
+            })
+            .catch(() => {});
+
+          storyItem.onclick = () => showUserStories(username, userStories);
+          sidebarStories.appendChild(storyItem);
+        });
+      }
     }
-
-    if (Object.keys(stories).length === 0) return;
-
-    const storiesContainer = document.createElement('div');
-    storiesContainer.className = 'stories-container';
-
-    Object.entries(stories).forEach(([username, userStories]) => {
-      const storyItem = document.createElement('div');
-      storyItem.className = 'story-item';
-      
-      const visibleCount = Math.min(userStories.length, 3);
-      const remainingCount = Math.max(0, userStories.length - 3);
-      
-      storyItem.innerHTML = `
-        <img src="/static/default-avatar.svg" alt="${username}" class="story-avatar" data-username="${username}">
-        <div class="story-username">${username}</div>
-        ${remainingCount > 0 ? `<div class="story-count">та інші (${remainingCount})</div>` : ''}
-      `;
-      
-      // Load user avatar
-      fetch(`/get_user_avatar/${username}`)
-        .then(r => r.json())
-        .then(data => {
-          const avatar = storyItem.querySelector('.story-avatar');
-          if (data.avatar && data.avatar !== '/static/default-avatar.png') {
-            avatar.src = data.avatar + '?t=' + Date.now();
-          }
-        })
-        .catch(() => {});
-
-      storyItem.onclick = () => showUserStories(username, userStories);
-      storiesContainer.appendChild(storyItem);
-    });
-
-    // Add stories container to chat window
-    const chatWindow = document.querySelector('.chat-window');
-    const messagesDiv = document.getElementById('messages');
-    chatWindow.insertBefore(storiesContainer, messagesDiv);
   }
 
   function showUserStories(username, stories) {
@@ -2764,11 +2750,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2>⚙️ Settings</h2>
 
         <div class="settings-section">
-          <h3>🎨 Theme</h3>
-          <div class="theme-selector">
-            <button class="theme-btn ${document.body.getAttribute('data-theme') === 'light' ? 'active' : ''}" onclick="switchTheme('light')">☀️ Light</button>
-            <button class="theme-btn ${document.body.getAttribute('data-theme') === 'dark' ? 'active' : ''}" onclick="switchTheme('dark')">🌙 Dark</button>
-          </div>
+          <h3>🎨 Appearance</h3>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">OrbitMess використовує темну тему для кращого досвіду користувача.</p>
         </div>
 
         <div class="settings-section" id="premium-ui-section" style="display: none;">
@@ -3009,17 +2992,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   }
 
-  // Switch theme
+  // Switch theme - only dark theme supported
   window.switchTheme = function(theme) {
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    // Force dark theme only
+    document.body.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
     updateThemeIcon();
-
-    // Update theme buttons
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
   };
 
   // Delete account

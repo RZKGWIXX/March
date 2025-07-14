@@ -17,13 +17,20 @@
             <header>
                 <h1>💬 OrbitMess</h1>
                 <div class="header-buttons">
-                    <button id="theme-toggle" title="Toggle Theme">🌙</button>
+                    <button id="menu-toggle-sidebar" title="Menu">☰</button>
+                    <button id="theme-toggle" title="Settings">⚙️</button>
                 </div>
             </header>
 
-            <!-- User Info -->
-            <div class="user-info">
-                {{ nickname }}
+            <!-- User Info and Stories Container -->
+            <div class="user-stories-container">
+                <!-- User Info -->
+                <div class="user-info">
+                    {{ nickname }}
+                </div>
+                
+                <!-- Stories will be loaded here -->
+                <div class="sidebar-stories" id="sidebar-stories"></div>
             </div>
 
             <!-- Search -->
