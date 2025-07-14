@@ -2650,9 +2650,15 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.success) {
         showNotification(`✅ Verification granted to ${username}`, 'success');
+        // Refresh the verification list
+        showGrantVerification();
       } else {
         showNotification('❌ ' + (data.error || 'Failed to grant verification'), 'error');
       }
+    })
+    .catch(err => {
+      console.error('Grant verification error:', err);
+      showNotification('❌ Error granting verification', 'error');
     });
   };
 
@@ -2831,6 +2837,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (bioInput) {
         bioInput.value = profileData.bio || '';
       }
+
+      // Setup avatar upload after elements are loaded
+      setupAvatarUpload();
 
       // Show premium sections if user has premium
       if (premiumData.premium) {
@@ -3164,25 +3173,32 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="premium-plans">
           <div class="premium-plan" data-duration="1">
             <div class="plan-title">1 Місяць</div>
-            <div class="plan-price">$4.99 / 199₴</div>
+            <div class="plan-price">199₴</div>
             <div class="plan-description">• Кастомізація UI<br>• Історії<br>• Прем-функції</div>
           </div>
           
           <div class="premium-plan" data-duration="6">
             <div class="plan-title">6 Місяців</div>
-            <div class="plan-price">$24.99 / 999₴</div>
+            <div class="plan-price">999₴</div>
             <div class="plan-description">• Знижка 17%<br>• Всі прем-функції<br>• Пріоритетна підтримка</div>
           </div>
           
           <div class="premium-plan" data-duration="12">
             <div class="plan-title">1 Рік</div>
-            <div class="plan-price">$44.99 / 1799₴</div>
+            <div class="plan-price">1799₴</div>
             <div class="plan-description">• Знижка 25%<br>• Найкраща ціна<br>• VIP статус</div>
           </div>
         </div>
         
+        <div class="payment-info" style="margin: 2rem 0; padding: 1rem; background: var(--surface-lighter); border-radius: 8px;">
+          <h3 style="color: var(--accent-green); margin-bottom: 1rem;">💳 Оплата</h3>
+          <p style="margin-bottom: 0.5rem;"><strong>Номер карти:</strong> 4441114433355573</p>
+          <p style="margin-bottom: 0.5rem;"><strong>Отримувач:</strong> OrbitMess Admin</p>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Після переказу коштів надішліть скріншот в чат адміну @Wixxy</p>
+        </div>
+        
         <div style="display: flex; gap: 1rem; justify-content: center;">
-          <button class="admin-btn" onclick="purchasePremium()" id="purchase-btn" disabled>Купити Premium</button>
+          <button class="admin-btn" onclick="purchasePremium()" id="purchase-btn" disabled>Отримати реквізити</button>
           <button class="admin-btn close-btn" onclick="this.closest('.premium-modal').remove()">Скасувати</button>
         </div>
       </div>
@@ -3194,12 +3210,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const plans = modal.querySelectorAll('.premium-plan');
     const purchaseBtn = modal.querySelector('#purchase-btn');
     let selectedDuration = null;
+    let selectedPrice = null;
     
     plans.forEach(plan => {
       plan.onclick = () => {
         plans.forEach(p => p.classList.remove('selected'));
         plan.classList.add('selected');
         selectedDuration = parseInt(plan.dataset.duration);
+        selectedPrice = plan.querySelector('.plan-price').textContent;
         purchaseBtn.disabled = false;
       };
     });
@@ -3207,24 +3225,55 @@ document.addEventListener('DOMContentLoaded', () => {
     window.purchasePremium = function() {
       if (!selectedDuration) return;
       
-      fetch('/purchase_premium', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({duration: selectedDuration, payment_method: 'card'})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          window.open(data.payment_url, '_blank');
-          modal.remove();
-        } else {
-          showNotification('❌ ' + (data.error || 'Помилка оплати'), 'error');
-        }
-      })
-      .catch(err => {
-        console.error('Payment error:', err);
-        showNotification('❌ Помилка підключення', 'error');
-      });
+      // Show payment instructions
+      const paymentModal = document.createElement('div');
+      paymentModal.className = 'premium-modal';
+      paymentModal.innerHTML = `
+        <div class="premium-content">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 style="color: var(--accent-green);">💳 Інструкції по оплаті</h2>
+          </div>
+          
+          <div class="payment-details" style="background: var(--surface-lighter); padding: 2rem; border-radius: 12px; margin: 2rem 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 2rem; margin-right: 1rem;">💰</span>
+              <div>
+                <h3 style="margin: 0; color: var(--accent-green);">Сума до оплати: ${selectedPrice}</h3>
+                <p style="margin: 0; color: var(--text-secondary);">Тариф: ${selectedDuration === 1 ? '1 Місяць' : selectedDuration === 6 ? '6 Місяців' : '1 Рік'}</p>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">📱 Номер карти для переказу:</h4>
+              <div style="background: var(--surface-dark); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 1.2rem; color: var(--accent-green); text-align: center;">
+                4441 1144 3335 5573
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">👤 Отримувач:</h4>
+              <p style="margin: 0; font-weight: 600;">OrbitMess Admin</p>
+            </div>
+            
+            <div style="background: var(--surface-accent); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+              <h4 style="color: var(--accent-green); margin-top: 0;">📝 Після оплати:</h4>
+              <ol style="margin: 0; color: var(--text-secondary);">
+                <li>Зробіть скріншот підтвердження переказу</li>
+                <li>Надішліть скріншот адміну @Wixxy в чаті</li>
+                <li>Вкажіть ваш нікнейм: <strong>${nickname}</strong></li>
+                <li>Преміум буде активовано протягом 24 годин</li>
+              </ol>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button class="admin-btn" onclick="this.closest('.premium-modal').remove()">Зрозуміло</button>
+          </div>
+        </div>
+      `;
+      
+      // Replace current modal with payment instructions
+      modal.replaceWith(paymentModal);
     };
   };
 

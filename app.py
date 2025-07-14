@@ -2140,16 +2140,23 @@ def view_story():
 @app.route('/purchase_premium', methods=['POST'])
 @login_required
 def purchase_premium():
-    """Handle premium purchase (placeholder implementation)"""
+    """Handle premium purchase with bank transfer"""
     data = request.get_json()
     duration = data.get('duration', 1)  # months
     payment_method = data.get('payment_method', 'card')
     
-    # This is a placeholder - in a real app you'd integrate with a payment processor
-    # For now, we'll just simulate a payment URL
-    payment_url = f"https://example-payment.com/pay?duration={duration}&user={session['nickname']}"
+    # Bank transfer details
+    bank_info = {
+        'card_number': '4441114433355573',
+        'recipient': 'OrbitMess Admin',
+        'duration': duration,
+        'user': session['nickname']
+    }
     
-    return jsonify(success=True, payment_url=payment_url)
+    # Log the purchase request
+    print(f"Premium purchase request: {session['nickname']} - {duration} months")
+    
+    return jsonify(success=True, bank_info=bank_info)
 
 
 @app.route('/get_ui_settings')
