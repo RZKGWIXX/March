@@ -1993,37 +1993,50 @@ def admin_grant_premium():
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
 
-    data = request.get_json()
-    username = data.get('username')
-    duration = data.get('duration', 1)  # months
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        duration = data.get('duration', 1)  # months
 
-    if not username:
-        return jsonify(success=False, error='Username required')
+        if not username:
+            return jsonify(success=False, error='Username required')
 
-    premium_data = load_json('premium')
+        # Check if user exists
+        if username not in get_user_list():
+            return jsonify(success=False, error='User not found')
 
-    import time
-    current_time = int(time.time())
+        premium_data = load_json('premium')
 
-    if duration == -1:
-        until_timestamp = -1
-        until_text = 'Permanent'
-    else:
-        until_timestamp = current_time + (duration * 30 * 24 * 3600)  # months to seconds
-        until_text = time.strftime('%Y-%m-%d', time.localtime(until_timestamp))
+        import time
+        current_time = int(time.time())
 
-    premium_data[username] = {
-        'granted_at': current_time,
-        'granted_by': session['nickname'],
-        'until_timestamp': until_timestamp,
-        'until': until_text,
-        'duration_months': duration,
-        'ui_settings': {}
-    }
+        if duration == -1:
+            until_timestamp = -1
+            until_text = 'Permanent'
+        else:
+            until_timestamp = current_time + (duration * 30 * 24 * 3600)  # months to seconds
+            until_text = time.strftime('%Y-%m-%d', time.localtime(until_timestamp))
 
-    save_json('premium', premium_data)
+        premium_data[username] = {
+            'granted_at': current_time,
+            'granted_by': session['nickname'],
+            'until_timestamp': until_timestamp,
+            'until': until_text,
+            'duration_months': duration,
+            'ui_settings': {}
+        }
 
-    return jsonify(success=True)
+        result = save_json('premium', premium_data)
+        if result:
+            print(f"Premium granted to {username} successfully")
+            return jsonify(success=True)
+        else:
+            print(f"Failed to save premium data for {username}")
+            return jsonify(success=False, error='Failed to save premium data')
+            
+    except Exception as e:
+        print(f"Error granting premium: {e}")
+        return jsonify(success=False, error=f'Error: {str(e)}')
 
 
 @app.route('/admin/grant_verification', methods=['POST'])
@@ -2033,23 +2046,36 @@ def admin_grant_verification():
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
 
-    data = request.get_json()
-    username = data.get('username')
+    try:
+        data = request.get_json()
+        username = data.get('username')
 
-    if not username:
-        return jsonify(success=False, error='Username required')
+        if not username:
+            return jsonify(success=False, error='Username required')
 
-    verification_data = load_json('verification')
+        # Check if user exists
+        if username not in get_user_list():
+            return jsonify(success=False, error='User not found')
 
-    import time
-    verification_data[username] = {
-        'granted_at': int(time.time()),
-        'granted_by': session['nickname']
-    }
+        verification_data = load_json('verification')
 
-    save_json('verification', verification_data)
+        import time
+        verification_data[username] = {
+            'granted_at': int(time.time()),
+            'granted_by': session['nickname']
+        }
 
-    return jsonify(success=True)
+        result = save_json('verification', verification_data)
+        if result:
+            print(f"Verification granted to {username} successfully")
+            return jsonify(success=True)
+        else:
+            print(f"Failed to save verification data for {username}")
+            return jsonify(success=False, error='Failed to save verification data')
+            
+    except Exception as e:
+        print(f"Error granting verification: {e}")
+        return jsonify(success=False, error=f'Error: {str(e)}')
 
 
 @app.route('/admin/remove_verification', methods=['POST'])
@@ -2070,6 +2096,33 @@ def admin_remove_verification():
     save_json('verification', verification_data)
 
     return jsonify(success=True)
+
+
+@app.route('/admin/premium_management')
+@login_required
+def admin_premium_management():
+    """Get premium users list (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    premium_data = load_json('premium')
+    active_premium = []
+    
+    import time
+    current_time = int(time.time())
+    
+    for username, premium_info in premium_data.items():
+        if username == 'placeholder':
+            continue
+        if isinstance(premium_info, dict):
+            if premium_info.get('until_timestamp', 0) == -1 or premium_info.get('until_timestamp', 0) > current_time:
+                active_premium.append({
+                    'username': username,
+                    'until': premium_info.get('until', 'Unknown'),
+                    'granted_by': premium_info.get('granted_by', 'Unknown')
+                })
+    
+    return jsonify(premium_users=active_premium)
 
 
 @app.route('/change_password', methods=['POST'])
@@ -2100,6 +2153,26 @@ def change_password():
     return jsonify(success=True)
 
 
+@app.route('/admin/remove_premium', methods=['POST'])
+@login_required
+def admin_remove_premium():
+    """Remove premium from user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+
+    data = request.get_json()
+    username = data.get('username')
+
+    if not username:
+        return jsonify(success=False, error='Username required')
+
+    premium_data = load_json('premium')
+    premium_data.pop(username, None)
+    save_json('premium', premium_data)
+
+    return jsonify(success=True)
+
+
 @app.route('/purchase_premium_visa', methods=['POST'])
 @login_required
 def purchase_premium_visa():
@@ -2122,6 +2195,16 @@ def purchase_premium_visa():
     # For now, we'll return payment details for manual processing
 
     return jsonify(success=True, payment_details=payment_details)
+
+
+@app.route('/get_user_avatar/<username>')
+@login_required
+def get_user_avatar(username):
+    """Get user's avatar"""
+    avatar_path = f"static/avatars/{username}.jpg"
+    if os.path.exists(avatar_path):
+        return jsonify({'avatar_url': f"/static/avatars/{username}.jpg"})
+    return jsonify({'avatar_url': '/static/default-avatar.svg'})
 
 
 # SocketIO event handlers
