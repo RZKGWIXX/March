@@ -15,11 +15,6 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = '%637&&7@(_72)(28'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-@app.route('/ping')
-def ping():
-    """Health check endpoint for keepalive"""
-    return jsonify({'status': 'ok', 'timestamp': int(time.time())})
-
 # JSONBin.io configuration
 JSONBIN_API_KEY = '$2a$10$RgQMxiMWDn4XRQ70aEs7NuP/rw2z1Ay1qEwR.xrXwTsIIISGQVTVm'
 JSONBIN_ACCESS_KEY_ID = '6870d1a46063391d31ab5ece'
@@ -1183,244 +1178,6 @@ def get_user_profile(username):
     return jsonify({'bio': '', 'joined': '', 'nickname': username})
 
 
-@app.route('/check_premium')
-@login_required
-def check_premium():
-    """Check if user has premium status"""
-    premium_data = load_json('premium')
-    user_premium = premium_data.get(session['nickname'], {})
-
-    current_time = int(time.time())
-    if user_premium.get('until_timestamp', 0) > current_time:
-        until_date = time.strftime('%Y-%m-%d', time.localtime(user_premium['until_timestamp']))
-        return jsonify({
-            'premium': True,
-            'until': until_date,
-            'plan': user_premium.get('plan', 'monthly')
-        })
-
-    return jsonify({'premium': False})
-
-
-@app.route('/purchase_premium_visa', methods=['POST'])
-@login_required
-def purchase_premium_visa():
-    """Handle premium purchase via Visa"""
-    data = request.get_json()
-    plan = data.get('plan', 'monthly')
-
-    # Simulate payment processing (replace with real payment integration)
-    import time
-    current_time = int(time.time())
-
-    if plan == 'monthly':
-        duration = 30 * 24 * 3600  # 30 days
-    elif plan == 'yearly':
-        duration = 365 * 24 * 3600  # 365 days
-    else:
-        return jsonify({'success': False, 'error': 'Invalid plan'})
-
-    premium_data = load_json('premium')
-    premium_data[session['nickname']] = {
-        'plan': plan,
-        'purchased_at': current_time,
-        'until_timestamp': current_time + duration,
-        'active': True
-    }
-
-    if save_json('premium', premium_data):
-        return jsonify({'success': True, 'message': 'Premium activated successfully!'})
-    else:
-        return jsonify({'success': False, 'error': 'Failed to activate premium'})
-
-
-@app.route('/get_user_avatar/<username>')
-@login_required
-def get_user_avatar(username):
-    """Get user avatar"""
-    # Check if user has custom avatar
-    avatar_path = f"static/avatars/{username}.jpg"
-    if os.path.exists(avatar_path):
-        return jsonify({'avatar': f'/static/avatars/{username}.jpg'})
-
-    # Check for other formats
-    for ext in ['.png', '.gif', '.jpeg']:
-        avatar_path = f"static/avatars/{username}{ext}"
-        if os.path.exists(avatar_path):
-            return jsonify({'avatar': f'/static/avatars/{username}{ext}'})
-
-    return jsonify({'avatar': '/static/default-avatar.svg'})
-
-
-@app.route('/upload_avatar', methods=['POST'])
-@login_required
-def upload_avatar():
-    """Upload user avatar"""
-    if 'avatar' not in request.files:
-        return jsonify({'success': False, 'error': 'No file uploaded'})
-
-    file = request.files['avatar']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'})
-
-    # Check file size (max 5MB)
-    if len(file.read()) > 5 * 1024 * 1024:
-        return jsonify({'success': False, 'error': 'File too large (max 5MB)'})
-
-    file.seek(0)  # Reset file pointer
-
-    # Check file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-
-    if file_ext not in allowed_extensions:
-        return jsonify({'success': False, 'error': 'Invalid file type'})
-
-    # Create avatars directory if it doesn't exist
-    avatars_dir = 'static/avatars'
-    if not os.path.exists(avatars_dir):
-        os.makedirs(avatars_dir)
-
-    # Save file
-    filename = f"{session['nickname']}.{file_ext}"
-    filepath = os.path.join(avatars_dir, filename)
-
-    try:
-        file.save(filepath)
-        avatar_url = f'/static/avatars/{filename}'
-        return jsonify({'success': True, 'avatar_url': avatar_url})
-    except Exception as e:
-        return jsonify({'success': False, 'error': 'Failed to save file'})
-
-
-@app.route('/update_bio', methods=['POST'])
-@login_required
-def update_bio():
-    """Update user bio"""
-    data = request.get_json()
-    bio = data.get('bio', '').strip()
-
-    if len(bio) > 200:
-        return jsonify({'success': False, 'error': 'Bio too long (max 200 characters)'})
-
-    users_data = load_json('users')
-
-    # Find and update user bio
-    for user_info in users_data.values():
-        if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
-            user_info['bio'] = bio
-            break
-
-    if save_json('users', users_data):
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Failed to update bio'})
-
-
-@app.route('/get_ui_settings')
-@login_required
-def get_ui_settings():
-    """Get UI customization settings"""
-    # Return default settings for now
-    return jsonify({
-        'theme': 'dark',
-        'accent_color': '#9cff2e',
-        'font_size': 'medium'
-    })
-
-
-@app.route('/get_user_verification/<username>')
-@login_required
-def get_user_verification(username):
-    """Check if user is verified"""
-    verification_data = load_json('verification')
-    is_verified = verification_data.get(username, False)
-    return jsonify({'verified': is_verified})
-
-
-@app.route('/admin/grant_verification', methods=['POST'])
-@login_required
-def admin_grant_verification():
-    """Grant verification to a user (admin only)"""
-    if session['nickname'] != 'Wixxy':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-
-    data = request.get_json()
-    username = data.get('username')
-
-    if not username:
-        return jsonify({'success': False, 'error': 'Username required'})
-
-    if username not in get_user_list():
-        return jsonify({'success': False, 'error': 'User not found'})
-
-    verification_data = load_json('verification')
-    verification_data[username] = True
-
-    if save_json('verification', verification_data):
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Failed to grant verification'})
-
-
-@app.route('/admin/grant_premium', methods=['POST'])
-@login_required
-def admin_grant_premium():
-    """Grant premium to a user (admin only)"""
-    if session['nickname'] != 'Wixxy':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-
-    data = request.get_json()
-    username = data.get('username')
-    duration_days = data.get('duration', 30)
-
-    if not username:
-        return jsonify({'success': False, 'error': 'Username required'})
-
-    if username not in get_user_list():
-        return jsonify({'success': False, 'error': 'User not found'})
-
-    import time
-    current_time = int(time.time())
-    duration_seconds = duration_days * 24 * 3600
-
-    premium_data = load_json('premium')
-    premium_data[username] = {
-        'plan': 'admin_granted',
-        'granted_at': current_time,
-        'granted_by': session['nickname'],
-        'until_timestamp': current_time + duration_seconds,
-        'active': True
-    }
-
-    if save_json('premium', premium_data):
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Failed to grant premium'})
-
-
-@app.route('/get_stories')
-@login_required
-def get_stories():
-    """Get all user stories"""
-    stories_data = load_json('stories')
-
-    # Filter out expired stories
-    current_time = int(time.time())
-    active_stories = {}
-
-    for username, user_stories in stories_data.items():
-        if isinstance(user_stories, list):
-            active_user_stories = [
-                story for story in user_stories 
-                if story.get('expires_at', 0) > current_time
-            ]
-            if active_user_stories:
-                active_stories[username] = active_user_stories
-
-    return jsonify(active_stories)
-
-
 def is_valid_nickname(nickname):
     pattern = r'^[a-zA-Z0-9]+$'
     if not re.match(pattern, nickname):
@@ -1803,3 +1560,812 @@ def logout():
         'user': nickname,
         'action': 'logout'
     })
+
+    session.clear()
+
+    from flask import jsonify
+    response = jsonify({'success': True, 'redirect': url_for('login')})
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+
+@app.route('/upload_file', methods=['POST'])
+@login_required
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify(success=False, error='No file selected')
+
+    file = request.files['file']
+    room = request.form.get('room', 'general')
+
+    if file.filename == '':
+        return jsonify(success=False, error='No file selected')
+
+    # Check file size before reading
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Reset to beginning
+
+    # Different size limits for different file types
+    max_size = 50 * 1024 * 1024  # 50MB for all files (increased limit)
+    if file_size > max_size:
+        return jsonify(success=False, error='File too large (max 50MB)')
+
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+
+    if file_ext not in allowed_extensions:
+        return jsonify(success=False, error='Invalid file type')
+
+    uploads_dir = os.path.join('static', 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    import uuid
+    filename = f"{uuid.uuid4().hex}{file_ext}"
+    filepath = os.path.join(uploads_dir, filename)
+
+    try:
+        file.save(filepath)
+
+        file_url = f"/static/uploads/{filename}"
+        nickname = session['nickname']
+
+        import time
+        timestamp = int(time.time())
+
+        # Determine file type
+        is_video = file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv']
+        file_type = 'video' if is_video else 'image'
+
+        # Save to database
+        messages_data = load_json('messages')
+        if room not in messages_data:
+            messages_data[room] = []
+
+        message_data = {
+            'nick': nickname,
+            'text': file_url,
+            'timestamp': timestamp,
+            'type': 'media',
+            'file_type': file_type
+        }
+
+        messages_data[room].append(message_data)
+        save_json('messages', messages_data)
+
+        # Broadcast to all users in room in real-time
+        socketio.emit('new_message', {
+            'room': room,
+            'nickname': nickname,
+            'message': file_url,
+            'timestamp': timestamp,
+            'type': 'media',
+            'file_type': file_type
+        }, room=room)
+
+        # Also emit to sender for immediate feedback
+        socketio.emit('message_sent', {
+            'room': room,
+            'nickname': nickname,
+            'message': file_url,
+            'timestamp': timestamp,
+            'type': 'media',
+            'file_type': file_type
+        })
+
+        return jsonify(success=True, url=file_url, type=file_type)
+
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify(success=False, error=f'Upload failed: {str(e)}')
+
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'avatar' not in request.files:
+        return jsonify(success=False, error='No file selected')
+
+    file = request.files['avatar']
+
+    if file.filename == '':
+        return jsonify(success=False, error='No file selected')
+
+    if len(file.read()) > 2 * 1024 * 1024:  # 2MB limit for avatars
+        return jsonify(success=False, error='Avatar too large (max 2MB)')
+
+    file.seek(0)
+
+    allowed_extensions = {'.jpg', '.jpeg', '.png'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+
+    if file_ext not in allowed_extensions:
+        return jsonify(success=False, error='Invalid file type for avatar')
+
+    avatars_dir = os.path.join('static', 'avatars')
+    os.makedirs(avatars_dir, exist_ok=True)
+
+    # Use nickname as filename to overwrite old avatar
+    filename = f"{session['nickname']}{file_ext}"
+    filepath = os.path.join(avatars_dir, filename)
+
+    try:
+        file.save(filepath)
+        avatar_url = f"/static/avatars/{filename}"
+
+        # Update user's avatar in users data
+        users_data = load_json('users')
+        for user_info in users_data.values():
+            if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
+                user_info['avatar'] = avatar_url
+                break
+
+        save_json('users', users_data)
+
+        # Broadcast avatar update to all users
+        socketio.emit('avatar_updated', {
+            'user': session['nickname'],
+            'avatar_url': avatar_url
+        })
+
+        return jsonify(success=True, avatar_url=avatar_url)
+
+    except Exception as e:
+        return jsonify(success=False, error=f'Avatar upload failed: {str(e)}')
+
+
+@app.route('/get_user_avatar/<username>')
+@login_required
+def get_user_avatar(username):
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == username:
+            return jsonify({'avatar': user_info.get('avatar', '/static/default-avatar.png')})
+    return jsonify({'avatar': '/static/default-avatar.png'})
+
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    bio = request.json.get('bio', '').strip()
+
+    if len(bio) > 200:
+        return jsonify(success=False, error='Bio too long (max 200 characters)')
+
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
+            user_info['bio'] = bio
+            break
+
+    save_json('users', users_data)
+
+    # Broadcast bio update to all users
+    socketio.emit('profile_updated', {
+        'user': session['nickname'],
+        'bio': bio
+    })
+
+    return jsonify(success=True)
+
+
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    nickname = data['nickname']
+
+    if room == 'general':
+        banned, _ = is_user_banned(nickname)
+        if banned:
+            emit('error', {'message': 'You are banned from this chat'})
+            return
+
+    if room != 'general':
+        rooms_data = load_json('rooms')
+        if room not in rooms_data or nickname not in rooms_data[room].get(
+                'members', []):
+            emit('error', {'message': 'Access denied'})
+            return
+
+    join_room(room)
+
+    import time
+    online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
+    user_sessions[request.sid] = nickname
+
+    # Broadcast to all users about status change
+    socketio.emit('user_activity_update', {
+        'user': nickname,
+        'room': room,
+        'action': 'joined'
+    })
+
+    # Send updated online users list
+    online_users_list = list(online_users.keys())
+    socketio.emit('online_users_update', {'users': online_users_list})
+
+    socketio.emit('user_count_update', room=room)
+
+
+@socketio.on('leave')
+def on_leave(data):
+    leave_room(data['room'])
+
+
+@socketio.on('disconnect')
+def on_disconnect():
+    if request.sid in user_sessions:
+        nickname = user_sessions[request.sid]
+        if nickname in online_users:
+            import time
+            online_users[nickname]['last_seen'] = int(time.time())
+
+            # Broadcast user disconnect
+            socketio.emit('user_activity_update', {
+                'user': nickname,
+                'action': 'offline'
+            })
+
+            # Send updated online users list
+            online_users_list = [user for user, data in online_users.items() 
+                               if int(time.time()) - data['last_seen'] < 300]
+            socketio.emit('online_users_update', {'users': online_users_list})
+
+        del user_sessions[request.sid]
+
+
+@socketio.on('message')
+def on_message(data):
+    room = data['room']
+    nickname = data['nickname']
+    message = sanitize_input(data['message'].strip())
+
+    if not message:
+        return
+
+    if not check_account_exists(nickname):
+        emit(
+            'user_banned', {
+                'username': nickname,
+                'reason':
+                'Account no longer exists. Please create a new account.',
+                'until': 'Permanent'
+            })
+        return
+
+    import time
+    current_time = int(time.time())
+    online_users[nickname] = {'last_seen': current_time, 'room': room}
+
+    spam_ok, spam_error = check_spam_protection(nickname, message)
+    if not spam_ok:
+        emit('error', {'message': spam_error})
+        return
+
+    banned, ban_info = is_user_banned(nickname)
+    if banned:
+        if ban_info.get('until_timestamp', 0) == -1:
+            duration_text = "permanently"
+        else:
+            remaining_hours = int(
+                (ban_info.get('until_timestamp', 0) - current_time) / 3600)
+            if remaining_hours < 1:
+                remaining_minutes = int(
+                    (ban_info.get('until_timestamp', 0) - current_time) / 60)
+                duration_text = f"for {remaining_minutes} more minutes"
+            elif remaining_hours < 24:
+                duration_text = f"for {remaining_hours} more hours"
+            else:
+                remaining_days = int(remaining_hours / 24)
+                duration_text = f"for {remaining_days} more days"
+
+        emit(
+            'error', {
+                'message':
+                f'You are banned {duration_text}. Reason: {ban_info.get("reason", "No reason")}'
+            })
+        return
+
+    muted_data = load_json('muted')
+    if room in muted_data and nickname in muted_data[room]:
+        mute_info = muted_data[room][nickname]
+        if mute_info['until'] > current_time:
+            remaining_minutes = int((mute_info['until'] - current_time) / 60)
+            emit('error', {
+                'message':
+                f'You are muted for {remaining_minutes} more minutes'
+            })
+            return
+        else:
+            del muted_data[room][nickname]
+            if not muted_data[room]:
+                del muted_data[room]
+            save_json('muted', muted_data)
+
+    if room == 'general':
+        if len(message) > 500:
+            emit('error', {'message': 'Message too long'})
+            return
+
+        if len(set(message)) < 3 and len(message) > 10:
+            emit('error', {'message': 'Spam detected'})
+            return
+
+    messages_data = load_json('messages')
+    if room not in messages_data:
+        messages_data[room] = []
+
+    messages_data[room].append({
+        'nick': nickname,
+        'text': message,
+        'timestamp': int(time.time())
+    })
+
+    if len(messages_data[room]) > 1000:
+        messages_data[room] = messages_data[room][-1000:]
+
+    save_json('messages', messages_data)
+
+    # Emit message to specific room with better data structure
+    socketio.emit('new_message', {
+        'room': room,
+        'nickname': nickname,
+        'message': message,
+        'timestamp': int(time.time())
+    }, room=room)
+
+    # Also emit to sender for confirmation
+    socketio.emit('message_sent', {
+        'room': room,
+        'nickname': nickname,
+        'message': message,
+        'timestamp': int(time.time())
+    })
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    try:
+        room = data.get('room', 'general')
+        nickname = session.get('nickname')
+
+        if not nickname:
+            return
+
+        join_room(room)
+
+        # Update online users
+        import time
+        online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
+        user_sessions[request.sid] = nickname
+
+        # Notify others about the join
+        emit('user_joined', {
+            'nickname': nickname,
+            'room': room
+        }, room=room, include_self=False)
+
+        # Send online users list to the joining user
+        online_users_list = list(online_users.keys())
+        emit('online_users', {'users': online_users_list})
+
+    except Exception as e:
+        print(f"Error in join_room: {e}")
+
+@socketio.on('get_online_users')
+def handle_get_online_users():
+    try:
+        nickname = session.get('nickname')
+        if not nickname:
+            return
+
+        online_users_list = list(online_users.keys())
+        emit('online_users', {'users': online_users_list})
+
+    except Exception as e:
+        print(f"Error getting online users: {e}")
+
+# Initialize on app startup (works with both gunicorn and direct python run)
+print("Initializing OrbitMess Chat...")
+create_default_json_files()
+auto_create_bins()
+print("Initialization complete!")
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint для keepalive"""
+    return jsonify({'status': 'healthy', 'timestamp': time.time()})
+
+@app.route('/ping')
+def ping():
+    """Простий ping endpoint"""
+    return 'pong'
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+    try:
+        if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+            pass
+        else:
+            socketio.run(app,
+                         host='0.0.0.0',
+                         port=port,
+                         debug=debug_mode,
+                         allow_unsafe_werkzeug=True)
+    except Exception as e:
+        print(f"Error starting with SocketIO: {e}")
+        print("Falling back to Flask only...")
+        app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
+
+@app.route('/check_premium')
+@login_required
+def check_premium():
+    """Check if user has premium status"""
+    try:
+        premium_data = load_json('premium')
+        nickname = session['nickname']
+        
+        if not premium_data or premium_data == {"placeholder": "data"}:
+            return jsonify({'premium': False})
+        
+        import time
+        current_time = int(time.time())
+        
+        if nickname in premium_data:
+            user_premium = premium_data[nickname]
+            if user_premium.get('until_timestamp', 0) == -1 or user_premium.get('until_timestamp', 0) > current_time:
+                return jsonify({
+                    'premium': True,
+                    'until': user_premium.get('until', 'Permanent'),
+                    'features': ['ui_customization', 'stories', 'priority_support']
+                })
+        
+        return jsonify({'premium': False})
+    except Exception as e:
+        print(f"Error checking premium for {nickname}: {e}")
+        return jsonify({'premium': False})
+
+
+@app.route('/get_stories')
+@login_required
+def get_stories():
+    """Get all stories"""
+    try:
+        stories_data = load_json('stories')
+        
+        if not stories_data or stories_data == {"placeholder": "data"}:
+            return jsonify({})
+        
+        # Filter out expired stories (24 hours)
+        import time
+        current_time = int(time.time())
+        active_stories = {}
+        
+        for username, user_stories in stories_data.items():
+            if username == 'placeholder':
+                continue
+                
+            if isinstance(user_stories, list):
+                active_user_stories = []
+                for story in user_stories:
+                    if isinstance(story, dict) and story.get('timestamp', 0) > current_time - 86400:
+                        active_user_stories.append(story)
+                
+                if active_user_stories:
+                    active_stories[username] = active_user_stories
+        
+        return jsonify(active_stories)
+    except Exception as e:
+        print(f"Error getting stories: {e}")
+        return jsonify({})
+
+
+@app.route('/upload_story', methods=['POST'])
+@login_required
+def upload_story():
+    """Upload a story (premium feature)"""
+    # Check if user has premium
+    premium_data = load_json('premium')
+    nickname = session['nickname']
+    
+    import time
+    current_time = int(time.time())
+    
+    if nickname not in premium_data:
+        return jsonify(success=False, error='Premium subscription required')
+    
+    user_premium = premium_data[nickname]
+    if user_premium.get('until_timestamp', 0) != -1 and user_premium.get('until_timestamp', 0) <= current_time:
+        return jsonify(success=False, error='Premium subscription expired')
+    
+    story_text = request.form.get('text', '').strip()
+    file = request.files.get('file')
+    
+    if not story_text and not file:
+        return jsonify(success=False, error='Story content required')
+    
+    story_data = {
+        'id': f"{nickname}_{int(time.time())}",
+        'timestamp': current_time,
+        'text': story_text
+    }
+    
+    # Handle file upload
+    if file and file.filename:
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        
+        if file_ext not in allowed_extensions:
+            return jsonify(success=False, error='Invalid file type')
+        
+        if len(file.read()) > 10 * 1024 * 1024:  # 10MB limit for stories
+            return jsonify(success=False, error='File too large (max 10MB)')
+        
+        file.seek(0)
+        
+        stories_dir = os.path.join('static', 'stories')
+        os.makedirs(stories_dir, exist_ok=True)
+        
+        import uuid
+        filename = f"{uuid.uuid4().hex}{file_ext}"
+        filepath = os.path.join(stories_dir, filename)
+        
+        try:
+            file.save(filepath)
+            story_data['media_url'] = f"/static/stories/{filename}"
+            story_data['media_type'] = 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
+        except Exception as e:
+            return jsonify(success=False, error='Upload failed')
+    
+    # Save story
+    stories_data = load_json('stories')
+    if nickname not in stories_data:
+        stories_data[nickname] = []
+    
+    stories_data[nickname].append(story_data)
+    
+    # Keep only last 10 stories per user
+    stories_data[nickname] = stories_data[nickname][-10:]
+    
+    save_json('stories', stories_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/view_story', methods=['POST'])
+@login_required
+def view_story():
+    """Mark story as viewed"""
+    data = request.get_json()
+    user = data.get('user')
+    story_id = data.get('story_id')
+    
+    # Here you could track story views if needed
+    return jsonify(success=True)
+
+
+@app.route('/purchase_premium', methods=['POST'])
+@login_required
+def purchase_premium():
+    """Handle premium purchase with bank transfer"""
+    data = request.get_json()
+    duration = data.get('duration', 1)  # months
+    payment_method = data.get('payment_method', 'card')
+    
+    # Bank transfer details
+    bank_info = {
+        'card_number': '4441114433355573',
+        'recipient': 'OrbitMess Admin',
+        'duration': duration,
+        'user': session['nickname']
+    }
+    
+    # Log the purchase request
+    print(f"Premium purchase request: {session['nickname']} - {duration} months")
+    
+    return jsonify(success=True, bank_info=bank_info)
+
+
+@app.route('/get_ui_settings')
+@login_required
+def get_ui_settings():
+    """Get user's UI customization settings"""
+    try:
+        premium_data = load_json('premium')
+        nickname = session['nickname']
+        
+        if not premium_data or premium_data == {"placeholder": "data"}:
+            return jsonify({})
+        
+        if nickname in premium_data:
+            return jsonify(premium_data[nickname].get('ui_settings', {}))
+        
+        return jsonify({})
+    except Exception as e:
+        print(f"Error loading UI settings for {nickname}: {e}")
+        return jsonify({})
+
+
+@app.route('/update_ui_settings', methods=['POST'])
+@login_required
+def update_ui_settings():
+    """Update user's UI customization settings (premium feature)"""
+    # Check premium status
+    premium_data = load_json('premium')
+    nickname = session['nickname']
+    
+    import time
+    current_time = int(time.time())
+    
+    if nickname not in premium_data:
+        return jsonify(success=False, error='Premium subscription required')
+    
+    user_premium = premium_data[nickname]
+    if user_premium.get('until_timestamp', 0) != -1 and user_premium.get('until_timestamp', 0) <= current_time:
+        return jsonify(success=False, error='Premium subscription expired')
+    
+    ui_settings = request.get_json().get('ui_settings', {})
+    
+    premium_data[nickname]['ui_settings'] = ui_settings
+    save_json('premium', premium_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/get_user_verification/<username>')
+@login_required
+def get_user_verification(username):
+    """Check if user has verification badge"""
+    try:
+        verification_data = load_json('verification')
+        if not verification_data or verification_data == {"placeholder": "data"}:
+            return jsonify({'verified': False})
+        
+        is_verified = username in verification_data
+        return jsonify({'verified': is_verified})
+    except Exception as e:
+        print(f"Error checking verification for {username}: {e}")
+        return jsonify({'verified': False})
+
+
+@app.route('/admin/grant_premium', methods=['POST'])
+@login_required
+def admin_grant_premium():
+    """Grant premium to user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    duration = data.get('duration', 1)  # months
+    
+    if not username:
+        return jsonify(success=False, error='Username required')
+    
+    premium_data = load_json('premium')
+    
+    import time
+    current_time = int(time.time())
+    
+    if duration == -1:
+        until_timestamp = -1
+        until_text = 'Permanent'
+    else:
+        until_timestamp = current_time + (duration * 30 * 24 * 3600)  # months to seconds
+        until_text = time.strftime('%Y-%m-%d', time.localtime(until_timestamp))
+    
+    premium_data[username] = {
+        'granted_at': current_time,
+        'granted_by': session['nickname'],
+        'until_timestamp': until_timestamp,
+        'until': until_text,
+        'duration_months': duration,
+        'ui_settings': {}
+    }
+    
+    save_json('premium', premium_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/admin/grant_verification', methods=['POST'])
+@login_required
+def admin_grant_verification():
+    """Grant verification badge to user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    
+    if not username:
+        return jsonify(success=False, error='Username required')
+    
+    verification_data = load_json('verification')
+    
+    import time
+    verification_data[username] = {
+        'granted_at': int(time.time()),
+        'granted_by': session['nickname']
+    }
+    
+    save_json('verification', verification_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/admin/remove_verification', methods=['POST'])
+@login_required
+def admin_remove_verification():
+    """Remove verification badge from user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify(success=False, error='Access denied'), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    
+    if not username:
+        return jsonify(success=False, error='Username required')
+    
+    verification_data = load_json('verification')
+    verification_data.pop(username, None)
+    save_json('verification', verification_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    """Change user password"""
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    nickname = session['nickname']
+    
+    if not current_password or not new_password:
+        return jsonify(success=False, error='Both passwords required')
+    
+    # Verify current password
+    if not verify_user(nickname, current_password):
+        return jsonify(success=False, error='Current password incorrect')
+    
+    # Update password
+    users_data = load_json('users')
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
+            user_info['password'] = new_password
+            break
+    
+    save_json('users', users_data)
+    
+    return jsonify(success=True)
+
+
+@app.route('/purchase_premium_visa', methods=['POST'])
+@login_required
+def purchase_premium_visa():
+    """Handle premium purchase through Visa processing"""
+    data = request.get_json()
+    duration = data.get('duration', 1)  # months
+    
+    # Simulate Visa payment processing
+    payment_details = {
+        'merchant_id': 'ORBITMESS_UA',
+        'transaction_id': f"TXN_{int(time.time())}_{session['nickname']}",
+        'amount': 199 if duration == 1 else (999 if duration == 6 else 1799),
+        'currency': 'UAH',
+        'description': f'OrbitMess Premium {duration} month(s)',
+        'redirect_url': '/payment_success',
+        'user': session['nickname']
+    }
+    
+    # In real implementation, you would redirect to Visa payment gateway
+    # For now, we'll return payment details for manual processing
+    
+    return jsonify(success=True, payment_details=payment_details)
+
