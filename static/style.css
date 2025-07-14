@@ -161,93 +161,6 @@ body {
   overflow: hidden; 
 }
 
-/* Stories Panel */
-.stories-panel {
-  width: 280px;
-  background: var(--surface-dark);
-  border-left: 1px solid var(--surface-lighter);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.stories-header {
-  padding: 1.5rem;
-  background: var(--surface-accent);
-  border-bottom: 1px solid var(--surface-lighter);
-  text-align: center;
-}
-
-.stories-header h3 {
-  margin: 0;
-  color: var(--accent-green);
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.stories-container {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.story-item-panel {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--surface-lighter);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: var(--transition);
-  border: 1px solid transparent;
-}
-
-.story-item-panel:hover {
-  background: var(--accent-green);
-  color: black;
-  transform: translateX(-5px);
-}
-
-.story-avatar-panel {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 3px solid var(--accent-green);
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.story-info-panel {
-  flex: 1;
-  min-width: 0;
-}
-
-.story-username-panel {
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.story-count-panel {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  opacity: 0.8;
-}
-
-.story-time-panel {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 0.2rem;
-}
-
 .sidebar { 
   width: 350px; 
   background: var(--surface-dark);
@@ -263,21 +176,6 @@ body {
   align-items: center;
   background: var(--surface-accent);
   border-bottom: 1px solid var(--surface-lighter);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-info-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: var(--accent-green);
-  font-size: 1.2rem;
 }
 
 .header-buttons {
@@ -1984,10 +1882,6 @@ body {
 
   .sidebar.open {
     left: 0;
-  }
-
-  .stories-panel {
-    display: none;
   }
 
   .mobile-only {

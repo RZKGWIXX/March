@@ -50,30 +50,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateThemeIcon();
 
-  // Settings button
-  const settingsBtn = document.getElementById('settings-btn');
-  if (settingsBtn) {
-    settingsBtn.onclick = () => {
+  // Theme toggle - opens settings instead
+  if (themeToggle) {
+    themeToggle.onclick = () => {
       showSettings();
     };
+  } else {
+    // If no theme toggle button, still apply saved theme
+    updateThemeIcon();
   }
 
   // Mobile menu toggle - show mobile sidebar instead
   if (menuToggle) {
     menuToggle.onclick = () => {
-      if (window.innerWidth <= 768) {
-        showMobileSidebar();
-      } else {
-        sidebar.classList.toggle('open');
-      }
-    };
-  }
-
-  // Desktop sidebar toggle for three lines button
-  const menuToggleSidebar = document.getElementById('menu-toggle-sidebar');
-  if (menuToggleSidebar) {
-    menuToggleSidebar.onclick = () => {
-      sidebar.classList.toggle('open');
+      showMobileSidebar();
     };
   }
 
@@ -554,32 +544,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayStories(stories) {
-    // Update stories panel
-    const storiesContainer = document.getElementById('stories-container');
-    if (storiesContainer) {
-      storiesContainer.innerHTML = '';
+    // Update sidebar stories
+    const sidebarStories = document.getElementById('sidebar-stories');
+    if (sidebarStories) {
+      sidebarStories.innerHTML = '';
       
       if (Object.keys(stories).length > 0) {
         Object.entries(stories).forEach(([username, userStories]) => {
           const storyItem = document.createElement('div');
-          storyItem.className = 'story-item-panel';
+          storyItem.className = 'sidebar-story-item';
           
-          const timeAgo = userStories.length > 0 ? getTimeAgo(userStories[0].timestamp) : '';
+          const remainingCount = Math.max(0, userStories.length - 3);
           
           storyItem.innerHTML = `
-            <img src="/static/default-avatar.svg" alt="${username}" class="story-avatar-panel" data-username="${username}">
-            <div class="story-info-panel">
-              <div class="story-username-panel">${username}</div>
-              <div class="story-count-panel">${userStories.length} ${userStories.length === 1 ? 'історія' : 'історій'}</div>
-              ${timeAgo ? `<div class="story-time-panel">${timeAgo}</div>` : ''}
-            </div>
+            <img src="/static/default-avatar.svg" alt="${username}" class="sidebar-story-avatar" data-username="${username}">
+            <div class="sidebar-story-username">${username}</div>
+            ${remainingCount > 0 ? `<div class="sidebar-story-count">+${remainingCount}</div>` : ''}
           `;
           
           // Load user avatar
           fetch(`/get_user_avatar/${username}`)
             .then(r => r.json())
             .then(data => {
-              const avatar = storyItem.querySelector('.story-avatar-panel');
+              const avatar = storyItem.querySelector('.sidebar-story-avatar');
               if (data.avatar && data.avatar !== '/static/default-avatar.png') {
                 avatar.src = data.avatar + '?t=' + Date.now();
               }
@@ -587,32 +574,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(() => {});
 
           storyItem.onclick = () => showUserStories(username, userStories);
-          storiesContainer.appendChild(storyItem);
+          sidebarStories.appendChild(storyItem);
         });
-      } else {
-        storiesContainer.innerHTML = `
-          <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
-            <p>Поки що немає історій</p>
-          </div>
-        `;
       }
-    }
-  }
-
-  // Helper function to get time ago
-  function getTimeAgo(timestamp) {
-    const now = Date.now() / 1000;
-    const diff = now - timestamp;
-    
-    if (diff < 3600) {
-      const minutes = Math.floor(diff / 60);
-      return `${minutes} хв тому`;
-    } else if (diff < 86400) {
-      const hours = Math.floor(diff / 3600);
-      return `${hours} год тому`;
-    } else {
-      const days = Math.floor(diff / 86400);
-      return `${days} дн тому`;
     }
   }
 
@@ -3026,6 +2990,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Upload error', 'error');
     });
   };
+  }
 
   // Switch theme - only dark theme supported
   window.switchTheme = function(theme) {
@@ -3750,9 +3715,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStories();
   }, 120000);
 
-  // Add user avatar to header
-  const userInfoHeader = document.querySelector('.user-info-header');
-  if (userInfoHeader) {
+  // Add user avatar to user info
+  const userInfo = document.querySelector('.user-info');
+  if (userInfo) {
     // Load user avatar
     fetch(`/get_user_avatar/${nickname}`)
       .then(r => r.json())
@@ -3761,16 +3726,11 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatar.className = 'user-info-avatar';
         userAvatar.src = data.avatar && data.avatar !== '/static/default-avatar.png' ? data.avatar + '?t=' + Date.now() : '/static/default-avatar.svg';
         userAvatar.alt = nickname;
-        userAvatar.style.width = '32px';
-        userAvatar.style.height = '32px';
-        userAvatar.style.borderRadius = '50%';
-        userAvatar.style.marginRight = '0.5rem';
-        userAvatar.style.border = '2px solid var(--accent-green)';
         userAvatar.onerror = () => {
           userAvatar.src = '/static/default-avatar.svg';
         };
 
-        userInfoHeader.insertBefore(userAvatar, userInfoHeader.firstChild);
+        userInfo.insertBefore(userAvatar, userInfo.firstChild);
       })
       .catch(err => {
         console.error('Failed to load user avatar:', err);
@@ -3778,12 +3738,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatar.className = 'user-info-avatar';
         userAvatar.src = '/static/default-avatar.svg';
         userAvatar.alt = nickname;
-        userAvatar.style.width = '32px';
-        userAvatar.style.height = '32px';
-        userAvatar.style.borderRadius = '50%';
-        userAvatar.style.marginRight = '0.5rem';
-        userAvatar.style.border = '2px solid var(--accent-green)';
-        userInfoHeader.insertBefore(userAvatar, userInfoHeader.firstChild);
+        userInfo.insertBefore(userAvatar, userInfo.firstChild);
       });
   }
 
@@ -3936,7 +3891,8 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileChatOptions.style.cursor = 'pointer';
   }
 
-  // Setup header buttons - settingsBtn already declared earlier
+  // Setup header buttons
+  const settingsBtn = document.getElementById('settings-btn');
   const adminBtn = document.getElementById('admin-btn');
 
   if (settingsBtn) {
