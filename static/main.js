@@ -2990,7 +2990,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showNotification('❌ Upload error', 'error');
     });
   };
-  }
 
   // Switch theme - only dark theme supported
   window.switchTheme = function(theme) {
