@@ -1,2 +1,10 @@
-
-{}
+{
+  "general": {
+    "Wixxy": {
+      "until": 1752408459,
+      "by": "SYSTEM",
+      "duration": 60,
+      "reason": "Automated spam detection"
+    }
+  }
+}
