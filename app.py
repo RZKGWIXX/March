@@ -15,6 +15,15 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = '%637&&7@(_72)(28'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
+# Auto-create bins on startup
+create_default_json_files()
+auto_create_bins()
+
+@app.route('/ping')
+def ping():
+    """Health check endpoint for keepalive"""
+    return jsonify({'status': 'ok', 'timestamp': int(time.time())})
+
 # JSONBin.io configuration
 JSONBIN_API_KEY = '$2a$10$RgQMxiMWDn4XRQ70aEs7NuP/rw2z1Ay1qEwR.xrXwTsIIISGQVTVm'
 JSONBIN_ACCESS_KEY_ID = '6870d1a46063391d31ab5ece'
@@ -2114,4 +2123,123 @@ def purchase_premium_visa():
 
     return jsonify(success=True, payment_details=payment_details)
 
-socketio code and new route added.
+
+# SocketIO event handlers
+@socketio.on('connect')
+def handle_connect():
+    if 'nickname' in session:
+        join_room('general')
+        nickname = session['nickname']
+        import time
+        online_users[nickname] = {'last_seen': int(time.time()), 'room': 'general'}
+        
+        emit('user_activity_update', {
+            'user': nickname,
+            'action': 'joined',
+            'room': 'general'
+        }, broadcast=True)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if 'nickname' in session:
+        nickname = session['nickname']
+        if nickname in online_users:
+            del online_users[nickname]
+        
+        emit('user_activity_update', {
+            'user': nickname,
+            'action': 'left'
+        }, broadcast=True)
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    if 'nickname' not in session:
+        return
+    
+    room = data.get('room', 'general')
+    nickname = session['nickname']
+    
+    if room != 'general':
+        rooms_data = load_json('rooms')
+        if room not in rooms_data or nickname not in rooms_data[room].get('members', []):
+            return
+    
+    join_room(room)
+    if nickname in online_users:
+        online_users[nickname]['room'] = room
+    
+    emit('user_activity_update', {
+        'user': nickname,
+        'action': 'joined',
+        'room': room
+    }, room=room)
+
+@socketio.on('leave_room')
+def handle_leave_room(data):
+    if 'nickname' not in session:
+        return
+    
+    room = data.get('room', 'general')
+    nickname = session['nickname']
+    
+    leave_room(room)
+    
+    emit('user_activity_update', {
+        'user': nickname,
+        'action': 'left',
+        'room': room
+    }, room=room)
+
+@socketio.on('send_message')
+def handle_message(data):
+    if 'nickname' not in session:
+        return
+    
+    nickname = session['nickname']
+    message = data.get('message', '').strip()
+    room = data.get('room', 'general')
+    
+    if not message:
+        return
+    
+    # Anti-spam check
+    is_allowed, error_msg = check_spam_protection(nickname, message)
+    if not is_allowed:
+        emit('error_message', {'error': error_msg})
+        return
+    
+    # Check if user is muted
+    muted_data = load_json('muted')
+    import time
+    current_time = int(time.time())
+    
+    if room in muted_data and nickname in muted_data[room]:
+        mute_info = muted_data[room][nickname]
+        if mute_info.get('until', 0) > current_time:
+            remaining_minutes = int((mute_info['until'] - current_time) / 60)
+            emit('error_message', {
+                'error': f'You are muted for {remaining_minutes} more minutes'
+            })
+            return
+    
+    # Save message
+    messages_data = load_json('messages')
+    if room not in messages_data:
+        messages_data[room] = []
+    
+    message_data = {
+        'nick': nickname,
+        'text': sanitize_input(message),
+        'timestamp': int(time.time())
+    }
+    
+    messages_data[room].append(message_data)
+    save_json('messages', messages_data)
+    
+    # Broadcast message
+    emit('new_message', {
+        'room': room,
+        'nickname': nickname,
+        'message': message_data['text'],
+        'timestamp': message_data['timestamp']
+    }, room=room)
