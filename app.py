@@ -15,10 +15,6 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = '%637&&7@(_72)(28'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-# Auto-create bins on startup
-create_default_json_files()
-auto_create_bins()
-
 @app.route('/ping')
 def ping():
     """Health check endpoint for keepalive"""
@@ -1737,6 +1733,10 @@ def update_bio():
 
 
 if __name__ == '__main__':
+    # Initialize data files and bins
+    create_default_json_files()
+    auto_create_bins()
+    
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
