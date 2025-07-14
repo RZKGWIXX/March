@@ -2005,22 +2005,26 @@ if __name__ == '__main__':
 @login_required
 def check_premium():
     """Check if user has premium status"""
-    premium_data = load_json('premium')
-    nickname = session['nickname']
-    
-    import time
-    current_time = int(time.time())
-    
-    if nickname in premium_data:
-        user_premium = premium_data[nickname]
-        if user_premium.get('until_timestamp', 0) == -1 or user_premium.get('until_timestamp', 0) > current_time:
-            return jsonify({
-                'premium': True,
-                'until': user_premium.get('until', 'Permanent'),
-                'features': ['ui_customization', 'stories', 'priority_support']
-            })
-    
-    return jsonify({'premium': False})
+    try:
+        premium_data = load_json('premium')
+        nickname = session['nickname']
+        
+        import time
+        current_time = int(time.time())
+        
+        if nickname in premium_data and premium_data != {"placeholder": "data"}:
+            user_premium = premium_data[nickname]
+            if user_premium.get('until_timestamp', 0) == -1 or user_premium.get('until_timestamp', 0) > current_time:
+                return jsonify({
+                    'premium': True,
+                    'until': user_premium.get('until', 'Permanent'),
+                    'features': ['ui_customization', 'stories', 'priority_support']
+                })
+        
+        return jsonify({'premium': False})
+    except Exception as e:
+        print(f"Error checking premium for {nickname}: {e}")
+        return jsonify({'premium': False})
 
 
 @app.route('/get_stories')
@@ -2152,13 +2156,17 @@ def purchase_premium():
 @login_required
 def get_ui_settings():
     """Get user's UI customization settings"""
-    premium_data = load_json('premium')
-    nickname = session['nickname']
-    
-    if nickname in premium_data:
-        return jsonify(premium_data[nickname].get('ui_settings', {}))
-    
-    return jsonify({})
+    try:
+        premium_data = load_json('premium')
+        nickname = session['nickname']
+        
+        if nickname in premium_data and premium_data != {"placeholder": "data"}:
+            return jsonify(premium_data[nickname].get('ui_settings', {}))
+        
+        return jsonify({})
+    except Exception as e:
+        print(f"Error loading UI settings for {nickname}: {e}")
+        return jsonify({})
 
 
 @app.route('/update_ui_settings', methods=['POST'])
@@ -2191,8 +2199,13 @@ def update_ui_settings():
 @login_required
 def get_user_verification(username):
     """Check if user has verification badge"""
-    verification_data = load_json('verification')
-    return jsonify({'verified': username in verification_data})
+    try:
+        verification_data = load_json('verification')
+        is_verified = username in verification_data and verification_data != {"placeholder": "data"}
+        return jsonify({'verified': is_verified})
+    except Exception as e:
+        print(f"Error checking verification for {username}: {e}")
+        return jsonify({'verified': False})
 
 
 @app.route('/admin/grant_premium', methods=['POST'])

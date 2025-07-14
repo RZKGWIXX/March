@@ -2323,6 +2323,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 10003;
+  backdrop-filter: blur(5px);
 }
 
 .premium-content {
@@ -2331,7 +2332,11 @@ body {
   border-radius: var(--border-radius);
   max-width: 500px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
 }
 
 .premium-plans {
@@ -2372,6 +2377,43 @@ body {
 .plan-description {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+.premium-modal .admin-btn {
+  margin: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 50px;
+}
+
+.premium-modal .admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .premium-content {
+    width: 95%;
+    height: 90vh;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+  
+  .premium-plans {
+    margin: 1rem 0;
+  }
+  
+  .premium-modal .admin-btn {
+    padding: 1rem;
+    margin: 0.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
 }
 
 /* Settings Panel */

@@ -1286,15 +1286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Show message immediately for better UX
-      addMessage(nickname, message, true);
-
-      // Update local cache
-      if (!messageHistory[currentRoom]) messageHistory[currentRoom] = [];
-      messageHistory[currentRoom].push({nick: nickname, text: message, timestamp: Math.floor(Date.now() / 1000)});
-      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-
-      // Send message with room parameter
+      // Send message with room parameter - don't show immediately
       socket.emit('message', {room: currentRoom, nickname, message});
       messageInput.value = '';
       lastMessageTime = now;
@@ -2048,7 +2040,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Show all messages in real-time, including our own for immediate feedback
+    // Show all messages in real-time
     addMessage(data.nickname, data.message, data.nickname === nickname);
 
     // Update cache immediately
@@ -2825,8 +2817,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const bioInput = document.getElementById('bio-input');
 
       if (avatar) {
-        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png') {
+        console.log('Avatar data:', avatarData); // Debug log
+        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png' && avatarData.avatar !== '/static/default-avatar.svg') {
           avatar.src = avatarData.avatar + '?t=' + Date.now(); // Force refresh
+          avatar.onerror = function() {
+            this.src = '/static/default-avatar.svg';
+          };
         } else {
           avatar.src = '/static/default-avatar.svg';
         }
@@ -3244,6 +3240,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         <div class="privacy-section">
           <h3>Зміна пароля</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem; font-style: italic;">
+            ⚠️ Якщо не пам'ятаєте поточний пароль, то зверністеся до адміна.
+          </p>
           <div class="password-change">
             <input type="password" id="current-password" placeholder="Поточний пароль">
             <input type="password" id="new-password" placeholder="Новий пароль">
@@ -3341,6 +3340,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const settingsAvatar = document.getElementById('settings-avatar');
         if (settingsAvatar) {
           settingsAvatar.src = data.avatar_url + '?t=' + Date.now();
+          settingsAvatar.onerror = function() {
+            this.src = '/static/default-avatar.svg';
+          };
+        }
+        
+        // Also update header avatar
+        const headerAvatar = document.getElementById('header-avatar');
+        if (headerAvatar) {
+          headerAvatar.src = data.avatar_url + '?t=' + Date.now();
+          headerAvatar.onerror = function() {
+            this.src = '/static/default-avatar.svg';
+          };
         }
       } else {
         showNotification('❌ ' + (data.error || 'Avatar upload failed'), 'error');        }
