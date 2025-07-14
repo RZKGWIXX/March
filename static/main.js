@@ -3936,8 +3936,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileChatOptions.style.cursor = 'pointer';
   }
 
-  // Setup header buttons
-  const settingsBtn = document.getElementById('settings-btn');
+  // Setup header buttons - settingsBtn already declared earlier
   const adminBtn = document.getElementById('admin-btn');
 
   if (settingsBtn) {
