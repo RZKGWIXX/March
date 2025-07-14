@@ -65,11 +65,105 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeIcon();
   }
 
-  // Mobile menu toggle
+  // Mobile menu toggle - show mobile sidebar instead
   if (menuToggle) {
     menuToggle.onclick = () => {
-      sidebar.classList.toggle('open');
+      showMobileSidebar();
     };
+  }
+
+  // Mobile sidebar functionality
+  function showMobileSidebar() {
+    // Remove existing sidebar
+    const existingSidebar = document.querySelector('.mobile-sidebar');
+    if (existingSidebar) {
+      existingSidebar.remove();
+    }
+
+    const mobileSidebar = document.createElement('div');
+    mobileSidebar.className = 'mobile-sidebar';
+    
+    checkPremium().then(premiumInfo => {
+      mobileSidebar.innerHTML = `
+        <div class="mobile-sidebar-header">
+          <h2>💬 OrbitMess</h2>
+          <button class="close-sidebar-btn" onclick="closeMobileSidebar()">×</button>
+        </div>
+        
+        <button class="mobile-sidebar-item" onclick="showSettings(); closeMobileSidebar();">
+          <span class="icon">⚙️</span>
+          <span>Налаштування</span>
+        </button>
+        
+        ${premiumInfo.premium ? '' : `
+        <button class="mobile-sidebar-item" onclick="showPremiumPurchase(); closeMobileSidebar();">
+          <span class="icon">⭐</span>
+          <span>Купити Premium</span>
+        </button>
+        `}
+        
+        ${nickname === 'Wixxy' ? `
+        <button class="mobile-sidebar-item" onclick="toggleAdminPanel(); closeMobileSidebar();">
+          <span class="icon">🔧</span>
+          <span>Адмін панель</span>
+        </button>
+        ` : ''}
+        
+        <button class="mobile-sidebar-item" onclick="showPrivacySettings(); closeMobileSidebar();">
+          <span class="icon">🔒</span>
+          <span>Конфіденційність</span>
+        </button>
+        
+        <button class="mobile-sidebar-item" onclick="logout(); closeMobileSidebar();">
+          <span class="icon">🚪</span>
+          <span>Вихід</span>
+        </button>
+      `;
+      
+      document.body.appendChild(mobileSidebar);
+      
+      // Add backdrop
+      const backdrop = document.createElement('div');
+      backdrop.className = 'sidebar-backdrop';
+      backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+      `;
+      backdrop.onclick = closeMobileSidebar;
+      document.body.appendChild(backdrop);
+      
+      setTimeout(() => {
+        mobileSidebar.classList.add('open');
+      }, 10);
+    });
+  }
+
+  window.closeMobileSidebar = function() {
+    const mobileSidebar = document.querySelector('.mobile-sidebar');
+    const backdrop = document.querySelector('.sidebar-backdrop');
+    
+    if (mobileSidebar) {
+      mobileSidebar.classList.remove('open');
+      setTimeout(() => {
+        mobileSidebar.remove();
+      }, 300);
+    }
+    
+    if (backdrop) {
+      backdrop.remove();
+    }
+  };
+
+  // Check premium status
+  function checkPremium() {
+    return fetch('/check_premium')
+      .then(r => r.json())
+      .catch(() => ({ premium: false }));
   }
 
   // Close sidebar when clicking outside on mobile
@@ -444,6 +538,163 @@ document.addEventListener('DOMContentLoaded', () => {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
+  // Load and display stories
+  function loadStories() {
+    fetch('/get_stories')
+      .then(r => r.json())
+      .then(stories => {
+        displayStories(stories);
+      })
+      .catch(err => console.error('Failed to load stories:', err));
+  }
+
+  function displayStories(stories) {
+    // Remove existing stories container
+    const existingContainer = document.querySelector('.stories-container');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+
+    if (Object.keys(stories).length === 0) return;
+
+    const storiesContainer = document.createElement('div');
+    storiesContainer.className = 'stories-container';
+
+    Object.entries(stories).forEach(([username, userStories]) => {
+      const storyItem = document.createElement('div');
+      storyItem.className = 'story-item';
+      
+      const visibleCount = Math.min(userStories.length, 3);
+      const remainingCount = Math.max(0, userStories.length - 3);
+      
+      storyItem.innerHTML = `
+        <img src="/static/default-avatar.svg" alt="${username}" class="story-avatar" data-username="${username}">
+        <div class="story-username">${username}</div>
+        ${remainingCount > 0 ? `<div class="story-count">та інші (${remainingCount})</div>` : ''}
+      `;
+      
+      // Load user avatar
+      fetch(`/get_user_avatar/${username}`)
+        .then(r => r.json())
+        .then(data => {
+          const avatar = storyItem.querySelector('.story-avatar');
+          if (data.avatar && data.avatar !== '/static/default-avatar.png') {
+            avatar.src = data.avatar + '?t=' + Date.now();
+          }
+        })
+        .catch(() => {});
+
+      storyItem.onclick = () => showUserStories(username, userStories);
+      storiesContainer.appendChild(storyItem);
+    });
+
+    // Add stories container to chat window
+    const chatWindow = document.querySelector('.chat-window');
+    const messagesDiv = document.getElementById('messages');
+    chatWindow.insertBefore(storiesContainer, messagesDiv);
+  }
+
+  function showUserStories(username, stories) {
+    const storyViewer = document.createElement('div');
+    storyViewer.className = 'story-viewer';
+    
+    let currentIndex = 0;
+    
+    function showStory(index) {
+      const story = stories[index];
+      if (!story) return;
+      
+      let content = '';
+      if (story.media_url) {
+        if (story.media_type === 'video') {
+          content = `<video src="${story.media_url}" controls class="story-content" autoplay></video>`;
+        } else {
+          content = `<img src="${story.media_url}" alt="Story" class="story-content">`;
+        }
+      } else {
+        content = `<div class="story-content story-text">${story.text}</div>`;
+      }
+      
+      storyViewer.innerHTML = `
+        ${content}
+        <div class="story-controls">
+          <button onclick="previousStory()">${index > 0 ? '◀' : ''}</button>
+          <button onclick="nextStory()">${index < stories.length - 1 ? '▶' : ''}</button>
+          <button onclick="closeStoryViewer()">✕</button>
+        </div>
+      `;
+      
+      // Mark as viewed
+      fetch('/view_story', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user: username, story_id: story.id})
+      });
+    }
+    
+    window.previousStory = () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showStory(currentIndex);
+      }
+    };
+    
+    window.nextStory = () => {
+      if (currentIndex < stories.length - 1) {
+        currentIndex++;
+        showStory(currentIndex);
+      }
+    };
+    
+    window.closeStoryViewer = () => {
+      storyViewer.remove();
+    };
+    
+    document.body.appendChild(storyViewer);
+    showStory(currentIndex);
+  }
+
+  // Media viewer for fullscreen viewing
+  function showMediaViewer(src, type) {
+    const mediaViewer = document.createElement('div');
+    mediaViewer.className = 'media-viewer show';
+    
+    let content = '';
+    if (type === 'video' || src.includes('.mp4') || src.includes('.mov') || src.includes('.avi') || src.includes('.webm')) {
+      content = `<video src="${src}" controls class="media-content" autoplay></video>`;
+    } else {
+      content = `<img src="${src}" alt="Media" class="media-content">`;
+    }
+    
+    mediaViewer.innerHTML = `
+      ${content}
+      <div class="media-controls">
+        <button onclick="downloadMedia('${src}')">💾</button>
+        <button onclick="closeMediaViewer()">✕</button>
+      </div>
+    `;
+    
+    document.body.appendChild(mediaViewer);
+    
+    window.closeMediaViewer = () => {
+      mediaViewer.remove();
+    };
+    
+    window.downloadMedia = (url) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = url.split('/').pop();
+      a.click();
+    };
+    
+    // Close on click outside
+    mediaViewer.onclick = (e) => {
+      if (e.target === mediaViewer) {
+        closeMediaViewer();
+      }
+    };
+  }
+
   function addMessage(nick, text, isOwnMessage = false, isSystemMessage = false, index = -1, messageData = null) {
     const div = document.createElement('div');
     div.className = `message ${isOwnMessage ? 'own' : ''} ${isSystemMessage ? 'system' : ''}`;
@@ -519,14 +770,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           messageContent = `
             <div class="video-container">
-              <video id="${videoId}" src="${text}" controls class="shared-video" preload="metadata" style="max-width: 100%; height: auto;">
+              <video id="${videoId}" src="${text}" controls class="shared-video" preload="metadata" onclick="showMediaViewer('${text}', 'video')" style="cursor: pointer; max-width: 100%; height: auto;">
                 Your browser does not support the video tag.
               </video>
               <button class="video-reset-btn" onclick="resetVideo('${videoId}')" title="Скинути відео">🔄</button>
             </div>
           `;
         } else {
-          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="window.open('${text}', '_blank')" style="cursor: pointer; margin-top: 4px; max-width: 100%; height: auto;">`;
+          messageContent = `<img src="${text}" alt="Shared image" class="shared-image" onclick="showMediaViewer('${text}', 'image')" style="cursor: pointer; margin-top: 4px; max-width: 100%; height: auto;">`;
         }
       } else {
         messageContent = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
@@ -537,6 +788,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isOwnMessage) {
         statusHtml = `<span class="message-status" data-status="sent">✓</span>`;
       }
+
+      // Check for verification badge
+      let verificationBadge = '';
+      fetch(`/get_user_verification/${nick}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.verified) {
+            const authorEl = div.querySelector('.message-author');
+            if (authorEl && !authorEl.querySelector('.verification-badge')) {
+              authorEl.innerHTML += '<span class="verification-badge">✓</span>';
+            }
+          }
+        })
+        .catch(() => {});
 
       div.innerHTML = `
         <div class="message-wrapper">
@@ -2097,6 +2362,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <h3>👥 User Management</h3>
               <button class="admin-btn" onclick="loadAllUsers()">🚫 Ban User</button>
               <button class="admin-btn" onclick="loadBannedUsers()">📋 View Banned Users</button>
+              <button class="admin-btn" onclick="showGrantPremium()">⭐ Grant Premium</button>
+              <button class="admin-btn" onclick="showGrantVerification()">✓ Grant Verification</button>
             </div>
 
             <div class="admin-section">
@@ -2309,6 +2576,146 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Grant premium
+  window.showGrantPremium = function() {
+    fetch('/users')
+      .then(r => r.json())
+      .then(users => {
+        const area = document.getElementById('admin-content-area');
+        area.innerHTML = `
+          <h3>Grant Premium to User:</h3>
+          <div style="margin-bottom: 1rem;">
+            <input type="text" id="premium-user-search" placeholder="Search users..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label>Duration:</label>
+            <select id="premium-duration" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
+              <option value="1">1 Month</option>
+              <option value="6">6 Months</option>
+              <option value="12">1 Year</option>
+              <option value="-1">Permanent</option>
+            </select>
+          </div>
+          <div id="premium-user-list">
+            ${users.map(user => `
+              <div class="user-item" data-username="${user.toLowerCase()}">
+                <span>${user}</span>
+                <button class="admin-btn" onclick="grantPremium('${user}')">Grant Premium</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        // Add search functionality
+        const searchInput = document.getElementById('premium-user-search');
+        if (searchInput) {
+          searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const userItems = document.querySelectorAll('#premium-user-list .user-item');
+            userItems.forEach(item => {
+              const username = item.dataset.username;
+              if (username.includes(query)) {
+                item.style.display = '';
+              } else {
+                item.style.display = 'none';
+              }
+            });
+          };
+        }
+      });
+  };
+
+  window.grantPremium = function(username) {
+    const duration = parseInt(document.getElementById('premium-duration').value);
+    
+    fetch('/admin/grant_premium', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: username, duration: duration})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(`✅ Premium granted to ${username}`, 'success');
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to grant premium'), 'error');
+      }
+    });
+  };
+
+  // Grant verification
+  window.showGrantVerification = function() {
+    fetch('/users')
+      .then(r => r.json())
+      .then(users => {
+        const area = document.getElementById('admin-content-area');
+        area.innerHTML = `
+          <h3>Grant Verification Badge:</h3>
+          <div style="margin-bottom: 1rem;">
+            <input type="text" id="verify-user-search" placeholder="Search users..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div id="verify-user-list">
+            ${users.map(user => `
+              <div class="user-item" data-username="${user.toLowerCase()}">
+                <span>${user}</span>
+                <button class="admin-btn" onclick="grantVerification('${user}')">Grant ✓</button>
+                <button class="admin-btn" style="background: #e74c3c;" onclick="removeVerification('${user}')">Remove ✓</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        // Add search functionality
+        const searchInput = document.getElementById('verify-user-search');
+        if (searchInput) {
+          searchInput.oninput = function() {
+            const query = this.value.toLowerCase();
+            const userItems = document.querySelectorAll('#verify-user-list .user-item');
+            userItems.forEach(item => {
+              const username = item.dataset.username;
+              if (username.includes(query)) {
+                item.style.display = '';
+              } else {
+                item.style.display = 'none';
+              }
+            });
+          };
+        }
+      });
+  };
+
+  window.grantVerification = function(username) {
+    fetch('/admin/grant_verification', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: username})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(`✅ Verification granted to ${username}`, 'success');
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to grant verification'), 'error');
+      }
+    });
+  };
+
+  window.removeVerification = function(username) {
+    fetch('/admin/remove_verification', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: username})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(`✅ Verification removed from ${username}`, 'success');
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to remove verification'), 'error');
+      }
+    });
+  };
+
   // Enhanced mobile device detection
   const userAgent = navigator.userAgent.toLowerCase();
   const isMobileDevice = /iphone|ipad|ipod|android|blackberry|mini|windows\sce|palm/i.test(userAgent);
@@ -2364,6 +2771,39 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
+        <div class="settings-section" id="premium-ui-section" style="display: none;">
+          <h3>⭐ Premium UI Customization</h3>
+          <div class="premium-ui-panel" id="premium-ui-panel">
+            <div class="color-picker">
+              <label>Primary Color:</label>
+              <input type="color" id="primary-color" value="#9cff2e">
+            </div>
+            <div class="color-picker">
+              <label>Accent Color:</label>
+              <input type="color" id="accent-color" value="#7dd824">
+            </div>
+            <div class="slider-container">
+              <label>Background Blur:</label>
+              <input type="range" id="bg-blur" min="0" max="20" value="0">
+            </div>
+            <div class="slider-container">
+              <label>Transparency:</label>
+              <input type="range" id="transparency" min="0" max="100" value="0">
+            </div>
+            <button class="admin-btn" onclick="saveUISettings()">Save UI Settings</button>
+            <button class="admin-btn" onclick="resetUISettings()">Reset to Default</button>
+          </div>
+        </div>
+
+        <div class="settings-section" id="premium-stories-section" style="display: none;">
+          <h3>📸 Stories (Premium)</h3>
+          <div class="profile-section">
+            <input type="file" id="story-media" accept="image/*,video/*" style="margin-bottom: 1rem;">
+            <textarea id="story-text" placeholder="Story text (optional)" maxlength="100" style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; resize: vertical; min-height: 80px;"></textarea>
+            <button class="admin-btn" onclick="uploadStory()">📸 Add Story</button>
+          </div>
+        </div>
+
         <div class="settings-section">
           <h3>👤 Edit Profile</h3>
           <div class="profile-section">
@@ -2413,11 +2853,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup avatar upload functionality
     setupAvatarUpload();
 
-    // Load current user data
+    // Load current user data and check premium
     Promise.all([
       fetch(`/get_user_avatar/${nickname}`).then(r => r.json()),
-      fetch(`/get_user_profile/${nickname}`).then(r => r.json())
-    ]).then(([avatarData, profileData]) => {
+      fetch(`/get_user_profile/${nickname}`).then(r => r.json()),
+      fetch('/check_premium').then(r => r.json()),
+      fetch('/get_ui_settings').then(r => r.json())
+    ]).then(([avatarData, profileData, premiumData, uiSettings]) => {
       const avatar = document.getElementById('settings-avatar');
       const bioInput = document.getElementById('bio-input');
 
@@ -2432,9 +2874,139 @@ document.addEventListener('DOMContentLoaded', () => {
       if (bioInput) {
         bioInput.value = profileData.bio || '';
       }
+
+      // Show premium sections if user has premium
+      if (premiumData.premium) {
+        const premiumUISection = document.getElementById('premium-ui-section');
+        const premiumStoriesSection = document.getElementById('premium-stories-section');
+        
+        if (premiumUISection) {
+          premiumUISection.style.display = 'block';
+          
+          // Load saved UI settings
+          if (uiSettings.primary_color) document.getElementById('primary-color').value = uiSettings.primary_color;
+          if (uiSettings.accent_color) document.getElementById('accent-color').value = uiSettings.accent_color;
+          if (uiSettings.background_blur) document.getElementById('bg-blur').value = uiSettings.background_blur;
+          if (uiSettings.transparency) document.getElementById('transparency').value = uiSettings.transparency;
+        }
+        
+        if (premiumStoriesSection) {
+          premiumStoriesSection.style.display = 'block';
+        }
+      }
     }).catch(err => {
       console.error('Failed to load profile data:', err);
     });
+
+  }
+
+  // Premium UI functions
+  window.saveUISettings = function() {
+    const uiSettings = {
+      primary_color: document.getElementById('primary-color').value,
+      accent_color: document.getElementById('accent-color').value,
+      background_blur: document.getElementById('bg-blur').value,
+      transparency: document.getElementById('transparency').value
+    };
+
+    fetch('/update_ui_settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ui_settings: uiSettings})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ UI settings saved', 'success');
+        applyUISettings(uiSettings);
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to save UI settings'), 'error');
+      }
+    });
+  };
+
+  window.resetUISettings = function() {
+    const defaultSettings = {
+      primary_color: '#9cff2e',
+      accent_color: '#7dd824',
+      background_blur: '0',
+      transparency: '0'
+    };
+
+    fetch('/update_ui_settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ui_settings: defaultSettings})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ UI reset to default', 'success');
+        applyUISettings(defaultSettings);
+        
+        // Update form
+        document.getElementById('primary-color').value = defaultSettings.primary_color;
+        document.getElementById('accent-color').value = defaultSettings.accent_color;
+        document.getElementById('bg-blur').value = defaultSettings.background_blur;
+        document.getElementById('transparency').value = defaultSettings.transparency;
+      }
+    });
+  };
+
+  function applyUISettings(settings) {
+    const root = document.documentElement;
+    if (settings.primary_color) {
+      root.style.setProperty('--accent-green', settings.primary_color);
+    }
+    if (settings.accent_color) {
+      root.style.setProperty('--accent-green-dark', settings.accent_color);
+    }
+    if (settings.background_blur) {
+      root.style.setProperty('--bg-blur', `blur(${settings.background_blur}px)`);
+    }
+    if (settings.transparency) {
+      root.style.setProperty('--bg-opacity', (100 - settings.transparency) / 100);
+    }
+  }
+
+  // Upload story
+  window.uploadStory = function() {
+    const mediaFile = document.getElementById('story-media').files[0];
+    const storyText = document.getElementById('story-text').value.trim();
+
+    if (!mediaFile && !storyText) {
+      showNotification('❌ Please add media or text', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    if (mediaFile) {
+      formData.append('file', mediaFile);
+    }
+    formData.append('text', storyText);
+
+    showNotification('📤 Uploading story...', 'info');
+
+    fetch('/upload_story', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Story uploaded successfully', 'success');
+        document.getElementById('story-media').value = '';
+        document.getElementById('story-text').value = '';
+        loadStories(); // Reload stories
+      } else {
+        showNotification('❌ ' + (data.error || 'Failed to upload story'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Story upload error:', err);
+      showNotification('❌ Upload error', 'error');
+    });
+  };
   }
 
   // Switch theme
@@ -2599,6 +3171,20 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="changelog-scroll">
           <div class="changelog-item">
+            <div class="changelog-date">Version 2.0 - 14.07.25</div>
+            <div class="changelog-title">Premium Features & Major Update</div>
+            <ul class="changelog-changes">
+              <li class="added">Premium підписка з оплатою</li>
+              <li class="added">Історії для premium користувачів</li>
+              <li class="added">Кастомізація UI для premium</li>
+              <li class="added">Галочки верифікації</li>
+              <li class="added">Мобільний сайдбар замість налаштувань</li>
+              <li class="added">Повноекранний перегляд медіа</li>
+              <li class="added">Конфіденційність і зміна пароля</li>
+              <li class="improved">Покращений дизайн інтерфейсу</li>
+            </ul>
+          </div>
+          <div class="changelog-item">
             <div class="changelog-date">Version 1.4 - 12.07.25</div>
             <div class="changelog-title">Mobile & UX Improvements</div>
             <ul class="changelog-changes">
@@ -2609,20 +3195,6 @@ document.addEventListener('DOMContentLoaded', () => {
               <li class="fixed">Виправлені помилки з JavaScript</li>
             </ul>
           </div>
-          <div class="changelog-item">
-            <div class="changelog-date">Version 1.3 - 11.07.25</div>
-            <div class="changelog-title">Style & UX Update</div>
-            <ul class="changelog-changes">
-              <li class="added">Жирний шрифт для повідомлень</li>
-              <li class="added">Світла тема з покращеним дизайном</li>
-              <li class="added">Галочки для статусу повідомлень</li>
-              <li class="added">Кнопка скидування відео файлів</li>
-              <li class="added">Охайніший та чистіший інтерфейс</li>
-              <li class="fixed">Виправлено відображення повідомлень</li>
-              <li class="improved">Покращена читабельність тексту</li>
-              <li class="improved">Оптимізована робота з медіа файлами</li>
-            </ul>
-          </div>
 
         </div>
         <div class="modal-footer">
@@ -2631,6 +3203,156 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     document.body.appendChild(modal);
+  };
+
+  // Show premium purchase modal
+  window.showPremiumPurchase = function() {
+    const modal = document.createElement('div');
+    modal.className = 'premium-modal';
+    modal.innerHTML = `
+      <div class="premium-content">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="color: var(--accent-green); margin-bottom: 0.5rem;">⭐ OrbitMess Premium</h2>
+          <p style="color: var(--text-secondary);">Отримайте доступ до ексклюзивних функцій</p>
+        </div>
+        
+        <div class="premium-plans">
+          <div class="premium-plan" data-duration="1">
+            <div class="plan-title">1 Місяць</div>
+            <div class="plan-price">$4.99 / 199₴</div>
+            <div class="plan-description">• Кастомізація UI<br>• Історії<br>• Прем-функції</div>
+          </div>
+          
+          <div class="premium-plan" data-duration="6">
+            <div class="plan-title">6 Місяців</div>
+            <div class="plan-price">$24.99 / 999₴</div>
+            <div class="plan-description">• Знижка 17%<br>• Всі прем-функції<br>• Пріоритетна підтримка</div>
+          </div>
+          
+          <div class="premium-plan" data-duration="12">
+            <div class="plan-title">1 Рік</div>
+            <div class="plan-price">$44.99 / 1799₴</div>
+            <div class="plan-description">• Знижка 25%<br>• Найкраща ціна<br>• VIP статус</div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+          <button class="admin-btn" onclick="purchasePremium()" id="purchase-btn" disabled>Купити Premium</button>
+          <button class="admin-btn close-btn" onclick="this.closest('.premium-modal').remove()">Скасувати</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add plan selection
+    const plans = modal.querySelectorAll('.premium-plan');
+    const purchaseBtn = modal.querySelector('#purchase-btn');
+    let selectedDuration = null;
+    
+    plans.forEach(plan => {
+      plan.onclick = () => {
+        plans.forEach(p => p.classList.remove('selected'));
+        plan.classList.add('selected');
+        selectedDuration = parseInt(plan.dataset.duration);
+        purchaseBtn.disabled = false;
+      };
+    });
+    
+    window.purchasePremium = function() {
+      if (!selectedDuration) return;
+      
+      fetch('/purchase_premium', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({duration: selectedDuration, payment_method: 'card'})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          window.open(data.payment_url, '_blank');
+          modal.remove();
+        } else {
+          showNotification('❌ ' + (data.error || 'Помилка оплати'), 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Payment error:', err);
+        showNotification('❌ Помилка підключення', 'error');
+      });
+    };
+  };
+
+  // Show privacy settings
+  window.showPrivacySettings = function() {
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    modal.innerHTML = `
+      <div class="admin-content">
+        <div class="modal-header">
+          <h2>🔒 Конфіденційність</h2>
+        </div>
+        
+        <div class="privacy-section">
+          <h3>Зміна пароля</h3>
+          <div class="password-change">
+            <input type="password" id="current-password" placeholder="Поточний пароль">
+            <input type="password" id="new-password" placeholder="Новий пароль">
+            <input type="password" id="confirm-password" placeholder="Підтвердити пароль">
+            <button class="admin-btn" onclick="changePassword()">Змінити пароль</button>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Закрити</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    window.changePassword = function() {
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        showNotification('❌ Заповніть всі поля', 'error');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        showNotification('❌ Паролі не співпадають', 'error');
+        return;
+      }
+      
+      if (newPassword.length < 6) {
+        showNotification('❌ Пароль повинен містити мінімум 6 символів', 'error');
+        return;
+      }
+      
+      fetch('/change_password', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('✅ Пароль успішно змінено', 'success');
+          modal.remove();
+        } else {
+          showNotification('❌ ' + (data.error || 'Помилка зміни пароля'), 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Password change error:', err);
+        showNotification('❌ Помилка підключення', 'error');
+      });
+    };
   };
 
   // Avatar upload functionality - setup on settings panel open
@@ -2994,9 +3716,25 @@ document.addEventListener('DOMContentLoaded', () => {
   loadRooms();
   setTimeout(() => joinRoom('general'), 100);
 
-  // Auto-refresh room list every 2 minutes
+  // Load stories and premium features
+  loadStories();
+  checkPremium().then(premiumData => {
+    if (premiumData.premium) {
+      // Load and apply custom UI settings
+      fetch('/get_ui_settings')
+        .then(r => r.json())
+        .then(settings => {
+          if (Object.keys(settings).length > 0) {
+            applyUISettings(settings);
+          }
+        });
+    }
+  });
+
+  // Auto-refresh room list and stories every 2 minutes
   setInterval(() => {
     loadRooms();
+    loadStories();
   }, 120000);
 
   // Add user avatar to user info

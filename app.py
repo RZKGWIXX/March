@@ -127,6 +127,24 @@ def migrate_local_data_to_bins():
                 print(f"Error migrating {bin_name}: {e}")
 
 
+default_data = {
+        'users': {"placeholder": "data"},
+        'rooms': {"placeholder": "data"},
+        'messages': {
+            'general': []
+        },
+        'blocks': {"placeholder": "data"},
+        'banned': {
+            'users': []
+        },
+        'muted': {"placeholder": "data"},
+        'hidden_messages': {"placeholder": "data"},
+        'nickname_cooldowns': {"placeholder": "data"},
+        'premium': {"placeholder": "data"},
+        'stories': {"placeholder": "data"},
+        'verification': {"placeholder": "data"}
+    }
+
 def auto_create_bins():
     """Automatically create all required bins if they don't exist"""
     print(f"JSONBin API Key: {'Present' if JSONBIN_API_KEY else 'Missing'}")
@@ -151,7 +169,10 @@ def auto_create_bins():
         },
         'muted': {"placeholder": "data"},
         'hidden_messages': {"placeholder": "data"},
-        'nickname_cooldowns': {"placeholder": "data"}
+        'nickname_cooldowns': {"placeholder": "data"},
+        'premium': {"placeholder": "data"},
+        'stories': {"placeholder": "data"},
+        'verification': {"placeholder": "data"}
     }
 
     print("Checking and creating JSONBin.io bins...")
@@ -203,7 +224,10 @@ def create_default_json_files():
         },
         'muted': {"placeholder": "data"},
         'hidden_messages': {"placeholder": "data"},
-        'nickname_cooldowns': {"placeholder": "data"}
+        'nickname_cooldowns': {"placeholder": "data"},
+        'premium': {"placeholder": "data"},
+        'stories': {"placeholder": "data"},
+        'verification': {"placeholder": "data"}
     }
 
     for filename, data in default_data.items():
@@ -296,7 +320,10 @@ def load_json(bin_name):
         },
         'muted': {},
         'hidden_messages': {},
-        'nickname_cooldowns': {}
+        'nickname_cooldowns': {},
+        'premium': {},
+        'stories': {},
+        'verification': {}
     }
     return default_data.get(bin_name, {})
 
@@ -832,7 +859,7 @@ def admin_ban_user():
     if not username or not reason:
         return jsonify(success=False, error='Username and reason required')
 
-    # Get user's IP from users data
+        # Get user's IP from users data
     users_data = load_json('users')
     user_ip = None
 
@@ -1557,7 +1584,7 @@ def upload_file():
     file.seek(0, 2)  # Seek to end
     file_size = file.tell()
     file.seek(0)  # Reset to beginning
-    
+
     # Different size limits for different file types
     max_size = 50 * 1024 * 1024  # 50MB for all files (increased limit)
     if file_size > max_size:
@@ -1584,7 +1611,7 @@ def upload_file():
 
         import time
         timestamp = int(time.time())
-        
+
         # Determine file type
         is_video = file_ext in ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.flv', '.wmv']
         file_type = 'video' if is_video else 'image'

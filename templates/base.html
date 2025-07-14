@@ -18,7 +18,6 @@
                 <h1>💬 OrbitMess</h1>
                 <div class="header-buttons">
                     <button id="theme-toggle" title="Toggle Theme">🌙</button>
-                    <button id="settings-btn" title="Settings" onclick="showSettings()">⚙️</button>
                 </div>
             </header>
 
@@ -60,9 +59,6 @@
                 </div>
 
                 <div class="chat-controls">
-                    <button id="block-user-btn" title="Block User" style="display: none;">🚫</button>
-                    <button id="delete-room-btn" title="Delete Room" style="display: none;">🗑️</button>
-                    <button id="settings-btn" class="general-only" title="Settings" onclick="showSettings()" style="display: none;">⚙️</button>
                     <button id="mobile-chat-options" class="mobile-only" title="Options" style="position: relative;">
                         ⋮
                         <div id="mobile-chat-dropdown" class="mobile-chat-dropdown">
@@ -81,14 +77,6 @@
                             <div id="mobile-delete-chat" class="mobile-dropdown-item" style="display: none;">
                                 <span>❌</span>
                                 Delete Chat
-                            </div>
-                            <div id="mobile-block-user" class="mobile-dropdown-item" style="display: none;">
-                                <span>🚫</span>
-                                Block User
-                            </div>
-                            <div id="mobile-unblock-user" class="mobile-dropdown-item" style="display: none;">
-                                <span>✅</span>
-                                Unblock User
                             </div>
                         </div>
                     </button>
