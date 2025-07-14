@@ -15,23 +15,16 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <header>
-                <h1>💬 OrbitMess</h1>
+                <div class="header-left">
+                    <div class="user-info-header">
+                        {{ nickname }}
+                    </div>
+                </div>
                 <div class="header-buttons">
                     <button id="menu-toggle-sidebar" title="Menu">☰</button>
-                    <button id="theme-toggle" title="Settings">⚙️</button>
+                    <button id="settings-btn" title="Settings">⚙️</button>
                 </div>
-            </header>
-
-            <!-- User Info and Stories Container -->
-            <div class="user-stories-container">
-                <!-- User Info -->
-                <div class="user-info">
-                    {{ nickname }}
-                </div>
-                
-                <!-- Stories will be loaded here -->
-                <div class="sidebar-stories" id="sidebar-stories"></div>
-            </div>
+            </header></div>
 
             <!-- Search -->
             <div class="search">
@@ -100,6 +93,16 @@
                 <input type="text" id="message-input" placeholder="Введіть повідомлення..." autocomplete="off">
                 <button type="submit">Надіслати</button>
             </form>
+        </div>
+
+        <!-- Stories Panel -->
+        <div class="stories-panel">
+            <div class="stories-header">
+                <h3>Історії друзів</h3>
+            </div>
+            <div class="stories-container" id="stories-container">
+                <!-- Stories will be loaded here -->
+            </div>
         </div>
     </div>
 
