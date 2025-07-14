@@ -1999,7 +1999,8 @@ if __name__ == '__main__':
         print(f"Error starting with SocketIO: {e}")
         print("Falling back to Flask only...")
         app.run(host='0.0.0.0', port=port, debug=debug_mode)
-<line_number>2275</line_number>
+
+
 @app.route('/check_premium')
 @login_required
 def check_premium():
