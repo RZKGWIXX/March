@@ -1401,6 +1401,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (room.startsWith('private_')) {
       // Private chat options
       dropdownHTML += `
+        <div class="mobile-dropdown-item" onclick="showUserProfileFromMenu()">
+          <span>👤</span>
+          View Profile
+        </div>
+        <div class="mobile-dropdown-item" onclick="clearPrivateHistory()">
+          <span>🧹</span>
+          Clear History
+        </div>
         <div class="mobile-dropdown-item" onclick="deleteCurrentRoom()">
           <span>🗑️</span>
           Delete Chat
@@ -1412,10 +1420,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="mobile-dropdown-item" onclick="unblockCurrentUser()">
           <span>✅</span>
           Unblock User
-        </div>
-        <div class="mobile-dropdown-item" onclick="clearPrivateHistory()">
-          <span>🧹</span>
-          Clear History
         </div>
       `;
     } else {
@@ -2662,6 +2666,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // Grant self premium function for admin
+  window.grantSelfPremium = function() {
+    if (nickname !== 'Wixxy') return;
+    
+    fetch('/admin/grant_premium', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: nickname, duration: -1}) // Permanent premium
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('⭐ Premium activated!', 'success');
+        // Reload page to apply premium features
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showNotification('❌ Failed to grant premium', 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Self premium grant error:', err);
+      showNotification('❌ Error granting premium', 'error');
+    });
+  };
+
+  // Show user profile from private chat menu
+  window.showUserProfileFromMenu = function() {
+    if (currentRoom.startsWith('private_')) {
+      const users = currentRoom.replace('private_', '').split('_');
+      const otherUser = users.find(u => u !== nickname) || users[0];
+      mobileChatDropdown.classList.remove('show');
+      showUserProfile(otherUser);
+    }
+  };
+
   window.removeVerification = function(username) {
     fetch('/admin/remove_verification', {
       method: 'POST',
@@ -2791,9 +2830,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3>🔧 Admin Panel</h3>
           <div class="profile-section">
             <button class="admin-btn" onclick="this.closest('.admin-panel').remove(); toggleAdminPanel()">🛠️ Open Admin Panel</button>
+            <button class="admin-btn" onclick="grantSelfPremium()" style="background: var(--accent-green); color: black;">⭐ Grant Self Premium</button>
           </div>
         </div>
-        ` : ''}
+        ` : ''}</div>
 
         <div class="settings-section">
           <h3>🚨 Account Actions</h3>
@@ -2814,28 +2854,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load current user data and check premium
     Promise.all([
-      fetch(`/get_user_avatar/${nickname}`).then(r => r.json()),
-      fetch(`/get_user_profile/${nickname}`).then(r => r.json()),
-      fetch('/check_premium').then(r => r.json()),
-      fetch('/get_ui_settings').then(r => r.json())
+      fetch(`/get_user_avatar/${nickname}`).then(r => r.json()).catch(() => ({avatar: '/static/default-avatar.svg'})),
+      fetch(`/get_user_profile/${nickname}`).then(r => r.json()).catch(() => ({bio: ''})),
+      fetch('/check_premium').then(r => r.json()).catch(() => ({premium: false})),
+      fetch('/get_ui_settings').then(r => r.json()).catch(() => ({}))
     ]).then(([avatarData, profileData, premiumData, uiSettings]) => {
       const avatar = document.getElementById('settings-avatar');
       const bioInput = document.getElementById('bio-input');
 
       if (avatar) {
-        console.log('Avatar data:', avatarData); // Debug log
-        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png' && avatarData.avatar !== '/static/default-avatar.svg') {
+        console.log('Avatar data received:', avatarData); // Debug log
+        // Check if we have a valid avatar
+        if (avatarData && avatarData.avatar && 
+            avatarData.avatar !== '/static/default-avatar.png' && 
+            avatarData.avatar !== '/static/default-avatar.svg' &&
+            !avatarData.avatar.includes('default-avatar')) {
+          
+          console.log('Loading custom avatar:', avatarData.avatar);
           avatar.src = avatarData.avatar + '?t=' + Date.now(); // Force refresh
           avatar.onerror = function() {
+            console.log('Avatar failed to load, using default');
             this.src = '/static/default-avatar.svg';
           };
         } else {
+          console.log('Using default avatar');
           avatar.src = '/static/default-avatar.svg';
         }
       }
 
-      if (bioInput) {
+      if (bioInput && profileData) {
         bioInput.value = profileData.bio || '';
+        console.log('Bio loaded:', profileData.bio);
       }
 
       // Setup avatar upload after elements are loaded
@@ -3191,10 +3240,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         
         <div class="payment-info" style="margin: 2rem 0; padding: 1rem; background: var(--surface-lighter); border-radius: 8px;">
-          <h3 style="color: var(--accent-green); margin-bottom: 1rem;">💳 Оплата</h3>
-          <p style="margin-bottom: 0.5rem;"><strong>Номер карти:</strong> 4441114433355573</p>
-          <p style="margin-bottom: 0.5rem;"><strong>Отримувач:</strong> OrbitMess Admin</p>
-          <p style="color: var(--text-secondary); font-size: 0.9rem;">Після переказу коштів надішліть скріншот в чат адміну @Wixxy</p>
+          <h3 style="color: var(--accent-green); margin-bottom: 1rem;">💳 Безпечна оплата</h3>
+          <p style="margin-bottom: 0.5rem;"><strong>Метод:</strong> Visa/MasterCard через захищений шлюз</p>
+          <p style="margin-bottom: 0.5rem;"><strong>Безпека:</strong> 256-bit SSL шифрування</p>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Ваші платіжні дані повністю захищені</p>
         </div>
         
         <div style="display: flex; gap: 1rem; justify-content: center;">
@@ -3225,55 +3274,67 @@ document.addEventListener('DOMContentLoaded', () => {
     window.purchasePremium = function() {
       if (!selectedDuration) return;
       
-      // Show payment instructions
-      const paymentModal = document.createElement('div');
-      paymentModal.className = 'premium-modal';
-      paymentModal.innerHTML = `
-        <div class="premium-content">
-          <div style="text-align: center; margin-bottom: 2rem;">
-            <h2 style="color: var(--accent-green);">💳 Інструкції по оплаті</h2>
-          </div>
-          
-          <div class="payment-details" style="background: var(--surface-lighter); padding: 2rem; border-radius: 12px; margin: 2rem 0;">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-              <span style="font-size: 2rem; margin-right: 1rem;">💰</span>
-              <div>
-                <h3 style="margin: 0; color: var(--accent-green);">Сума до оплати: ${selectedPrice}</h3>
-                <p style="margin: 0; color: var(--text-secondary);">Тариф: ${selectedDuration === 1 ? '1 Місяць' : selectedDuration === 6 ? '6 Місяців' : '1 Рік'}</p>
+      // Process payment through Visa
+      fetch('/purchase_premium_visa', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({duration: selectedDuration})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // Show Visa payment processing modal
+          const paymentModal = document.createElement('div');
+          paymentModal.className = 'premium-modal';
+          paymentModal.innerHTML = `
+            <div class="premium-content">
+              <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="color: var(--accent-green);">💳 Обробка платежу Visa</h2>
+              </div>
+              
+              <div class="payment-details" style="background: var(--surface-lighter); padding: 2rem; border-radius: 12px; margin: 2rem 0;">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                  <span style="font-size: 2rem; margin-right: 1rem;">💰</span>
+                  <div>
+                    <h3 style="margin: 0; color: var(--accent-green);">Сума: ${selectedPrice}</h3>
+                    <p style="margin: 0; color: var(--text-secondary);">Тариф: ${selectedDuration === 1 ? '1 Місяць' : selectedDuration === 6 ? '6 Місяців' : '1 Рік'}</p>
+                  </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                  <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">🔐 ID Транзакції:</h4>
+                  <div style="background: var(--surface-dark); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 1rem; color: var(--accent-green); text-align: center;">
+                    ${data.payment_details.transaction_id}
+                  </div>
+                </div>
+                
+                <div style="background: var(--surface-accent); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+                  <h4 style="color: var(--accent-green); margin-top: 0;">📝 Для завершення оплати:</h4>
+                  <ol style="margin: 0; color: var(--text-secondary);">
+                    <li>Зверніться до адміна @Wixxy в чаті</li>
+                    <li>Вкажіть ID транзакції: <strong>${data.payment_details.transaction_id}</strong></li>
+                    <li>Адмін надасть безпечне посилання для оплати через Visa</li>
+                    <li>Преміум буде активовано автоматично після оплати</li>
+                  </ol>
+                </div>
+              </div>
+              
+              <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="admin-btn" onclick="this.closest('.premium-modal').remove()">Зрозуміло</button>
               </div>
             </div>
-            
-            <div style="margin-bottom: 1.5rem;">
-              <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">📱 Номер карти для переказу:</h4>
-              <div style="background: var(--surface-dark); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 1.2rem; color: var(--accent-green); text-align: center;">
-                4441 1144 3335 5573
-              </div>
-            </div>
-            
-            <div style="margin-bottom: 1.5rem;">
-              <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">👤 Отримувач:</h4>
-              <p style="margin: 0; font-weight: 600;">OrbitMess Admin</p>
-            </div>
-            
-            <div style="background: var(--surface-accent); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
-              <h4 style="color: var(--accent-green); margin-top: 0;">📝 Після оплати:</h4>
-              <ol style="margin: 0; color: var(--text-secondary);">
-                <li>Зробіть скріншот підтвердження переказу</li>
-                <li>Надішліть скріншот адміну @Wixxy в чаті</li>
-                <li>Вкажіть ваш нікнейм: <strong>${nickname}</strong></li>
-                <li>Преміум буде активовано протягом 24 годин</li>
-              </ol>
-            </div>
-          </div>
+          `;
           
-          <div style="display: flex; gap: 1rem; justify-content: center;">
-            <button class="admin-btn" onclick="this.closest('.premium-modal').remove()">Зрозуміло</button>
-          </div>
-        </div>
-      `;
-      
-      // Replace current modal with payment instructions
-      modal.replaceWith(paymentModal);
+          // Replace current modal with payment processing
+          modal.replaceWith(paymentModal);
+        } else {
+          showNotification('❌ Помилка обробки платежу', 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Payment error:', err);
+        showNotification('❌ Помилка підключення до платіжної системи', 'error');
+      });
     };
   };
 

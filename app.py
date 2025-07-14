@@ -2345,3 +2345,27 @@ def change_password():
     
     return jsonify(success=True)
 
+
+@app.route('/purchase_premium_visa', methods=['POST'])
+@login_required
+def purchase_premium_visa():
+    """Handle premium purchase through Visa processing"""
+    data = request.get_json()
+    duration = data.get('duration', 1)  # months
+    
+    # Simulate Visa payment processing
+    payment_details = {
+        'merchant_id': 'ORBITMESS_UA',
+        'transaction_id': f"TXN_{int(time.time())}_{session['nickname']}",
+        'amount': 199 if duration == 1 else (999 if duration == 6 else 1799),
+        'currency': 'UAH',
+        'description': f'OrbitMess Premium {duration} month(s)',
+        'redirect_url': '/payment_success',
+        'user': session['nickname']
+    }
+    
+    # In real implementation, you would redirect to Visa payment gateway
+    # For now, we'll return payment details for manual processing
+    
+    return jsonify(success=True, payment_details=payment_details)
+
