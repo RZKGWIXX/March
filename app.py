@@ -2009,10 +2009,13 @@ def check_premium():
         premium_data = load_json('premium')
         nickname = session['nickname']
         
+        if not premium_data or premium_data == {"placeholder": "data"}:
+            return jsonify({'premium': False})
+        
         import time
         current_time = int(time.time())
         
-        if nickname in premium_data and premium_data != {"placeholder": "data"}:
+        if nickname in premium_data:
             user_premium = premium_data[nickname]
             if user_premium.get('until_timestamp', 0) == -1 or user_premium.get('until_timestamp', 0) > current_time:
                 return jsonify({
@@ -2031,26 +2034,34 @@ def check_premium():
 @login_required
 def get_stories():
     """Get all stories"""
-    stories_data = load_json('stories')
-    
-    # Filter out expired stories (24 hours)
-    import time
-    current_time = int(time.time())
-    active_stories = {}
-    
-    for username, user_stories in stories_data.items():
-        if username == 'placeholder':
-            continue
-            
-        active_user_stories = []
-        for story in user_stories:
-            if isinstance(story, dict) and story.get('timestamp', 0) > current_time - 86400:
-                active_user_stories.append(story)
+    try:
+        stories_data = load_json('stories')
         
-        if active_user_stories:
-            active_stories[username] = active_user_stories
-    
-    return jsonify(active_stories)
+        if not stories_data or stories_data == {"placeholder": "data"}:
+            return jsonify({})
+        
+        # Filter out expired stories (24 hours)
+        import time
+        current_time = int(time.time())
+        active_stories = {}
+        
+        for username, user_stories in stories_data.items():
+            if username == 'placeholder':
+                continue
+                
+            if isinstance(user_stories, list):
+                active_user_stories = []
+                for story in user_stories:
+                    if isinstance(story, dict) and story.get('timestamp', 0) > current_time - 86400:
+                        active_user_stories.append(story)
+                
+                if active_user_stories:
+                    active_stories[username] = active_user_stories
+        
+        return jsonify(active_stories)
+    except Exception as e:
+        print(f"Error getting stories: {e}")
+        return jsonify({})
 
 
 @app.route('/upload_story', methods=['POST'])
@@ -2167,7 +2178,10 @@ def get_ui_settings():
         premium_data = load_json('premium')
         nickname = session['nickname']
         
-        if nickname in premium_data and premium_data != {"placeholder": "data"}:
+        if not premium_data or premium_data == {"placeholder": "data"}:
+            return jsonify({})
+        
+        if nickname in premium_data:
             return jsonify(premium_data[nickname].get('ui_settings', {}))
         
         return jsonify({})
@@ -2208,7 +2222,10 @@ def get_user_verification(username):
     """Check if user has verification badge"""
     try:
         verification_data = load_json('verification')
-        is_verified = username in verification_data and verification_data != {"placeholder": "data"}
+        if not verification_data or verification_data == {"placeholder": "data"}:
+            return jsonify({'verified': False})
+        
+        is_verified = username in verification_data
         return jsonify({'verified': is_verified})
     except Exception as e:
         print(f"Error checking verification for {username}: {e}")
