@@ -17,20 +17,13 @@
             <header>
                 <h1>💬 OrbitMess</h1>
                 <div class="header-buttons">
-                    <button id="menu-toggle-sidebar" title="Menu">☰</button>
                     <button id="theme-toggle" title="Settings">⚙️</button>
                 </div>
             </header>
 
-            <!-- User Info and Stories Container -->
-            <div class="user-stories-container">
-                <!-- User Info -->
-                <div class="user-info">
-                    {{ nickname }}
-                </div>
-                
-                <!-- Stories will be loaded here -->
-                <div class="sidebar-stories" id="sidebar-stories"></div>
+            <!-- User Info (moved to left side) -->
+            <div class="user-info">
+                {{ nickname }}
             </div>
 
             <!-- Search -->
@@ -64,6 +57,9 @@
                     <h2 id="current-room" data-room="general"># general</h2>
                     <span id="room-type">Public Chat</span>
                 </div>
+
+                <!-- Stories moved to right side -->
+                <div class="header-stories" id="header-stories"></div>
 
                 <div class="chat-controls">
                     <button id="mobile-chat-options" class="mobile-only" title="Options" style="position: relative;">

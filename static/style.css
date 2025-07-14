@@ -453,21 +453,71 @@ body {
   border-bottom: none;
 }
 
-.user-stories-container {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--surface-lighter);
-}
-
 .user-info {
   padding: 1rem;
   font-weight: 600;
   color: var(--accent-green);
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   border-bottom: 1px solid var(--surface-lighter);
+  background: var(--surface-accent);
+}
+
+/* Header Stories (right side) */
+.header-stories {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 200px;
+  align-items: center;
+}
+
+.header-stories::-webkit-scrollbar {
+  display: none;
+}
+
+.header-story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.header-story-item:hover {
+  background: var(--surface-lighter);
+}
+
+.header-story-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-green);
+  object-fit: cover;
+  margin-bottom: 0.1rem;
+}
+
+.header-story-username {
+  font-size: 0.6rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-story-count {
+  font-size: 0.5rem;
+  color: var(--text-secondary);
 }
 
 .user-info-avatar {
@@ -478,59 +528,7 @@ body {
   border: 2px solid var(--accent-green);
 }
 
-.sidebar-stories {
-  padding: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
 
-.sidebar-stories::-webkit-scrollbar {
-  display: none;
-}
-
-.sidebar-story-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 60px;
-  cursor: pointer;
-  transition: var(--transition);
-  padding: 0.5rem;
-  border-radius: 8px;
-}
-
-.sidebar-story-item:hover {
-  background: var(--surface-lighter);
-}
-
-.sidebar-story-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid var(--accent-green);
-  object-fit: cover;
-  margin-bottom: 0.25rem;
-}
-
-.sidebar-story-username {
-  font-size: 0.7rem;
-  text-align: center;
-  color: var(--text-primary);
-  font-weight: 500;
-  max-width: 60px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sidebar-story-count {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: 0.1rem;
-}
 
 .shared-image, .shared-video {
   border-radius: 8px;
@@ -654,6 +652,7 @@ body {
   background: var(--surface-dark);
   box-shadow: var(--shadow-light);
   gap: 1rem;
+  position: relative;
 }
 
 .chat-title {

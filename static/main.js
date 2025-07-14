@@ -36,28 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let searchTimeout;
   let useMobileInterface = window.innerWidth <= 768;
 
-  // Theme management
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  document.body.setAttribute('data-theme', savedTheme);
+  // Force dark theme only
+  document.body.setAttribute('data-theme', 'dark');
+  localStorage.setItem('theme', 'dark');
 
-  // Update theme toggle icon
-  function updateThemeIcon() {
-    const theme = document.body.getAttribute('data-theme');
-    if (themeToggle) {
-      themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
-    }
-  }
-
-  updateThemeIcon();
-
-  // Theme toggle - opens settings instead
+  // Theme toggle opens settings
   if (themeToggle) {
     themeToggle.onclick = () => {
       showSettings();
     };
-  } else {
-    // If no theme toggle button, still apply saved theme
-    updateThemeIcon();
   }
 
   // Mobile menu toggle - show mobile sidebar instead
@@ -544,29 +531,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayStories(stories) {
-    // Update sidebar stories
-    const sidebarStories = document.getElementById('sidebar-stories');
-    if (sidebarStories) {
-      sidebarStories.innerHTML = '';
+    // Update header stories (right side)
+    const headerStories = document.getElementById('header-stories');
+    if (headerStories) {
+      headerStories.innerHTML = '';
       
       if (Object.keys(stories).length > 0) {
         Object.entries(stories).forEach(([username, userStories]) => {
           const storyItem = document.createElement('div');
-          storyItem.className = 'sidebar-story-item';
+          storyItem.className = 'header-story-item';
           
           const remainingCount = Math.max(0, userStories.length - 3);
           
           storyItem.innerHTML = `
-            <img src="/static/default-avatar.svg" alt="${username}" class="sidebar-story-avatar" data-username="${username}">
-            <div class="sidebar-story-username">${username}</div>
-            ${remainingCount > 0 ? `<div class="sidebar-story-count">+${remainingCount}</div>` : ''}
+            <img src="/static/default-avatar.svg" alt="${username}" class="header-story-avatar" data-username="${username}">
+            <div class="header-story-username">${username}</div>
+            ${remainingCount > 0 ? `<div class="header-story-count">+${remainingCount}</div>` : ''}
           `;
           
           // Load user avatar
           fetch(`/get_user_avatar/${username}`)
             .then(r => r.json())
             .then(data => {
-              const avatar = storyItem.querySelector('.sidebar-story-avatar');
+              const avatar = storyItem.querySelector('.header-story-avatar');
               if (data.avatar && data.avatar !== '/static/default-avatar.png') {
                 avatar.src = data.avatar + '?t=' + Date.now();
               }
@@ -574,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(() => {});
 
           storyItem.onclick = () => showUserStories(username, userStories);
-          sidebarStories.appendChild(storyItem);
+          headerStories.appendChild(storyItem);
         });
       }
     }
@@ -2751,7 +2738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="settings-section">
           <h3>🎨 Appearance</h3>
-          <p style="color: var(--text-secondary); font-size: 0.9rem;">OrbitMess використовує темну тему для кращого досвіду користувача.</p>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">OrbitMess використовує тільки темну тему для кращого досвіду користувача.</p>
         </div>
 
         <div class="settings-section" id="premium-ui-section" style="display: none;">
@@ -2992,13 +2979,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   }
 
-  // Switch theme - only dark theme supported
-  window.switchTheme = function(theme) {
-    // Force dark theme only
-    document.body.setAttribute('data-theme', 'dark');
-    localStorage.setItem('theme', 'dark');
-    updateThemeIcon();
-  };
+  // Only dark theme supported - no theme switching
 
   // Delete account
   window.deleteAccount = function() {
