@@ -1183,6 +1183,244 @@ def get_user_profile(username):
     return jsonify({'bio': '', 'joined': '', 'nickname': username})
 
 
+@app.route('/check_premium')
+@login_required
+def check_premium():
+    """Check if user has premium status"""
+    premium_data = load_json('premium')
+    user_premium = premium_data.get(session['nickname'], {})
+    
+    current_time = int(time.time())
+    if user_premium.get('until_timestamp', 0) > current_time:
+        until_date = time.strftime('%Y-%m-%d', time.localtime(user_premium['until_timestamp']))
+        return jsonify({
+            'premium': True,
+            'until': until_date,
+            'plan': user_premium.get('plan', 'monthly')
+        })
+    
+    return jsonify({'premium': False})
+
+
+@app.route('/purchase_premium_visa', methods=['POST'])
+@login_required
+def purchase_premium_visa():
+    """Handle premium purchase via Visa"""
+    data = request.get_json()
+    plan = data.get('plan', 'monthly')
+    
+    # Simulate payment processing (replace with real payment integration)
+    import time
+    current_time = int(time.time())
+    
+    if plan == 'monthly':
+        duration = 30 * 24 * 3600  # 30 days
+    elif plan == 'yearly':
+        duration = 365 * 24 * 3600  # 365 days
+    else:
+        return jsonify({'success': False, 'error': 'Invalid plan'})
+    
+    premium_data = load_json('premium')
+    premium_data[session['nickname']] = {
+        'plan': plan,
+        'purchased_at': current_time,
+        'until_timestamp': current_time + duration,
+        'active': True
+    }
+    
+    if save_json('premium', premium_data):
+        return jsonify({'success': True, 'message': 'Premium activated successfully!'})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to activate premium'})
+
+
+@app.route('/get_user_avatar/<username>')
+@login_required
+def get_user_avatar(username):
+    """Get user avatar"""
+    # Check if user has custom avatar
+    avatar_path = f"static/avatars/{username}.jpg"
+    if os.path.exists(avatar_path):
+        return jsonify({'avatar': f'/static/avatars/{username}.jpg'})
+    
+    # Check for other formats
+    for ext in ['.png', '.gif', '.jpeg']:
+        avatar_path = f"static/avatars/{username}{ext}"
+        if os.path.exists(avatar_path):
+            return jsonify({'avatar': f'/static/avatars/{username}{ext}'})
+    
+    return jsonify({'avatar': '/static/default-avatar.svg'})
+
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    """Upload user avatar"""
+    if 'avatar' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'})
+    
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Check file size (max 5MB)
+    if len(file.read()) > 5 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'File too large (max 5MB)'})
+    
+    file.seek(0)  # Reset file pointer
+    
+    # Check file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'Invalid file type'})
+    
+    # Create avatars directory if it doesn't exist
+    avatars_dir = 'static/avatars'
+    if not os.path.exists(avatars_dir):
+        os.makedirs(avatars_dir)
+    
+    # Save file
+    filename = f"{session['nickname']}.{file_ext}"
+    filepath = os.path.join(avatars_dir, filename)
+    
+    try:
+        file.save(filepath)
+        avatar_url = f'/static/avatars/{filename}'
+        return jsonify({'success': True, 'avatar_url': avatar_url})
+    except Exception as e:
+        return jsonify({'success': False, 'error': 'Failed to save file'})
+
+
+@app.route('/update_bio', methods=['POST'])
+@login_required
+def update_bio():
+    """Update user bio"""
+    data = request.get_json()
+    bio = data.get('bio', '').strip()
+    
+    if len(bio) > 200:
+        return jsonify({'success': False, 'error': 'Bio too long (max 200 characters)'})
+    
+    users_data = load_json('users')
+    
+    # Find and update user bio
+    for user_info in users_data.values():
+        if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
+            user_info['bio'] = bio
+            break
+    
+    if save_json('users', users_data):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to update bio'})
+
+
+@app.route('/get_ui_settings')
+@login_required
+def get_ui_settings():
+    """Get UI customization settings"""
+    # Return default settings for now
+    return jsonify({
+        'theme': 'dark',
+        'accent_color': '#9cff2e',
+        'font_size': 'medium'
+    })
+
+
+@app.route('/get_user_verification/<username>')
+@login_required
+def get_user_verification(username):
+    """Check if user is verified"""
+    verification_data = load_json('verification')
+    is_verified = verification_data.get(username, False)
+    return jsonify({'verified': is_verified})
+
+
+@app.route('/admin/grant_verification', methods=['POST'])
+@login_required
+def admin_grant_verification():
+    """Grant verification to a user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username required'})
+    
+    if username not in get_user_list():
+        return jsonify({'success': False, 'error': 'User not found'})
+    
+    verification_data = load_json('verification')
+    verification_data[username] = True
+    
+    if save_json('verification', verification_data):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to grant verification'})
+
+
+@app.route('/admin/grant_premium', methods=['POST'])
+@login_required
+def admin_grant_premium():
+    """Grant premium to a user (admin only)"""
+    if session['nickname'] != 'Wixxy':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    duration_days = data.get('duration', 30)
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username required'})
+    
+    if username not in get_user_list():
+        return jsonify({'success': False, 'error': 'User not found'})
+    
+    import time
+    current_time = int(time.time())
+    duration_seconds = duration_days * 24 * 3600
+    
+    premium_data = load_json('premium')
+    premium_data[username] = {
+        'plan': 'admin_granted',
+        'granted_at': current_time,
+        'granted_by': session['nickname'],
+        'until_timestamp': current_time + duration_seconds,
+        'active': True
+    }
+    
+    if save_json('premium', premium_data):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to grant premium'})
+
+
+@app.route('/get_stories')
+@login_required
+def get_stories():
+    """Get all user stories"""
+    stories_data = load_json('stories')
+    
+    # Filter out expired stories
+    current_time = int(time.time())
+    active_stories = {}
+    
+    for username, user_stories in stories_data.items():
+        if isinstance(user_stories, list):
+            active_user_stories = [
+                story for story in user_stories 
+                if story.get('expires_at', 0) > current_time
+            ]
+            if active_user_stories:
+                active_stories[username] = active_user_stories
+    
+    return jsonify(active_stories)
+
+
 def is_valid_nickname(nickname):
     pattern = r'^[a-zA-Z0-9]+$'
     if not re.match(pattern, nickname):
@@ -1736,6 +1974,13 @@ if __name__ == '__main__':
     # Initialize data files and bins
     create_default_json_files()
     auto_create_bins()
+    
+    # Create necessary directories
+    directories = ['static/avatars', 'static/uploads']
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+            print(f"Created directory: {directory}")
     
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
