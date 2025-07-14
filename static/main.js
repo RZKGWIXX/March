@@ -150,10 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Check premium status
-  function checkPremium() {
-    return fetch('/check_premium')
-      .then(r => r.json())
-      .catch(() => ({ premium: false }));
+  async function checkPremium() {
+    try {
+      const response = await fetch('/check_premium');
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to check premium:', error);
+      return { premium: false };
+    }
   }
 
   // Close sidebar when clicking outside on mobile
@@ -215,22 +219,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Create private chat
-  function createPrivateChat() {
-    const user = userSearch.value.trim();
-    if (!user || user === nickname) {
-      if (user === nickname) {
-        showNotification('❌ You cannot chat with yourself!', 'error');
+  async function createPrivateChat() {
+    try {
+      const user = userSearch.value.trim();
+      if (!user || user === nickname) {
+        if (user === nickname) {
+          showNotification('❌ You cannot chat with yourself!', 'error');
+        }
+        return;
       }
-      return;
-    }
 
-    fetch('/create_private', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({nick: user})
-    })
-    .then(r => r.json())
-    .then(data => {
+      const data = await safeFetchJson('/create_private', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nick: user})
+      });
+
       if (data.success) {
         loadRooms();
         setTimeout(() => joinRoom(data.room), 100);
@@ -240,11 +244,10 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         showNotification('❌ ' + (data.error || 'Failed to create chat'), 'error');
       }
-    })
-    .catch(err => {
+    } catch (err) {
       console.error('Failed to create private chat:', err);
       showNotification('❌ Error creating chat', 'error');
-    });
+    }
   }
 
   // Show notification
@@ -265,142 +268,134 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load rooms
-  function loadRooms() {
-    console.log('Loading rooms...');
-    fetch('/rooms')
-      .then(r => {
-        console.log('Rooms response status:', r.status);
-        if (!r.ok) {
-          throw new Error(`HTTP error! status: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then(rooms => {
-        console.log('Rooms received:', rooms);
+  async function loadRooms() {
+    try {
+      const response = await fetch('/rooms');
+      const rooms = await response.json();
+      console.log('Rooms received:', rooms);
 
-        if (!chatList) {
-          console.error('Chat list element not found');
-          return;
-        }
+      if (!chatList) {
+        console.error('Chat list element not found');
+        return;
+      }
 
-        chatList.innerHTML = '';
+      chatList.innerHTML = '';
 
-        // Add general room first
-        const generalLi = document.createElement('li');
-        generalLi.className = 'chat-item';
-        generalLi.setAttribute('data-room', 'general');
-        generalLi.innerHTML = `
-          <div class="chat-info">
-            <span class="chat-name"># general</span>
-            <span class="chat-type">Public</span>
-          </div>
-          <span class="chat-icon">🌍</span>
-        `;
-        chatList.appendChild(generalLi);
+      // Add general room first
+      const generalLi = document.createElement('li');
+      generalLi.className = 'chat-item';
+      generalLi.setAttribute('data-room', 'general');
+      generalLi.innerHTML = `
+        <div class="chat-info">
+          <span class="chat-name"># general</span>
+          <span class="chat-type">Public</span>
+        </div>
+        <span class="chat-icon">🌍</span>
+      `;
+      chatList.appendChild(generalLi);
 
-        // Add other rooms
-        if (Array.isArray(rooms)) {
-          rooms.forEach(room => {
-            if (room !== 'general') {
-              const li = document.createElement('li');
-              li.className = 'chat-item';
-              li.setAttribute('data-room', room);
+      // Add other rooms
+      if (Array.isArray(rooms)) {
+        rooms.forEach(room => {
+          if (room !== 'general') {
+            const li = document.createElement('li');
+            li.className = 'chat-item';
+            li.setAttribute('data-room', room);
 
-              if (room.startsWith('private_')) {
-                const users = room.replace('private_', '').split('_');
-                const otherUser = users.find(u => u !== nickname) || users[0];
-                li.innerHTML = `
-                  <div class="chat-info">
-                    <span class="chat-name">@ ${otherUser}</span>
-                    <span class="chat-type">Private</span>
-                    <span class="chat-status" id="status-${otherUser}">Loading...</span>
-                  </div>
-                  <span class="chat-icon">🔐</span>
-                `;
+            if (room.startsWith('private_')) {
+              const users = room.replace('private_', '').split('_');
+              const otherUser = users.find(u => u !== nickname) || users[0];
+              li.innerHTML = `
+                <div class="chat-info">
+                  <span class="chat-name">@ ${otherUser}</span>
+                  <span class="chat-type">Private</span>
+                  <span class="chat-status" id="status-${otherUser}">Loading...</span>
+                </div>
+                <span class="chat-icon">🔐</span>
+              `;
 
-                // Load user status
-                fetch(`/user_status/${otherUser}`)
-                  .then(r => r.json())
-                  .then(data => {
-                    const statusEl = document.getElementById(`status-${otherUser}`);
-                    if (statusEl) {
-                      if (data.status === 'online') {
-                        statusEl.innerHTML = '🟢 У мережі';
-                        statusEl.className = 'chat-status online';
-                      } else if (data.last_seen) {
-                        const lastSeen = new Date(data.last_seen * 1000);
-                        const now = new Date();
-                        const diffHours = (now - lastSeen) / (1000 * 60 * 60);
-                        const diffDays = Math.floor(diffHours / 24);
+              // Load user status
+              fetch(`/user_status/${otherUser}`)
+                .then(r => r.json())
+                .then(data => {
+                  const statusEl = document.getElementById(`status-${otherUser}`);
+                  if (statusEl) {
+                    if (data.status === 'online') {
+                      statusEl.innerHTML = '🟢 У мережі';
+                      statusEl.className = 'chat-status online';
+                    } else if (data.last_seen) {
+                      const lastSeen = new Date(data.last_seen * 1000);
+                      const now = new Date();
+                      const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+                      const diffDays = Math.floor(diffHours / 24);
 
-                        if (diffDays >= 3) {
-                          statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleDateString('uk-UA')}`;
-                        } else if (diffDays >= 1) {
-                          statusEl.innerHTML = `⚪ Був ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
-                        } else {
-                          statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
-                        }
-                        statusEl.className = 'chat-status offline';
+                      if (diffDays >= 3) {
+                        statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleDateString('uk-UA')}`;
+                      } else if (diffDays >= 1) {
+                        statusEl.innerHTML = `⚪ Був ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
                       } else {
-                        statusEl.innerHTML = '⚪ Був давно';
-                        statusEl.className = 'chat-status offline';
+                        statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
                       }
-                    }
-                  })
-                  .catch(err => {
-                    const statusEl = document.getElementById(`status-${otherUser}`);
-                    if (statusEl) {
-                      statusEl.innerHTML = '⚪ Невідомо';
+                      statusEl.className = 'chat-status offline';
+                    } else {
+                      statusEl.innerHTML = '⚪ Був давно';
                       statusEl.className = 'chat-status offline';
                     }
-                  });
-              } else {
-                li.innerHTML = `
-                  <div class="chat-info">
-                    <span class="chat-name"># ${room}</span>
-                    <span class="chat-type">Group</span>
-                    <span class="chat-status" id="status-${room}">Loading...</span>
-                  </div>
-                  <span class="chat-icon">👥</span>
-                `;
+                  }
+                })
+                .catch(err => {
+                  const statusEl = document.getElementById(`status-${otherUser}`);
+                  if (statusEl) {
+                    statusEl.innerHTML = '⚪ Невідомо';
+                    statusEl.className = 'chat-status offline';
+                  }
+                });
+            } else {
+              li.innerHTML = `
+                <div class="chat-info">
+                  <span class="chat-name"># ${room}</span>
+                  <span class="chat-type">Group</span>
+                  <span class="chat-status" id="status-${room}">Loading...</span>
+                </div>
+                <span class="chat-icon">👥</span>
+              `;
 
-                // Load room stats
-                fetch(`/room_stats/${room}`)
-                  .then(r => r.json())
-                  .then(data => {
-                    const statusEl = document.getElementById(`status-${room}`);
-                    if (statusEl) {
-                      statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
-                      statusEl.className = 'chat-status';
-                    }
-                  })
-                  .catch(err => {
-                    const statusEl = document.getElementById(`status-${room}`);
-                    if (statusEl) {
-                      statusEl.innerHTML = '👥 Статус невідомий';
-                      statusEl.className = 'chat-status';
-                    }
-                  });
-              }
-              chatList.appendChild(li);
+              // Load room stats
+              fetch(`/room_stats/${room}`)
+                .then(r => r.json())
+                .then(data => {
+                  const statusEl = document.getElementById(`status-${room}`);
+                  if (statusEl) {
+                    statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
+                    statusEl.className = 'chat-status';
+                  }
+                })
+                .catch(err => {
+                  const statusEl = document.getElementById(`status-${room}`);
+                  if (statusEl) {
+                    statusEl.innerHTML = '👥 Статус невідомий';
+                    statusEl.className = 'chat-status';
+                  }
+                });
             }
-          });
-        } else {
-          console.error('Rooms is not an array:', rooms);
-        }
+            chatList.appendChild(li);
+          }
+        });
+      } else {
+        console.error('Rooms is not an array:', rooms);
+      }
 
-        // Set active room
-        const activeItem = document.querySelector(`[data-room="${currentRoom}"]`);
-        if (activeItem) {
-          activeItem.classList.add('active');
-        }
+      // Set active room
+      const activeItem = document.querySelector(`[data-room="${currentRoom}"]`);
+      if (activeItem) {
+        activeItem.classList.add('active');
+      }
 
-        console.log('Rooms loaded successfully');
-      })
-      .catch(err => {
-        console.error('Failed to load rooms:', err);
-        showNotification('❌ Failed to load rooms', 'error');
-      });
+      console.log('Rooms loaded successfully');
+    } catch (err) {
+      console.error('Failed to load rooms:', err);
+      showNotification('❌ Failed to load rooms', 'error');
+    }
   }
 
   // Join room
@@ -492,15 +487,16 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('join', {room, nickname});
   }
 
-  function loadMessages(room) {
-    fetch(`/messages/${room}`)
-      .then(r => r.json())
-      .then(messages => {
-        messageHistory[room] = messages;
-        localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-        displayMessages(messages);
-      })
-      .catch(err => console.error('Failed to load messages:', err));
+  async function loadMessages(room) {
+    try {
+      const messages = await safeFetchJson(`/messages/${room}`);
+      messageHistory[room] = messages;
+      localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+      displayMessages(messages);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+      showNotification('❌ Failed to load messages', 'error');
+    }
   }
 
   function displayMessages(messages) {
@@ -512,13 +508,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load and display stories
-  function loadStories() {
-    fetch('/get_stories')
-      .then(r => r.json())
-      .then(stories => {
-        displayStories(stories);
-      })
-      .catch(err => console.error('Failed to load stories:', err));
+  async function loadStories() {
+    try {
+      const stories = await safeFetchJson('/get_stories');
+      displayStories(stories);
+    } catch (err) {
+      showNotification('❌ Failed to load stories', 'error');
+    }
   }
 
   function displayStories(stories) {
@@ -884,8 +880,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const lastSeen = document.getElementById('profile-last-seen');
 
       if (avatar) {
-        if (avatarData.avatar && avatarData.avatar !== '/static/default-avatar.png') {
-          avatar.src = avatarData.avatar + '?t=' + Date.now();
+        // Виправлено: показувати кастомну аватарку, якщо вона є у users.json
+        if (avatarData && avatarData.avatar &&
+            avatarData.avatar !== '/static/default-avatar.png' &&
+            avatarData.avatar !== '/static/default-avatar.svg') {
+          avatar.src = avatarData.avatar + '?t=' + Date.now(); // Force refresh
+          avatar.onerror = function() {
+            this.src = '/static/default-avatar.svg';
+          };
         } else {
           avatar.src = '/static/default-avatar.svg';
         }
@@ -896,8 +898,9 @@ document.addEventListener('DOMContentLoaded', () => {
         status.className = `profile-status ${statusData.status}`;
       }
 
-      if (bio) {
-        bio.textContent = profileData.bio || 'No bio available';
+      if (bioInput && profileData) {
+        // Виправлено: якщо біо є у users.json, показувати його
+        bioInput.value = profileData.bio || '';
       }
 
       if (lastSeen && statusData.last_seen) {
@@ -1234,9 +1237,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Helper function to check if user is admin
   function checkIfAdmin(room) {
-    return fetch(`/room_admin_check/${room}`)
+    return fetch(`/get_room_info/${room}`)
       .then(r => r.json())
-      .then(data => data.isAdmin)
+      .then(data => data.success && data.is_admin)
       .catch(() => false);
   }
 
@@ -1378,95 +1381,72 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupMobileChatDropdown(room) {
     const mobileChatOptions = document.getElementById('mobile-chat-options');
     const mobileChatDropdown = document.getElementById('mobile-chat-dropdown');
-
     if (!mobileChatOptions || !mobileChatDropdown) return;
-
-    // Clear existing dropdown
     mobileChatDropdown.innerHTML = '';
-
     let dropdownHTML = '';
-
-    // General options for all chats
     if (room === 'general') {
       dropdownHTML += `
-        <div class="mobile-dropdown-item" onclick="showAdminPanel()">
-          <span>⚙️</span>
-          Settings
+        <div class="mobile-dropdown-item" onclick="showSettings()">
+          <span>⚙️</span> Settings
         </div>
         <div class="mobile-dropdown-item" onclick="toggleTheme()">
-          <span>🌙</span>
-          Theme
+          <span>🌙</span> Theme
         </div>
       `;
     } else if (room.startsWith('private_')) {
       // Private chat options
       dropdownHTML += `
         <div class="mobile-dropdown-item" onclick="showUserProfileFromMenu()">
-          <span>👤</span>
-          View Profile
+          <span>👤</span> View Profile
         </div>
         <div class="mobile-dropdown-item" onclick="clearPrivateHistory()">
-          <span>🧹</span>
-          Clear History
+          <span>🧹</span> Clear History
         </div>
         <div class="mobile-dropdown-item" onclick="deleteCurrentRoom()">
-          <span>🗑️</span>
-          Delete Chat
+          <span>🗑️</span> Delete Chat
         </div>
         <div class="mobile-dropdown-item" onclick="blockCurrentUser()">
-          <span>🚫</span>
-          Block User
+          <span>🚫</span> Block User
         </div>
         <div class="mobile-dropdown-item" onclick="unblockCurrentUser()">
-          <span>✅</span>
-          Unblock User
+          <span>✅</span> Unblock User
         </div>
       `;
     } else {
       // Group chat options
       dropdownHTML += `
         <div class="mobile-dropdown-item" onclick="showGroupMembers()">
-          <span>👥</span>
-          View Members
+          <span>👥</span> View Members
         </div>
         <div class="mobile-dropdown-item" onclick="leaveCurrentGroup()">
-          <span>🚪</span>
-          Leave Group
+          <span>🚪</span> Leave Group
         </div>
       `;
-
-      // Add admin options if user is admin
+      // Додаткові опції для адміна
       checkIfAdmin(room).then(isAdmin => {
         if (isAdmin || nickname === 'Wixxy') {
           mobileChatDropdown.innerHTML += `
             <div class="mobile-dropdown-item" onclick="showAddUserDialog()">
-              <span>➕</span>
-              Add User
+              <span>➕</span> Add User
             </div>
             <div class="mobile-dropdown-item" onclick="showKickUserDialog()">
-              <span>👢</span>
-              Kick User
+              <span>👢</span> Kick User
             </div>
             <div class="mobile-dropdown-item" onclick="deleteCurrentRoom()">
-              <span>🗑️</span>
-              Delete Group
+              <span>🗑️</span> Delete Group
             </div>
           `;
         }
       });
     }
-
     mobileChatDropdown.innerHTML = dropdownHTML;
-
-    // Add click handler to toggle dropdown
-    mobileChatOptions.onclick = function(e) {
+    mobileChatOptions.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       mobileChatDropdown.classList.toggle('show');
     };
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!mobileChatDropdown.contains(e.target) && !mobileChatOptions.contains(e.target)) {
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.chat-controls')) {
         mobileChatDropdown.classList.remove('show');
       }
     });
@@ -1834,36 +1814,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  function checkIfAdmin(room) {
-    return fetch(`/get_room_info/${room}`)
-      .then(r => r.json())
-      .then(data => data.success && data.is_admin);
-  }
-
-  if (blockUserBtn) {
-    blockUserBtn.onclick = () => {
-      if (confirm('🚫 Block this user? They will be blocked from messaging you.')) {
-        fetch('/block_user', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({room: currentRoom})
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            showNotification('✅ User blocked successfully', 'success');
-          } else {
-            showNotification('❌ Failed to block user', 'error');
-          }
-        })
-        .catch(err => {
-          console.error('Failed to block user:', err);
-          showNotification('❌ Error blocking user', 'error');
-        });
-      }
-    };
-  }
-
   // Mobile swipe functionality
   let mobileSwipeStartX = 0;
   let mobileSwipeCurrentX = 0;
@@ -1927,39 +1877,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Update user status in private chats
-  function updateUserStatus(username) {
+  async function updateUserStatus(username) {
     if (!currentRoom.startsWith('private_')) return;
 
-    fetch(`/user_status/${username}`)
-      .then(r => r.json())
-      .then(data => {
-        const statusEl = document.getElementById(`status-${username}`);
-        if (statusEl) {
-          if (data.status === 'online') {
-            statusEl.innerHTML = '🟢 У мережі';
-            statusEl.className = 'chat-status online';
-          } else if (data.last_seen) {
-            const lastSeen = new Date(data.last_seen * 1000);
-            statusEl.innerHTML = `⚪ Був ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
-            statusEl.className = 'chat-status offline';
+    try {
+      const response = await fetch(`/user_status/${username}`);
+      const data = await response.json();
+      const statusEl = document.getElementById(`status-${username}`);
+      if (statusEl) {
+        if (data.status === 'online') {
+          statusEl.innerHTML = '🟢 У мережі';
+          statusEl.className = 'chat-status online';
+        } else if (data.last_seen) {
+          const lastSeen = new Date(data.last_seen * 1000);
+          const now = new Date();
+          const diffHours = (now - lastSeen) / (1000 * 60 * 60);
+          const diffDays = Math.floor(diffHours / 24);
+
+          if (statusEl) {
+            if (data.status === 'online') {
+              statusEl.innerHTML = 'Зараз у мережі';
+            } else if (diffDays >= 3) {
+              statusEl.innerHTML = `Був у мережі: ${lastSeen.toLocaleDateString('uk-UA')}`;
+            } else if (diffDays >= 1) {
+              statusEl.innerHTML = `Був у мережі: ${diffDays} ${diffDays === 1 ? 'день' : 'дні'} тому`;
+            } else {
+              statusEl.innerHTML = `Був у мережі: ${lastSeen.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'})}`;
+            }
+            statusEl.className = `chat-status ${data.status}`;
           }
         }
-      });
+      }
+    } catch (err) {
+      console.error('Failed to get user status:', err);
+      statusEl.innerHTML = '⚪ Офлайн';
+      statusEl.className = 'chat-status offline';
+    }
   }
 
   // Update room stats for group chats
-  function updateRoomStats(room) {
+  async function updateRoomStats(room) {
     if (room === 'general' || room.startsWith('private_')) return;
 
-    fetch(`/room_stats/${room}`)
-      .then(r => r.json())
-      .then(data => {
-        const statusEl = document.getElementById(`status-${room}`);
-        if (statusEl) {
-          statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
-          statusEl.className = 'chat-status';
-        }
-      });
+    try {
+      const response = await fetch(`/room_stats/${room}`);
+      const data = await response.json();
+      const statusEl = document.getElementById(`status-${room}`);
+      if (statusEl) {
+        statusEl.innerHTML = `👥 ${data.online_count}/${data.total_count} у мережі`;
+        statusEl.className = 'chat-status';
+      }
+    } catch (err) {
+      console.error('Failed to get room stats:', err);
+      statusEl.innerHTML = '👥 Статус невідомий';
+      statusEl.className = 'chat-status';
+    }
   }
 
   // Add touch event listeners to chat area
@@ -2305,48 +2277,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.createElement('div');
     modal.className = 'admin-panel';
     modal.innerHTML = `
-      <div class="admin-content admin-main">
-        <div class="modal-header">
-          <h2>🔧 Admin Panel</h2>
+      <div class="settings-panel">
+        <div class="settings-section">
+          <h3>🎨 Appearance</h3>
+          <p>OrbitMess використовує тільки темну тему для кращого досвіду користувача.</p>
         </div>
-
-        <div class="admin-layout">
-          <div class="admin-sidebar">
-            <div class="admin-section">
-              <h3>📊 Statistics</h3>
-              <div id="admin-stats" class="admin-stats"></div>
-              <button class="admin-btn" onclick="loadStats()">📊 Refresh Stats</button>
+        <div class="settings-section">
+          <h3>👤 Edit Profile</h3>
+          <div class="profile-section">
+            <div class="avatar-section">
+              <img src="/static/default-avatar.svg" alt="Your avatar" class="settings-avatar" id="settings-avatar">
+              <button class="admin-btn" onclick="document.getElementById('avatar-input').click()">Change Avatar</button>
+              <input type="file" id="avatar-input" accept="image/*" style="display: none;">
             </div>
-
-            <div class="admin-section">
-              <h3>👥 User Management</h3>
-              <button class="admin-btn" onclick="loadAllUsers()">🚫 Ban User</button>
-              <button class="admin-btn" onclick="loadBannedUsers()">📋 View Banned Users</button>
-              <button class="admin-btn" onclick="showGrantPremium()">⭐ Grant Premium</button>
-              <button class="admin-btn" onclick="showGrantVerification()">✓ Grant Verification</button>
-            </div>
-
-            <div class="admin-section">
-              <h3>🏠 Room Management</h3>
-              <button class="admin-btn" onclick="createGroupAsAdmin()">➕ Create Group</button>
-              <button class="admin-btn" onclick="clearChat()">🧹 Clear General Chat</button>
-            </div>
-          </div>
-
-          <div class="admin-main-content">
-            <div id="admin-content-area">
-              <div class="welcome-message">
-                <h3>👋 Welcome to Admin Panel</h3>
-                <p>Select an action from the sidebar to get started.</p>
-              </div>
-            </div>
+            <p><strong>Current nickname:</strong> ${nickname}</p>
+            <input type="text" id="new-nickname" placeholder="New nickname" maxlength="20">
+            <button class="admin-btn" onclick="changeNickname()">Change Nickname</button>
+            <textarea id="bio-input" placeholder="Your bio..." maxlength="200" style="width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; resize: vertical; min-height: 60px;"></textarea>
+            <button class="admin-btn" onclick="updateBio()">Update Bio</button>
           </div>
         </div>
-
-        <div class="modal-footer">
-          <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close Panel</button>
+        <div class="settings-section">
+          <h3>📋 Updates & Changelog</h3>
+          <div class="profile-section">
+            <button class="admin-btn" onclick="showChangelog()">View Changelog</button>
+          </div>
+        </div>
+        ${nickname === 'Wixxy' ? `
+        <div class="settings-section">
+          <h3>🔧 Admin Panel</h3>
+          <div class="profile-section">
+            <button class="admin-btn" onclick="this.closest('.admin-panel').remove(); toggleAdminPanel()">🛠️ Open Admin Panel</button>
+            <button class="admin-btn" onclick="grantSelfPremium()" style="background: var(--accent-green); color: black;">⭐ Grant Self Premium</button>
+          </div>
+        </div>
+        ` : ''}
+        <div class="settings-section">
+          <h3>🚨 Account Actions</h3>
+          <div class="profile-section">
+            <button class="admin-btn" style="background: #e74c3c;" onclick="deleteAccount()">🗑️ Delete Account</button>
+            <button class="admin-btn" style="background: #f39c12;" onclick="logout()">🚪 Logout</button>
+          </div>
         </div>
       </div>
+      <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
     `;
     document.body.appendChild(modal);
     loadStats(); // Load stats immediately
@@ -2761,47 +2735,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     modal.innerHTML = `
-      <div class="admin-content">
-        <h2>⚙️ Settings</h2>
-
+      <div class="settings-panel">
         <div class="settings-section">
           <h3>🎨 Appearance</h3>
-          <p style="color: var(--text-secondary); font-size: 0.9rem;">OrbitMess використовує тільки темну тему для кращого досвіду користувача.</p>
+          <p>OrbitMess використовує тільки темну тему для кращого досвіду користувача.</p>
         </div>
-
-        <div class="settings-section" id="premium-ui-section" style="display: none;">
-          <h3>⭐ Premium UI Customization</h3>
-          <div class="premium-ui-panel" id="premium-ui-panel">
-            <div class="color-picker">
-              <label>Primary Color:</label>
-              <input type="color" id="primary-color" value="#9cff2e">
-            </div>
-            <div class="color-picker">
-              <label>Accent Color:</label>
-              <input type="color" id="accent-color" value="#7dd824">
-            </div>
-            <div class="slider-container">
-              <label>Background Blur:</label>
-              <input type="range" id="bg-blur" min="0" max="20" value="0">
-            </div>
-            <div class="slider-container">
-              <label>Transparency:</label>
-              <input type="range" id="transparency" min="0" max="100" value="0">
-            </div>
-            <button class="admin-btn" onclick="saveUISettings()">Save UI Settings</button>
-            <button class="admin-btn" onclick="resetUISettings()">Reset to Default</button>
-          </div>
-        </div>
-
-        <div class="settings-section" id="premium-stories-section" style="display: none;">
-          <h3>📸 Stories (Premium)</h3>
-          <div class="profile-section">
-            <input type="file" id="story-media" accept="image/*,video/*" style="margin-bottom: 1rem;">
-            <textarea id="story-text" placeholder="Story text (optional)" maxlength="100" style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid rgba(0,0,0,0.1); border-radius: 8px; resize: vertical; min-height: 80px;"></textarea>
-            <button class="admin-btn" onclick="uploadStory()">📸 Add Story</button>
-          </div>
-        </div>
-
         <div class="settings-section">
           <h3>👤 Edit Profile</h3>
           <div class="profile-section">
@@ -2817,14 +2755,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" onclick="updateBio()">Update Bio</button>
           </div>
         </div>
-
         <div class="settings-section">
           <h3>📋 Updates & Changelog</h3>
           <div class="profile-section">
             <button class="admin-btn" onclick="showChangelog()">View Changelog</button>
           </div>
         </div>
-
         ${nickname === 'Wixxy' ? `
         <div class="settings-section">
           <h3>🔧 Admin Panel</h3>
@@ -2833,8 +2769,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" onclick="grantSelfPremium()" style="background: var(--accent-green); color: black;">⭐ Grant Self Premium</button>
           </div>
         </div>
-        ` : ''}</div>
-
+        ` : ''}
         <div class="settings-section">
           <h3>🚨 Account Actions</h3>
           <div class="profile-section">
@@ -2842,11 +2777,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="admin-btn" style="background: #f39c12;" onclick="logout()">🚪 Logout</button>
           </div>
         </div>
-
-        <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
       </div>
+      <button class="admin-btn close-btn" onclick="this.closest('.admin-panel').remove()">Close</button>
     `;
-
     document.body.appendChild(modal);
 
     // Setup avatar upload functionality

@@ -2417,12 +2417,29 @@ body {
 }
 
 /* Settings Panel */
+.settings-panel {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+}
+
 .settings-section {
+  flex: 1 1 0;
   margin-bottom: 2rem;
   padding: 1rem;
   background: rgba(102, 126, 234, 0.05);
   border-radius: var(--border-radius);
   border-left: 4px solid var(--accent);
+}
+
+@media (max-width: 900px) {
+  .settings-panel {
+    flex-direction: column;
+    gap: 0;
+  }
+  .settings-section {
+    margin-bottom: 1rem;
+  }
 }
 
 .privacy-section {
@@ -2751,9 +2768,6 @@ body {
 .shared-image:hover {
   transform: scale(1.02);
 }
-infinite;
-  }
-}
 
 @keyframes swipeHint {
   0%, 100% { transform: translateX(0); opacity: 0.4; }
@@ -2778,8 +2792,7 @@ infinite;
     height: 100dvh; /* Dynamic viewport height for mobile */
     overflow: hidden;
     display: flex;
-```css
--direction: column;
+    flex-direction: column;
   }
 
   .context-menu {
