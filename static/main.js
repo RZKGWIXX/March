@@ -149,12 +149,280 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Make showSettings global
+  window.showSettings = showSettings;
+  window.showPremiumPurchase = showPremiumPurchase;
+  window.toggleAdminPanel = toggleAdminPanel;
+
   // Check premium status
   function checkPremium() {
     return fetch('/check_premium')
-      .then(r => r.json())
-      .catch(() => ({ premium: false }));
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .catch((error) => {
+        console.error('Error checking premium:', error);
+        return { premium: false };
+      });
   }
+
+  // Show settings panel
+  function showSettings() {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    const isMobile = window.innerWidth <= 768;
+
+    Promise.all([
+      checkPremium(),
+      fetch('/get_ui_settings').then(r => r.ok ? r.json() : {}),
+      fetch(`/get_user_avatar/${nickname}`).then(r => r.ok ? r.json() : {avatar: '/static/default-avatar.svg'}),
+      fetch(`/get_user_profile/${nickname}`).then(r => r.ok ? r.json() : {bio: ''})
+    ]).then(([premiumInfo, uiSettings, avatarData, profileData]) => {
+      modal.innerHTML = `
+        <div class="admin-content ${isMobile ? 'mobile-profile' : ''}">
+          <div class="modal-header">
+            <h2>⚙️ Налаштування</h2>
+            <button class="close-profile-btn" onclick="this.closest('.admin-panel').remove()">×</button>
+          </div>
+          
+          <div class="settings-sections" style="padding: 1.5rem; overflow-y: auto; max-height: ${isMobile ? '80vh' : '70vh'};">
+            <!-- Profile Section -->
+            <div class="settings-section">
+              <h3>👤 Профіль</h3>
+              <div style="text-align: center; margin-bottom: 1rem;">
+                <img src="${avatarData.avatar || '/static/default-avatar.svg'}" alt="Avatar" id="current-avatar" 
+                     style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-green);">
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Аватарка:</label>
+                <input type="file" id="avatar-upload" accept="image/*" style="width: 100%; padding: 0.75rem; border: 1px solid var(--surface-lighter); border-radius: var(--border-radius); background: var(--surface-lighter); color: var(--text-primary);">
+                <button onclick="uploadAvatar()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: var(--accent-green); color: black; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer;">Завантажити</button>
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Нікнейм:</label>
+                <span style="display: block; padding: 0.75rem; background: var(--surface-lighter); border-radius: var(--border-radius); color: var(--text-primary);">${nickname}</span>
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Біо:</label>
+                <input type="text" id="bio-input" value="${profileData.bio || ''}" placeholder="Розкажіть про себе..." 
+                       style="width: 100%; padding: 0.75rem; border: 1px solid var(--surface-lighter); border-radius: var(--border-radius); background: var(--surface-lighter); color: var(--text-primary);">
+                <button onclick="updateBio()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: var(--accent-green); color: black; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer;">Зберегти</button>
+              </div>
+            </div>
+
+            <!-- Premium Section -->
+            ${premiumInfo.premium ? `
+            <div class="settings-section">
+              <h3>⭐ Premium статус</h3>
+              <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #ffd700, #ffed4e); border-radius: var(--border-radius); color: black; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.5rem 0;">✅ Premium активний</h4>
+                <p style="margin: 0;">До: ${premiumInfo.until}</p>
+              </div>
+            </div>
+            ` : `
+            <div class="settings-section">
+              <h3>⭐ Premium</h3>
+              <p style="color: var(--text-secondary); margin-bottom: 1rem;">Отримайте додаткові функції з Premium підпискою</p>
+              <button onclick="showPremiumPurchase()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #ffd700, #ffed4e); color: black; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer;">Купити Premium</button>
+            </div>
+            `}
+
+            <!-- Account Actions -->
+            <div class="settings-section">
+              <h3>❌ Дії з акаунтом</h3>
+              <button onclick="confirmDeleteAccount()" style="width: 100%; padding: 1rem; background: var(--red-disconnected); color: white; border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; margin-bottom: 0.5rem;">Видалити акаунт</button>
+              <button onclick="logout()" style="width: 100%; padding: 1rem; background: var(--surface-lighter); color: var(--text-primary); border: none; border-radius: var(--border-radius); font-weight: 600; cursor: pointer;">Вийти</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+    }).catch(error => {
+      console.error('Error loading settings:', error);
+      showNotification('❌ Error loading settings', 'error');
+    });
+  }
+
+  // Upload avatar function
+  window.uploadAvatar = function() {
+    const fileInput = document.getElementById('avatar-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+      showNotification('❌ Please select a file', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    showNotification('📤 Uploading avatar...', 'info');
+
+    fetch('/upload_avatar', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Avatar updated successfully', 'success');
+        // Update avatar display
+        const currentAvatar = document.getElementById('current-avatar');
+        if (currentAvatar) {
+          currentAvatar.src = data.avatar_url + '?t=' + Date.now();
+        }
+      } else {
+        showNotification('❌ ' + (data.error || 'Upload failed'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Avatar upload failed:', err);
+      showNotification('❌ Upload failed', 'error');
+    });
+  };
+
+  // Update bio function
+  window.updateBio = function() {
+    const bioInput = document.getElementById('bio-input');
+    const bio = bioInput.value.trim();
+
+    fetch('/update_bio', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({bio: bio})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Bio updated successfully', 'success');
+      } else {
+        showNotification('❌ ' + (data.error || 'Update failed'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Bio update failed:', err);
+      showNotification('❌ Update failed', 'error');
+    });
+  };
+
+  // Show premium purchase modal
+  function showPremiumPurchase() {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'premium-modal';
+    const isMobile = window.innerWidth <= 768;
+
+    modal.innerHTML = `
+      <div class="premium-content">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="color: var(--accent-green); margin-bottom: 1rem;">⭐ OrbitMess Premium</h2>
+          <p style="color: var(--text-secondary);">Отримайте додаткові функції та підтримайте розвиток</p>
+        </div>
+
+        <div class="premium-plans">
+          <div class="premium-plan" data-plan="monthly">
+            <div class="plan-title">Місячна підписка</div>
+            <div class="plan-price">$9.99/місяць</div>
+            <div class="plan-description">
+              • Користувацькі теми<br>
+              • Пріоритетна підтримка<br>
+              • Без реклами
+            </div>
+          </div>
+
+          <div class="premium-plan" data-plan="yearly">
+            <div class="plan-title">Річна підписка</div>
+            <div class="plan-price">$99.99/рік</div>
+            <div class="plan-description">
+              • Всі функції місячної<br>
+              • Знижка 17%<br>
+              • Ексклюзивні функції
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <button class="admin-btn" onclick="purchasePremium('monthly')" id="purchase-monthly" style="background: var(--accent-green); color: black;">
+            Купити місячну ($9.99)
+          </button>
+          <button class="admin-btn" onclick="purchasePremium('yearly')" id="purchase-yearly" style="background: var(--accent-green); color: black;">
+            Купити річну ($99.99)
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button class="admin-btn close-btn" onclick="this.closest('.premium-modal').remove()">Закрити</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+          💳 Безпечна оплата через Visa
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add plan selection
+    const plans = modal.querySelectorAll('.premium-plan');
+    plans.forEach(plan => {
+      plan.onclick = () => {
+        plans.forEach(p => p.classList.remove('selected'));
+        plan.classList.add('selected');
+      };
+    });
+  }
+
+  // Purchase premium function
+  window.purchasePremium = function(plan) {
+    const button = document.getElementById(`purchase-${plan}`);
+    const originalText = button.textContent;
+    
+    button.disabled = true;
+    button.textContent = 'Обробка платежу...';
+
+    fetch('/purchase_premium_visa', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({plan: plan})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('✅ Premium активовано успішно!', 'success');
+        document.querySelector('.premium-modal').remove();
+        // Refresh settings if open
+        const settingsModal = document.querySelector('.admin-panel');
+        if (settingsModal) {
+          settingsModal.remove();
+          showSettings();
+        }
+      } else {
+        showNotification('❌ ' + (data.error || 'Помилка оплати'), 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Premium purchase failed:', err);
+      showNotification('❌ Помилка підключення до платіжної системи', 'error');
+    })
+    .finally(() => {
+      button.disabled = false;
+      button.textContent = originalText;
+    });
+  };
 
   // Close sidebar when clicking outside on mobile
   document.addEventListener('click', (e) => {
@@ -1250,10 +1518,171 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeIcon();
   }
 
+  // Toggle admin panel
+  function toggleAdminPanel() {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.admin-panel');
+    existingModals.forEach(modal => modal.remove());
+
+    if (nickname !== 'Wixxy') {
+      showNotification('❌ Access denied', 'error');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-panel';
+    const isMobile = window.innerWidth <= 768;
+
+    // Load admin stats first
+    fetch('/admin/stats')
+      .then(r => r.json())
+      .then(stats => {
+        modal.innerHTML = `
+          <div class="admin-content admin-main">
+            <div class="modal-header">
+              <h2>🔧 Адмін панель</h2>
+              <button class="close-profile-btn" onclick="this.closest('.admin-panel').remove()">×</button>
+            </div>
+            
+            <div class="admin-layout">
+              <div class="admin-sidebar">
+                <div class="admin-section">
+                  <h3>📊 Статистика</h3>
+                  <div class="admin-stats">
+                    <div class="stats-grid">
+                      <div class="stat-item">
+                        <h3>Користувачів</h3>
+                        <div class="stat-number">${stats.total_users || 0}</div>
+                      </div>
+                      <div class="stat-item">
+                        <h3>Онлайн</h3>
+                        <div class="stat-number">${stats.online_users || 0}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="admin-section">
+                  <h3>👥 Управління</h3>
+                  <button class="admin-btn" onclick="showUsersManagement()">Користувачі</button>
+                  <button class="admin-btn" onclick="showBannedUsers()">Забанені</button>
+                  <button class="admin-btn" onclick="showVerificationManagement()">Верифікація</button>
+                  <button class="admin-btn" onclick="showPremiumManagement()">Premium</button>
+                </div>
+              </div>
+
+              <div class="admin-main-content" id="admin-main-content">
+                <div class="welcome-message">
+                  <h3>Вітаємо в адмін панелі</h3>
+                  <p>Оберіть розділ зліва для початку роботи</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+      })
+      .catch(err => {
+        console.error('Error loading admin stats:', err);
+        showNotification('❌ Error loading admin panel', 'error');
+      });
+  }
+
+  // Show users management
+  window.showUsersManagement = function() {
+    fetch('/users')
+      .then(r => r.json())
+      .then(users => {
+        const content = document.getElementById('admin-main-content');
+        content.innerHTML = `
+          <div class="admin-stats-display">
+            <h3>👥 Управління користувачами</h3>
+            <div style="margin-bottom: 1rem;">
+              <input type="text" id="user-search" placeholder="Пошук користувача..." 
+                     style="width: 100%; padding: 0.75rem; border: 1px solid var(--surface-lighter); border-radius: var(--border-radius); background: var(--surface-lighter); color: var(--text-primary);">
+            </div>
+            <div class="online-users-container" style="max-height: 400px;">
+              ${users.map(user => `
+                <div class="online-user">
+                  <span class="user-name">${user}</span>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="grantVerification('${user}')" style="padding: 0.25rem 0.5rem; background: #1da1f2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✓ Verify</button>
+                    <button onclick="grantPremium('${user}')" style="padding: 0.25rem 0.5rem; background: #ffd700; color: black; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">⭐ Premium</button>
+                    <button onclick="banUser('${user}')" style="padding: 0.25rem 0.5rem; background: var(--red-disconnected); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🚫 Ban</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        // Add search functionality
+        const searchInput = document.getElementById('user-search');
+        searchInput.oninput = function() {
+          const query = this.value.toLowerCase();
+          const userItems = content.querySelectorAll('.online-user');
+          userItems.forEach(item => {
+            const username = item.querySelector('.user-name').textContent.toLowerCase();
+            item.style.display = username.includes(query) ? 'flex' : 'none';
+          });
+        };
+      })
+      .catch(err => {
+        console.error('Error loading users:', err);
+        showNotification('❌ Error loading users', 'error');
+      });
+  };
+
+  // Grant verification
+  window.grantVerification = function(username) {
+    if (confirm(`Надати верифікацію користувачу ${username}?`)) {
+      fetch('/admin/grant_verification', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(`✅ Верифікацію надано користувачу ${username}`, 'success');
+        } else {
+          showNotification('❌ ' + (data.error || 'Error granting verification'), 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Error granting verification:', err);
+        showNotification('❌ Error granting verification', 'error');
+      });
+    }
+  };
+
+  // Grant premium
+  window.grantPremium = function(username) {
+    if (confirm(`Надати Premium користувачу ${username}?`)) {
+      fetch('/admin/grant_premium', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, duration: 30})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(`✅ Premium надано користувачу ${username}`, 'success');
+        } else {
+          showNotification('❌ ' + (data.error || 'Error granting premium'), 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Error granting premium:', err);
+        showNotification('❌ Error granting premium', 'error');
+      });
+    }
+  };
+
   // Show admin panel function
   function showAdminPanel() {
-    // Implementation would be added here
-    console.log('Show admin panel');
+    toggleAdminPanel();
   }
 
   // Show group members function

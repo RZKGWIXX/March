@@ -1673,314 +1673,59 @@ def upload_avatar():
     if file.filename == '':
         return jsonify(success=False, error='No file selected')
 
-    if len(file.read()) > 2 * 1024 * 1024:  # 2MB limit for avatars
-        return jsonify(success=False, error='Avatar too large (max 2MB)')
-
+    # Check file size
+    file.seek(0, 2)
+    file_size = file.tell()
     file.seek(0)
 
-    allowed_extensions = {'.jpg', '.jpeg', '.png'}
+    if file_size > 5 * 1024 * 1024:  # 5MB limit
+        return jsonify(success=False, error='File too large (max 5MB)')
+
+    # Check file type
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif'}
     file_ext = os.path.splitext(file.filename)[1].lower()
 
     if file_ext not in allowed_extensions:
-        return jsonify(success=False, error='Invalid file type for avatar')
+        return jsonify(success=False, error='Invalid file type')
 
+    # Create avatars directory
     avatars_dir = os.path.join('static', 'avatars')
     os.makedirs(avatars_dir, exist_ok=True)
 
-    # Use nickname as filename to overwrite old avatar
-    filename = f"{session['nickname']}{file_ext}"
+    # Save file
+    filename = f"{session['nickname']}.jpg"
     filepath = os.path.join(avatars_dir, filename)
 
     try:
         file.save(filepath)
         avatar_url = f"/static/avatars/{filename}"
+        return jsonify(success=True, avatar_url=avatar_url)
+    except Exception as e:
+        print(f"Avatar upload error: {e}")
+        return jsonify(success=False, error='Upload failed')
 
-        # Update user's avatar in users data
+
+@app.route('/update_bio', methods=['POST'])
+@login_required
+def update_bio():
+    """Update user's bio"""
+    try:
+        bio = request.json.get('bio', '').strip()
+        nickname = session['nickname']
+
+        # Update bio in users data
         users_data = load_json('users')
         for user_info in users_data.values():
-            if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
-                user_info['avatar'] = avatar_url
+            if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
+                user_info['bio'] = bio
                 break
 
         save_json('users', users_data)
-
-        # Broadcast avatar update to all users
-        socketio.emit('avatar_updated', {
-            'user': session['nickname'],
-            'avatar_url': avatar_url
-        })
-
-        return jsonify(success=True, avatar_url=avatar_url)
-
+        return jsonify(success=True)
     except Exception as e:
-        return jsonify(success=False, error=f'Avatar upload failed: {str(e)}')
+        print(f"Error updating bio: {e}")
+        return jsonify(success=False, error='Failed to update bio')
 
-
-@app.route('/get_user_avatar/<username>')
-@login_required
-def get_user_avatar(username):
-    users_data = load_json('users')
-    for user_info in users_data.values():
-        if isinstance(user_info, dict) and user_info.get('nickname') == username:
-            return jsonify({'avatar': user_info.get('avatar', '/static/default-avatar.png')})
-    return jsonify({'avatar': '/static/default-avatar.png'})
-
-
-@app.route('/update_profile', methods=['POST'])
-@login_required
-def update_profile():
-    bio = request.json.get('bio', '').strip()
-
-    if len(bio) > 200:
-        return jsonify(success=False, error='Bio too long (max 200 characters)')
-
-    users_data = load_json('users')
-    for user_info in users_data.values():
-        if isinstance(user_info, dict) and user_info.get('nickname') == session['nickname']:
-            user_info['bio'] = bio
-            break
-
-    save_json('users', users_data)
-
-    # Broadcast bio update to all users
-    socketio.emit('profile_updated', {
-        'user': session['nickname'],
-        'bio': bio
-    })
-
-    return jsonify(success=True)
-
-
-@socketio.on('join')
-def on_join(data):
-    room = data['room']
-    nickname = data['nickname']
-
-    if room == 'general':
-        banned, _ = is_user_banned(nickname)
-        if banned:
-            emit('error', {'message': 'You are banned from this chat'})
-            return
-
-    if room != 'general':
-        rooms_data = load_json('rooms')
-        if room not in rooms_data or nickname not in rooms_data[room].get(
-                'members', []):
-            emit('error', {'message': 'Access denied'})
-            return
-
-    join_room(room)
-
-    import time
-    online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
-    user_sessions[request.sid] = nickname
-
-    # Broadcast to all users about status change
-    socketio.emit('user_activity_update', {
-        'user': nickname,
-        'room': room,
-        'action': 'joined'
-    })
-
-    # Send updated online users list
-    online_users_list = list(online_users.keys())
-    socketio.emit('online_users_update', {'users': online_users_list})
-
-    socketio.emit('user_count_update', room=room)
-
-
-@socketio.on('leave')
-def on_leave(data):
-    leave_room(data['room'])
-
-
-@socketio.on('disconnect')
-def on_disconnect():
-    if request.sid in user_sessions:
-        nickname = user_sessions[request.sid]
-        if nickname in online_users:
-            import time
-            online_users[nickname]['last_seen'] = int(time.time())
-
-            # Broadcast user disconnect
-            socketio.emit('user_activity_update', {
-                'user': nickname,
-                'action': 'offline'
-            })
-
-            # Send updated online users list
-            online_users_list = [user for user, data in online_users.items() 
-                               if int(time.time()) - data['last_seen'] < 300]
-            socketio.emit('online_users_update', {'users': online_users_list})
-
-        del user_sessions[request.sid]
-
-
-@socketio.on('message')
-def on_message(data):
-    room = data['room']
-    nickname = data['nickname']
-    message = sanitize_input(data['message'].strip())
-
-    if not message:
-        return
-
-    if not check_account_exists(nickname):
-        emit(
-            'user_banned', {
-                'username': nickname,
-                'reason':
-                'Account no longer exists. Please create a new account.',
-                'until': 'Permanent'
-            })
-        return
-
-    import time
-    current_time = int(time.time())
-    online_users[nickname] = {'last_seen': current_time, 'room': room}
-
-    spam_ok, spam_error = check_spam_protection(nickname, message)
-    if not spam_ok:
-        emit('error', {'message': spam_error})
-        return
-
-    banned, ban_info = is_user_banned(nickname)
-    if banned:
-        if ban_info.get('until_timestamp', 0) == -1:
-            duration_text = "permanently"
-        else:
-            remaining_hours = int(
-                (ban_info.get('until_timestamp', 0) - current_time) / 3600)
-            if remaining_hours < 1:
-                remaining_minutes = int(
-                    (ban_info.get('until_timestamp', 0) - current_time) / 60)
-                duration_text = f"for {remaining_minutes} more minutes"
-            elif remaining_hours < 24:
-                duration_text = f"for {remaining_hours} more hours"
-            else:
-                remaining_days = int(remaining_hours / 24)
-                duration_text = f"for {remaining_days} more days"
-
-        emit(
-            'error', {
-                'message':
-                f'You are banned {duration_text}. Reason: {ban_info.get("reason", "No reason")}'
-            })
-        return
-
-    muted_data = load_json('muted')
-    if room in muted_data and nickname in muted_data[room]:
-        mute_info = muted_data[room][nickname]
-        if mute_info['until'] > current_time:
-            remaining_minutes = int((mute_info['until'] - current_time) / 60)
-            emit('error', {
-                'message':
-                f'You are muted for {remaining_minutes} more minutes'
-            })
-            return
-        else:
-            del muted_data[room][nickname]
-            if not muted_data[room]:
-                del muted_data[room]
-            save_json('muted', muted_data)
-
-    if room == 'general':
-        if len(message) > 500:
-            emit('error', {'message': 'Message too long'})
-            return
-
-        if len(set(message)) < 3 and len(message) > 10:
-            emit('error', {'message': 'Spam detected'})
-            return
-
-    messages_data = load_json('messages')
-    if room not in messages_data:
-        messages_data[room] = []
-
-    messages_data[room].append({
-        'nick': nickname,
-        'text': message,
-        'timestamp': int(time.time())
-    })
-
-    if len(messages_data[room]) > 1000:
-        messages_data[room] = messages_data[room][-1000:]
-
-    save_json('messages', messages_data)
-
-    # Emit message to specific room with better data structure
-    socketio.emit('new_message', {
-        'room': room,
-        'nickname': nickname,
-        'message': message,
-        'timestamp': int(time.time())
-    }, room=room)
-
-    # Also emit to sender for confirmation
-    socketio.emit('message_sent', {
-        'room': room,
-        'nickname': nickname,
-        'message': message,
-        'timestamp': int(time.time())
-    })
-
-@socketio.on('join_room')
-def handle_join_room(data):
-    try:
-        room = data.get('room', 'general')
-        nickname = session.get('nickname')
-
-        if not nickname:
-            return
-
-        join_room(room)
-
-        # Update online users
-        import time
-        online_users[nickname] = {'last_seen': int(time.time()), 'room': room}
-        user_sessions[request.sid] = nickname
-
-        # Notify others about the join
-        emit('user_joined', {
-            'nickname': nickname,
-            'room': room
-        }, room=room, include_self=False)
-
-        # Send online users list to the joining user
-        online_users_list = list(online_users.keys())
-        emit('online_users', {'users': online_users_list})
-
-    except Exception as e:
-        print(f"Error in join_room: {e}")
-
-@socketio.on('get_online_users')
-def handle_get_online_users():
-    try:
-        nickname = session.get('nickname')
-        if not nickname:
-            return
-
-        online_users_list = list(online_users.keys())
-        emit('online_users', {'users': online_users_list})
-
-    except Exception as e:
-        print(f"Error getting online users: {e}")
-
-# Initialize on app startup (works with both gunicorn and direct python run)
-print("Initializing OrbitMess Chat...")
-create_default_json_files()
-auto_create_bins()
-print("Initialization complete!")
-
-@app.route('/health')
-def health_check():
-    """Health check endpoint для keepalive"""
-    return jsonify({'status': 'healthy', 'timestamp': time.time()})
-
-@app.route('/ping')
-def ping():
-    """Простий ping endpoint"""
-    return 'pong'
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
@@ -2008,13 +1753,13 @@ def check_premium():
     try:
         premium_data = load_json('premium')
         nickname = session['nickname']
-        
+
         if not premium_data or premium_data == {"placeholder": "data"}:
             return jsonify({'premium': False})
-        
+
         import time
         current_time = int(time.time())
-        
+
         if nickname in premium_data:
             user_premium = premium_data[nickname]
             if user_premium.get('until_timestamp', 0) == -1 or user_premium.get('until_timestamp', 0) > current_time:
@@ -2023,7 +1768,7 @@ def check_premium():
                     'until': user_premium.get('until', 'Permanent'),
                     'features': ['ui_customization', 'stories', 'priority_support']
                 })
-        
+
         return jsonify({'premium': False})
     except Exception as e:
         print(f"Error checking premium for {nickname}: {e}")
@@ -2036,28 +1781,28 @@ def get_stories():
     """Get all stories"""
     try:
         stories_data = load_json('stories')
-        
+
         if not stories_data or stories_data == {"placeholder": "data"}:
             return jsonify({})
-        
+
         # Filter out expired stories (24 hours)
         import time
         current_time = int(time.time())
         active_stories = {}
-        
+
         for username, user_stories in stories_data.items():
             if username == 'placeholder':
                 continue
-                
+
             if isinstance(user_stories, list):
                 active_user_stories = []
                 for story in user_stories:
                     if isinstance(story, dict) and story.get('timestamp', 0) > current_time - 86400:
                         active_user_stories.append(story)
-                
+
                 if active_user_stories:
                     active_stories[username] = active_user_stories
-        
+
         return jsonify(active_stories)
     except Exception as e:
         print(f"Error getting stories: {e}")
@@ -2071,68 +1816,68 @@ def upload_story():
     # Check if user has premium
     premium_data = load_json('premium')
     nickname = session['nickname']
-    
+
     import time
     current_time = int(time.time())
-    
+
     if nickname not in premium_data:
         return jsonify(success=False, error='Premium subscription required')
-    
+
     user_premium = premium_data[nickname]
     if user_premium.get('until_timestamp', 0) != -1 and user_premium.get('until_timestamp', 0) <= current_time:
         return jsonify(success=False, error='Premium subscription expired')
-    
+
     story_text = request.form.get('text', '').strip()
     file = request.files.get('file')
-    
+
     if not story_text and not file:
         return jsonify(success=False, error='Story content required')
-    
+
     story_data = {
         'id': f"{nickname}_{int(time.time())}",
         'timestamp': current_time,
         'text': story_text
     }
-    
+
     # Handle file upload
     if file and file.filename:
         allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.avi', '.webm'}
         file_ext = os.path.splitext(file.filename)[1].lower()
-        
+
         if file_ext not in allowed_extensions:
             return jsonify(success=False, error='Invalid file type')
-        
+
         if len(file.read()) > 10 * 1024 * 1024:  # 10MB limit for stories
             return jsonify(success=False, error='File too large (max 10MB)')
-        
+
         file.seek(0)
-        
+
         stories_dir = os.path.join('static', 'stories')
         os.makedirs(stories_dir, exist_ok=True)
-        
+
         import uuid
         filename = f"{uuid.uuid4().hex}{file_ext}"
         filepath = os.path.join(stories_dir, filename)
-        
+
         try:
             file.save(filepath)
             story_data['media_url'] = f"/static/stories/{filename}"
             story_data['media_type'] = 'video' if file_ext in ['.mp4', '.mov', '.avi', '.webm'] else 'image'
         except Exception as e:
             return jsonify(success=False, error='Upload failed')
-    
+
     # Save story
     stories_data = load_json('stories')
     if nickname not in stories_data:
         stories_data[nickname] = []
-    
+
     stories_data[nickname].append(story_data)
-    
+
     # Keep only last 10 stories per user
     stories_data[nickname] = stories_data[nickname][-10:]
-    
+
     save_json('stories', stories_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2143,7 +1888,7 @@ def view_story():
     data = request.get_json()
     user = data.get('user')
     story_id = data.get('story_id')
-    
+
     # Here you could track story views if needed
     return jsonify(success=True)
 
@@ -2155,7 +1900,7 @@ def purchase_premium():
     data = request.get_json()
     duration = data.get('duration', 1)  # months
     payment_method = data.get('payment_method', 'card')
-    
+
     # Bank transfer details
     bank_info = {
         'card_number': '4441114433355573',
@@ -2163,10 +1908,10 @@ def purchase_premium():
         'duration': duration,
         'user': session['nickname']
     }
-    
+
     # Log the purchase request
     print(f"Premium purchase request: {session['nickname']} - {duration} months")
-    
+
     return jsonify(success=True, bank_info=bank_info)
 
 
@@ -2177,13 +1922,13 @@ def get_ui_settings():
     try:
         premium_data = load_json('premium')
         nickname = session['nickname']
-        
+
         if not premium_data or premium_data == {"placeholder": "data"}:
             return jsonify({})
-        
+
         if nickname in premium_data:
             return jsonify(premium_data[nickname].get('ui_settings', {}))
-        
+
         return jsonify({})
     except Exception as e:
         print(f"Error loading UI settings for {nickname}: {e}")
@@ -2197,22 +1942,22 @@ def update_ui_settings():
     # Check premium status
     premium_data = load_json('premium')
     nickname = session['nickname']
-    
+
     import time
     current_time = int(time.time())
-    
+
     if nickname not in premium_data:
         return jsonify(success=False, error='Premium subscription required')
-    
+
     user_premium = premium_data[nickname]
     if user_premium.get('until_timestamp', 0) != -1 and user_premium.get('until_timestamp', 0) <= current_time:
         return jsonify(success=False, error='Premium subscription expired')
-    
+
     ui_settings = request.get_json().get('ui_settings', {})
-    
+
     premium_data[nickname]['ui_settings'] = ui_settings
     save_json('premium', premium_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2224,7 +1969,7 @@ def get_user_verification(username):
         verification_data = load_json('verification')
         if not verification_data or verification_data == {"placeholder": "data"}:
             return jsonify({'verified': False})
-        
+
         is_verified = username in verification_data
         return jsonify({'verified': is_verified})
     except Exception as e:
@@ -2238,26 +1983,26 @@ def admin_grant_premium():
     """Grant premium to user (admin only)"""
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
-    
+
     data = request.get_json()
     username = data.get('username')
     duration = data.get('duration', 1)  # months
-    
+
     if not username:
         return jsonify(success=False, error='Username required')
-    
+
     premium_data = load_json('premium')
-    
+
     import time
     current_time = int(time.time())
-    
+
     if duration == -1:
         until_timestamp = -1
         until_text = 'Permanent'
     else:
         until_timestamp = current_time + (duration * 30 * 24 * 3600)  # months to seconds
         until_text = time.strftime('%Y-%m-%d', time.localtime(until_timestamp))
-    
+
     premium_data[username] = {
         'granted_at': current_time,
         'granted_by': session['nickname'],
@@ -2266,9 +2011,9 @@ def admin_grant_premium():
         'duration_months': duration,
         'ui_settings': {}
     }
-    
+
     save_json('premium', premium_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2278,23 +2023,23 @@ def admin_grant_verification():
     """Grant verification badge to user (admin only)"""
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
-    
+
     data = request.get_json()
     username = data.get('username')
-    
+
     if not username:
         return jsonify(success=False, error='Username required')
-    
+
     verification_data = load_json('verification')
-    
+
     import time
     verification_data[username] = {
         'granted_at': int(time.time()),
         'granted_by': session['nickname']
     }
-    
+
     save_json('verification', verification_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2304,17 +2049,17 @@ def admin_remove_verification():
     """Remove verification badge from user (admin only)"""
     if session['nickname'] != 'Wixxy':
         return jsonify(success=False, error='Access denied'), 403
-    
+
     data = request.get_json()
     username = data.get('username')
-    
+
     if not username:
         return jsonify(success=False, error='Username required')
-    
+
     verification_data = load_json('verification')
     verification_data.pop(username, None)
     save_json('verification', verification_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2326,23 +2071,23 @@ def change_password():
     current_password = data.get('current_password')
     new_password = data.get('new_password')
     nickname = session['nickname']
-    
+
     if not current_password or not new_password:
         return jsonify(success=False, error='Both passwords required')
-    
+
     # Verify current password
     if not verify_user(nickname, current_password):
         return jsonify(success=False, error='Current password incorrect')
-    
+
     # Update password
     users_data = load_json('users')
     for user_info in users_data.values():
         if isinstance(user_info, dict) and user_info.get('nickname') == nickname:
             user_info['password'] = new_password
             break
-    
+
     save_json('users', users_data)
-    
+
     return jsonify(success=True)
 
 
@@ -2352,7 +2097,7 @@ def purchase_premium_visa():
     """Handle premium purchase through Visa processing"""
     data = request.get_json()
     duration = data.get('duration', 1)  # months
-    
+
     # Simulate Visa payment processing
     payment_details = {
         'merchant_id': 'ORBITMESS_UA',
@@ -2363,9 +2108,10 @@ def purchase_premium_visa():
         'redirect_url': '/payment_success',
         'user': session['nickname']
     }
-    
+
     # In real implementation, you would redirect to Visa payment gateway
     # For now, we'll return payment details for manual processing
-    
+
     return jsonify(success=True, payment_details=payment_details)
 
+socketio code and new route added.
