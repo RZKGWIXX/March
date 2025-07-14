@@ -178,6 +178,32 @@ body {
   border-bottom: 1px solid var(--surface-lighter);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.header-user-info h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.header-user-info .user-info {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 .header-buttons {
   display: flex;
   gap: 0.5rem;
@@ -725,6 +751,29 @@ body {
 
 .mobile-only {
   display: none;
+}
+
+#mobile-chat-options {
+  display: flex !important;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 1.4rem;
+  background: var(--surface-lighter);
+  border: none;
+  border-radius: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-weight: bold;
+}
+
+#mobile-chat-options:hover {
+  background: var(--accent-green);
+  color: black;
+  transform: scale(1.05);
 }
 
 /* Mobile Chat Options Dropdown */

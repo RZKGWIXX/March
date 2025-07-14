@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Header menu toggle for sidebar
+  const menuToggleHeader = document.getElementById('menu-toggle-header');
+  if (menuToggleHeader) {
+    menuToggleHeader.onclick = () => {
+      showMobileSidebar();
+    };
+  }
+
   // Mobile sidebar functionality
   function showMobileSidebar() {
     // Remove existing sidebar
@@ -460,24 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
       blockUserBtn.style.display = 'none'; // Always hide since we have mobile dropdown
     }
 
-    // Show settings button only in general chat - both in header and sidebar
-    const headerSettingsBtn = document.querySelector('.chat-controls #settings-btn');
-    const sidebarSettingsBtn = document.querySelector('.header-buttons #settings-btn');
-
-    if (headerSettingsBtn) {
-      if (room === 'general') {
-        headerSettingsBtn.style.display = 'flex';
-        headerSettingsBtn.classList.add('general-only');
-      } else {
-        headerSettingsBtn.style.display = 'none';
-        headerSettingsBtn.classList.remove('general-only');
-      }
-    }
-
-    // Sidebar settings button should always be visible
-    if (sidebarSettingsBtn) {
-      sidebarSettingsBtn.style.display = 'flex';
-    }
+    // Settings moved to mobile sidebar, no special handling needed
 
     // Setup mobile chat options
     const mobileChatOptions = document.getElementById('mobile-chat-options');
@@ -3696,30 +3687,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStories();
   }, 120000);
 
-  // Add user avatar to user info
-  const userInfo = document.querySelector('.user-info');
-  if (userInfo) {
-    // Load user avatar
+  // Load header avatar
+  const headerAvatar = document.getElementById('header-avatar');
+  if (headerAvatar) {
     fetch(`/get_user_avatar/${nickname}`)
       .then(r => r.json())
       .then(data => {
-        const userAvatar = document.createElement('img');
-        userAvatar.className = 'user-info-avatar';
-        userAvatar.src = data.avatar && data.avatar !== '/static/default-avatar.png' ? data.avatar + '?t=' + Date.now() : '/static/default-avatar.svg';
-        userAvatar.alt = nickname;
-        userAvatar.onerror = () => {
-          userAvatar.src = '/static/default-avatar.svg';
-        };
-
-        userInfo.insertBefore(userAvatar, userInfo.firstChild);
+        if (data.avatar && data.avatar !== '/static/default-avatar.png') {
+          headerAvatar.src = data.avatar + '?t=' + Date.now();
+        } else {
+          headerAvatar.src = '/static/default-avatar.svg';
+        }
       })
       .catch(err => {
         console.error('Failed to load user avatar:', err);
-        const userAvatar = document.createElement('img');
-        userAvatar.className = 'user-info-avatar';
-        userAvatar.src = '/static/default-avatar.svg';
-        userAvatar.alt = nickname;
-        userInfo.insertBefore(userAvatar, userInfo.firstChild);
+        headerAvatar.src = '/static/default-avatar.svg';
       });
   }
 
