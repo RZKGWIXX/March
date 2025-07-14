@@ -849,8 +849,7 @@ def unblock_user():
     if session['nickname'] in blocks_data and other_user in blocks_data[
             session['nickname']]:
         blocks_data[session['nickname']].remove(other_user)
-        save_json('blocks',```python
- blocks_data)
+        save_json('blocks', blocks_data)
 
     return jsonify(success=True)
 
